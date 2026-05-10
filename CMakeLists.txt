@@ -70,6 +70,21 @@ if(CRAFTKV_BUILD_RAFT)
 
   file(GLOB RAFT_SRC "${PROJECT_SOURCE_DIR}/src/raft/*.cc")
 
+  find_library(LIBGO_LIBRARY
+    NAMES libgo go
+    HINTS
+      ${CMAKE_PREFIX_PATH}
+      /opt/grpc
+    ENV CMAKE_PREFIX_PATH
+    PATH_SUFFIXES lib lib64
+  )
+
+  if(NOT LIBGO_LIBRARY)
+    message(FATAL_ERROR "libgo library not found. Please install libgo and set CMAKE_PREFIX_PATH, for example: -DCMAKE_PREFIX_PATH=/opt/grpc")
+  endif()
+
+  message(STATUS "Using libgo: ${LIBGO_LIBRARY}")
+
   add_library(craft STATIC
     ${PROTO_SRCS}
     ${PROTO_HDRS}
@@ -84,7 +99,7 @@ if(CRAFTKV_BUILD_RAFT)
     ${_REFLECTION}
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF}
-    libgo
+    ${LIBGO_LIBRARY}
     Threads::Threads
   )
 
