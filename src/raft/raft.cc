@@ -1,0 +1,506 @@
+#include "craft/raft.h"
+#include "craft/public.h"
+#include <algorithm>
+#include <cstdlib>
+#include "filesystem"
+#include <utility>
+#include "craft/utils/commonUtil.h"
+#include "common/config.h"
+
+namespace craft {
+    namespace {
+        std::string DefaultConfigPath() {
+            const char* home = getenv("HOME");
+            if (home == nullptr) {
+                return "config/node1.yaml";
+            }
+            return std::string(home) + "/craft/craft.conf";
+        }
+    }
+
+    Raft::Raft(AbstractPersist *persister, co_chan<ApplyMsg> *applyCh)
+            : Raft(persister, applyCh, DefaultConfigPath()) {}
+
+    Raft::Raft(AbstractPersist *persister, co_chan<ApplyMsg> *applyCh, std::string configPath)
+            : m_persister_(persister), m_configPath_(std::move(configPath)) {
+
+        initFromConfig(m_configPath_);
+        m_peers_ = RpcClients::getInstance(m_clusterAddress_);
+        m_nextIndex_.resize(m_peers_->numPeers());
+        m_matchIndex_.resize(m_peers_->numPeers());
+        m_logs_.emplace_back();
+
+        /*channels*/
+        m_applyCh_ = applyCh;
+        m_notifyApplyCh_ = new co_chan<void *>(100000);
+        m_StateChangedCh_ = new co_chan<RETURN_TYPE>(1);
+        m_stopCh_ = new co_chan<void *>(1);
+        isCompleteSnapFileInstallCh_ = new co_chan<RETURN_TYPE>(1);
+        /* timer */
+        m_electionTimer = new Timer();
+        m_applyTimer = new Timer();
+        m_appendEntriesTimer = new Timer();
+        loadFromPersist();
+    }
+
+    void Raft::initFromConfig(const std::string &filename) {
+        craftkv::common::NodeConfig nodeConfig;
+        std::string error;
+        if (craftkv::common::LoadNodeConfig(filename, &nodeConfig, &error)) {
+            m_clusterAddress_.clear();
+            m_peerIds_.clear();
+            for (int i = 0; i < static_cast<int>(nodeConfig.peers.size()); ++i) {
+                const auto& peer = nodeConfig.peers[i];
+                m_peerIds_.push_back(peer.id);
+                m_clusterAddress_.push_back(peer.addr);
+                if (peer.id == nodeConfig.node_id) {
+                    m_me_ = i;
+                }
+            }
+            m_leaderEelectionTimeOut_ = static_cast<uint>(nodeConfig.raft.election_timeout_ms_min);
+            m_leaderElectionTimeOutMax_ = static_cast<uint>(nodeConfig.raft.election_timeout_ms_max);
+            m_heatBeatInterVal = static_cast<uint>(nodeConfig.raft.heartbeat_interval_ms);
+            m_rpcTimeOut_ = static_cast<uint>(nodeConfig.raft.rpc_timeout_ms);
+            spdlog::info("load yaml config [{}], local raft index = [{}]", filename, m_me_);
+            return;
+        }
+
+        check(filename);
+        ConfigReader configReader(filename);
+        auto configMap = configReader.getMap();
+        auto ids = configMap.find("id");
+        if (ids == configMap.end()) {
+            spdlog::error("id not found in config file");
+            exit(1);
+        } else {
+            m_me_ = std::stoi(ids->second);
+        }
+        ids = configMap.find("HEART_BEAT_INTERVAL");
+        if (ids != configMap.end()) {
+            m_heatBeatInterVal = std::stoi(ids->second);
+            spdlog::info("find HEART_BEAT_INTERVAL in config= [{}]", m_heatBeatInterVal);
+        }
+        ids = configMap.find("ELECTION_TIMEOUT");
+        if (ids != configMap.end()) {
+            m_leaderEelectionTimeOut_ = std::stoi(ids->second);
+            spdlog::info("find ELECTION_TIMEOUT in config= [{}]", m_leaderEelectionTimeOut_);
+        }
+        ids = configMap.find("RPC_TIMEOUT");
+        if (ids != configMap.end()) {
+            m_rpcTimeOut_ = std::stoi(ids->second);
+            spdlog::info("find RPC_TIMEOUT in config= [{}]", m_rpcTimeOut_);
+        }
+
+        auto range = configMap.equal_range("servers");
+        if (range.first != range.second) {
+            std::vector<std::string> servers;
+            for (auto it = range.first; it != range.second; it++) {
+                servers.push_back(it->second);
+            }
+            setClusterAddress(servers);
+        }
+        if (m_clusterAddress_.empty()) {
+            spdlog::error("not found any server addr from [~/craft/craft.conf]");
+            exit(1);
+        }
+        m_peerIds_.resize(m_clusterAddress_.size());
+        for (int i = 0; i < static_cast<int>(m_peerIds_.size()); ++i) {
+            m_peerIds_[i] = i;
+        }
+        spdlog::info("local id = [{}]", m_me_);
+    }
+
+    void Raft::setClusterAddress(const std::vector<std::string> &clusterAddress) {
+        m_clusterAddress_.clear();
+        for (const auto &addr: clusterAddress) {
+            //spdlog::error("ip port [{}] is invalid", addr);
+            if (isValidIpPort(addr)) {
+                m_clusterAddress_.push_back(addr);
+            } else {
+                spdlog::error("ip port [{}] is invalid", addr);
+                exit(1);
+            }
+        }
+    }
+
+    void Raft::setLeaderEelectionTimeOut(uint millisecond) {
+        m_leaderEelectionTimeOut_ = millisecond;
+    }
+
+    void Raft::setRpcTimeOut(uint millisecond) {
+        m_rpcTimeOut_ = millisecond;
+    }
+
+    void Raft::setHeatBeatTimeOut(uint millisecond) {
+        m_heatBeatInterVal = millisecond;
+    }
+
+    void Raft::setLogLevel(spdlog::level::level_enum loglevel) {
+        spdlog::set_level(loglevel);
+    }
+
+    void Raft::launch() {
+
+        // launch local RpcSevices
+        co_launchRpcSevices();
+
+        /* main:logic:start with coroutines */
+        co_appendAentries();
+        co_startElection();
+        co_applyLogs();
+        if (m_commitIndex_ > m_lastApplied_) {
+            *m_notifyApplyCh_ << (void *) 1;
+        }
+    }
+
+    void Raft::changeToState(STATE toState) {
+        auto fromState = m_state_;
+        if (toState == STATE::FOLLOWER) {
+            m_appendEntriesTimer->stop();
+        } else if (toState == STATE::CANDIDATE) {
+            this->m_current_term_++;
+            this->m_votedFor_ = this->m_me_;
+            this->m_leaderId_ = -1;
+            m_electionTimer->reset(getElectionTimeOut(m_leaderEelectionTimeOut_));
+            m_appendEntriesTimer->stop();
+        } else if (toState == STATE::LEADER) {
+            int lastLogIndex = getLastLogIndex();
+            for (int i = 0; i < m_peers_->numPeers(); i++) {
+                m_nextIndex_[i] = lastLogIndex + 1;
+                m_matchIndex_[i] = lastLogIndex;
+            }
+            m_leaderId_ = m_me_;
+            m_electionTimer->stop();
+            m_appendEntriesTimer->reset(m_heatBeatInterVal);
+        } else {
+            spdlog::critical("change to unkown toState");
+        }
+        m_state_ = toState;
+
+        spdlog::info("[{}]:{} from {} change to {},term = [{}]", m_me_, m_clusterAddress_[m_me_],
+                     stringState(fromState),
+                     stringState(toState), m_current_term_);
+        if (m_StateChangedCh_->empty()) {
+            *m_StateChangedCh_ << RETURN_TYPE::STATE_CHANGED;
+        }
+    }
+
+    bool Raft::saveSnapShot(int index) {
+        co_mtx_.lock();
+        co_defer [this] { co_mtx_.unlock(); };
+        int snapshotIndex = m_snapShotIndex;
+        if (snapshotIndex >= index) {
+            spdlog::error("reject saveSnapShot,index = [{}],snapshotIndex = [{}]", index, snapshotIndex);
+            return false;
+        }
+        int oldLastSnapshotIndex = m_snapShotIndex;
+        m_snapShotTerm = m_logs_[getStoreIndexByLogIndex(index)].term();
+        snapshotIndex = index;
+        m_persister_->setSnapshotMeta(snapshotIndex, m_snapShotTerm);
+        m_persister_->serialization();
+        m_logs_.erase(m_logs_.begin(), m_logs_.begin() + index - oldLastSnapshotIndex);
+        m_logs_[0].set_term(m_snapShotTerm);
+        m_logs_[0].set_command("");
+        m_snapShotIndex = snapshotIndex;
+        std::vector<std::pair<int, std::string>> entries;
+        for (int i = 1; i < static_cast<int>(m_logs_.size()); ++i) {
+            entries.emplace_back(m_logs_[i].term(), m_logs_[i].command());
+        }
+        m_persister_->rewriteLogEntries(m_snapShotIndex + 1, entries);
+        m_persister_->saveRaftMeta(m_current_term_, m_votedFor_, m_commitIndex_, m_lastApplied_);
+        spdlog::info("[{}]:{} saveSnapShot success,index = [{}],snapshotIndex = [{}]", m_me_, m_clusterAddress_[m_me_],
+                     index,
+                     snapshotIndex);
+        return true;
+    }
+
+    template<typename T>
+    void deleter(T *&ptr) {
+        if (ptr != nullptr) {
+            delete ptr;
+            ptr = nullptr;
+        }
+    }
+    ServerCallResult Raft::submitCommand(std::string command) {
+        int index = -1;
+        int term =  -1;
+        bool isLeader =  false;
+        co_mtx_.lock();
+        co_defer[this]{
+            co_mtx_.unlock();
+        };
+        if(m_state_ !=STATE::LEADER){
+            return {index,term,isLeader};
+        }
+        term = m_current_term_;
+        index = getLastLogIndex() + 1;
+        LogEntry logEntry;
+        logEntry.set_term(term);
+        logEntry.set_command(command);
+        if (!m_persister_->appendLogEntry(index, term, command)) {
+            return {-1, term, false};
+        }
+        m_logs_.push_back(logEntry);
+        m_matchIndex_[m_me_] = index;
+        m_nextIndex_[m_me_] = index + 1;
+        isLeader = true;
+        m_persister_->saveRaftMeta(m_current_term_, m_votedFor_, m_commitIndex_, m_lastApplied_);
+        return {index,term,isLeader};
+    }
+
+    std::string Raft::stringState(STATE state) {
+        std::string a;
+        if (state == STATE::LEADER) {
+            a = "LEADER";
+        } else if (state == STATE::CANDIDATE) {
+            a = "CANDIDATE";
+        } else if (state == STATE::FOLLOWER) {
+            a = "FOLLOWER";
+        } else {
+            a = "UNKNOWN";
+        }
+        return a;
+    }
+
+    Raft::~Raft() {
+        deleter(m_stopCh_);
+        deleter(m_notifyApplyCh_);
+        deleter(m_electionTimer);
+        deleter(m_appendEntriesTimer);
+        deleter(m_notifyApplyCh_);
+        deleter(m_StateChangedCh_);
+        deleter(m_applyTimer);
+        deleter(isCompleteSnapFileInstallCh_);
+    }
+
+
+    void Raft::loadFromPersist() {
+        spdlog::info("start load from persist.");
+        if (m_persister_ == nullptr) {
+            spdlog::error("Persist Object not found");
+            return;
+        }
+        m_votedFor_ = m_persister_->getVotedFor();
+        m_current_term_ = m_persister_->getCurrentTerm();
+        m_commitIndex_ = m_persister_->getCommitIndex();
+        m_snapShotIndex = m_persister_->getLastSnapshotIndex();
+        m_snapShotTerm = m_persister_->getLastSnapshotTerm();
+        // The state machine is restored from snapshot first. Persisted lastApplied
+        // must not be trusted as final recovery state, otherwise committed logs
+        // after the snapshot but before the crash would be skipped.
+        m_lastApplied_ = m_snapShotIndex;
+        if (!m_logs_.empty()) {
+            m_logs_[0].set_term(m_snapShotTerm);
+            m_logs_[0].set_command("");
+        }
+
+        auto logEntries = m_persister_->getLogEntries();
+        for (auto &logEntrie: logEntries) {
+            LogEntry log;
+            log.set_term(logEntrie.first);
+            log.set_command(logEntrie.second);
+            m_logs_.push_back(log);
+        }
+        if (m_commitIndex_ < m_snapShotIndex) {
+            m_commitIndex_ = m_snapShotIndex;
+        }
+        if (m_commitIndex_ > getLastLogIndex()) {
+            spdlog::warn("commitIndex [{}] is larger than lastLogIndex [{}], clamp it during recovery",
+                         m_commitIndex_, getLastLogIndex());
+            m_commitIndex_ = getLastLogIndex();
+        }
+        spdlog::info("load from persist success.");
+        spdlog::info("m_votedFor_ = [{}]", m_votedFor_);
+        spdlog::info("m_current_term_ = [{}]", m_current_term_);
+        spdlog::info("m_commitIndex_ = [{}]", m_commitIndex_);
+        spdlog::info("m_snopShotIndex = [{}]", m_snapShotIndex);
+        spdlog::info("m_snopShotTerm = [{}]", m_snapShotTerm);
+        for (const auto &i: m_logs_) {
+            spdlog::debug("logs term = {},command = {}", i.term(), i.command());
+        }
+    }
+
+    int Raft::getLastLogTerm() const {
+        return m_logs_[m_logs_.size() - 1].term();
+    }
+
+    int Raft::getLastLogIndex() const {
+        return m_snapShotIndex + m_logs_.size() - 1;
+    }
+
+    bool Raft::isOutOfArgsAppendEntries(const ::AppendEntriesArgs *args) const {
+        int argsLastLogIndex = args->prevlogindex() + args->entries_size();
+        int lastLogIndex = getLastLogIndex();
+        int lastLogTerm = getLastLogTerm();
+
+        if (lastLogTerm == args->term() && argsLastLogIndex < lastLogIndex) {
+            return true;
+        }
+        return false;
+    }
+
+    int Raft::getStoreIndexByLogIndex(int logIndex) {
+        int storeIndex = logIndex - m_snapShotIndex;
+        if (storeIndex < 0) {
+            spdlog::error("getStoreIndexByLogIndex error,logIndex = [{}],m_snapShotIndex = [{}]", logIndex,
+                          m_snapShotIndex);
+            return -1;
+        }
+        return storeIndex;
+    }
+
+    void Raft::tryCommitLog() {
+        int lastLogIndex = getLastLogIndex();
+        bool hasCommit = false;
+        for (int i = m_commitIndex_ + 1; i <= lastLogIndex; i++) {
+            int count = 0;
+            bool hasMajority = false;
+            for (int j = 0; j < m_peers_->numPeers(); j++) {
+                if (m_matchIndex_[j] >= i) {
+                    count++;
+                    if (count > m_peers_->numPeers() / 2) {
+                        hasMajority = true;
+                        break;
+                    }
+                }
+            }
+            if (!hasMajority) {
+                break;
+            }
+            int storeIndex = getStoreIndexByLogIndex(i);
+            if (storeIndex >= 0 && storeIndex < static_cast<int>(m_logs_.size()) &&
+                m_logs_[storeIndex].term() == m_current_term_) {
+                m_commitIndex_ = i;
+                hasCommit = true;
+                spdlog::info("[{}]:{},success commit log index = [{}]", m_me_, m_clusterAddress_[m_me_], i);
+            }
+        }
+        if (hasCommit) {
+            *m_notifyApplyCh_ << (void *) 1;
+        }
+    }
+
+    std::tuple<int, int, std::vector<LogEntry>> Raft::getAppendLogs(int peerId) {
+        int nextIndex = m_nextIndex_[peerId];
+        int lastLogIndex = getLastLogIndex();
+        int lastLogTerm = getLastLogTerm();
+        std::vector<LogEntry> logEntries;
+        if (nextIndex <= m_snapShotIndex || nextIndex > lastLogIndex) {
+            return {lastLogIndex, lastLogTerm, logEntries};
+        }
+        logEntries.resize(lastLogIndex - nextIndex + 1);
+        std::copy(this->m_logs_.begin() + (nextIndex - m_snapShotIndex), this->m_logs_.end(), logEntries.begin());
+        int prevLogIndex = nextIndex - 1;
+        int prevLogTerm;
+        if (prevLogIndex == m_snapShotIndex) {
+            prevLogTerm = m_snapShotTerm;
+        } else {
+            prevLogTerm = this->m_logs_[prevLogIndex - m_snapShotIndex].term();
+        }
+        return {prevLogIndex, prevLogTerm, logEntries};
+    }
+
+
+    void writePersist(std::string fileName, int singleValue) {
+        std::ofstream stream;
+        stream.open(fileName, std::ios::out);
+
+        if (!stream) {
+            spdlog::error("can not open file [{}]", fileName);
+        } else {
+            stream << singleValue;
+        }
+        stream.close();
+    }
+
+    void writePersist(std::string logtermFile, std::string logcommandFile, const std::vector<LogEntry> &logs,
+                      bool is_truncate) {
+        if(is_truncate){
+            // 清空文件
+            std::ofstream logtermStream;
+            std::ofstream logcommandStream;
+            if (!logtermStream) {
+                spdlog::error("can not open file [{}]", logtermFile);
+                return;
+            }
+            if (!logcommandStream) {
+                spdlog::error("can not open file [{}]", logcommandFile);
+                return;
+            }
+            logtermStream.open(logtermFile, std::ios::out | std::ios::trunc);
+            logcommandStream.open(logcommandFile, std::ios::out | std::ios::trunc);
+            logtermStream.close();
+            logcommandStream.close();
+        }
+        std::ofstream logtermStream;
+        std::ofstream logcommandStream;
+        logtermStream.open(logtermFile, std::ios::out);
+        logcommandStream.open(logcommandFile, std::ios::out);;
+        if (!logtermStream) {
+            spdlog::error("can not open file [{}]", logtermFile);
+        }
+        if (!logcommandStream) {
+            spdlog::error("can not open file [{}]", logcommandFile);
+        }
+
+        if (logs.size() > 1) {
+            for (int i = 1; i < logs.size(); i++) {
+                logtermStream << logs[i].term() << std::endl;
+                logcommandStream << logs[i].command() << std::endl;
+            }
+        }
+        logtermStream.close();
+        logcommandStream.close();
+    }
+
+    static std::vector<std::string> all_persist_files = {"commitIndex.data", "currentTerm.data", "lastlogindex.data",
+                                                         "lastSnapshotIndex.data", "lastSnapshotTerm.data",
+                                                         "logentry.command.data", "logentry.term.data",
+                                                         "votefor.data"};
+
+    static int last_to_disk_index = 1;
+    static int last_to_disk_term = 1;
+
+    void Raft::persist() {
+        m_persister_->saveRaftMeta(m_current_term_, m_votedFor_, m_commitIndex_, m_lastApplied_);
+    }
+
+    bool Raft::isLeader() {
+        co_mtx_.lock();
+        co_defer[this] { co_mtx_.unlock(); };
+        return m_state_ == STATE::LEADER;
+    }
+
+    int Raft::getLeaderId() {
+        co_mtx_.lock();
+        co_defer[this] { co_mtx_.unlock(); };
+        return m_leaderId_;
+    }
+
+    int Raft::getExternalLeaderId() {
+        co_mtx_.lock();
+        co_defer[this] { co_mtx_.unlock(); };
+        if (m_leaderId_ >= 0 && m_leaderId_ < static_cast<int>(m_peerIds_.size())) {
+            return m_peerIds_[m_leaderId_];
+        }
+        return -1;
+    }
+
+    std::string Raft::getLeaderAddress() {
+        co_mtx_.lock();
+        co_defer[this] { co_mtx_.unlock(); };
+        if (m_leaderId_ >= 0 && m_leaderId_ < static_cast<int>(m_clusterAddress_.size())) {
+            return m_clusterAddress_[m_leaderId_];
+        }
+        return "";
+    }
+
+    int Raft::getLogCountAfterSnapshot() {
+        co_mtx_.lock();
+        co_defer[this] { co_mtx_.unlock(); };
+        return static_cast<int>(m_logs_.size()) - 1;
+    }
+
+
+
+}  // namespace craft

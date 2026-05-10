@@ -1,0 +1,25 @@
+node_id: 2
+listen_addr: 127.0.0.1:8002
+client_addr: 127.0.0.1:9002
+data_dir: ./data/node2
+
+peers:
+  - id: 1
+    addr: 127.0.0.1:8001
+    client_addr: 127.0.0.1:9001
+  - id: 2
+    addr: 127.0.0.1:8002
+    client_addr: 127.0.0.1:9002
+  - id: 3
+    addr: 127.0.0.1:8003
+    client_addr: 127.0.0.1:9003
+
+snapshot:
+  max_log_entries: 10000
+  snapshot_dir: ./data/node2
+
+raft:
+  election_timeout_ms_min: 300
+  election_timeout_ms_max: 600
+  heartbeat_interval_ms: 100
+  rpc_timeout_ms: 300

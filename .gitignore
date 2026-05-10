@@ -1,0 +1,60 @@
+build/
+cmake-build-*/
+bin/
+lib/
+data/
+logs/
+run/
+.data/
+codex_checkpoint_*.patch
+
+*.o
+*.a
+*.so
+*.dll
+*.exe
+*.lib
+*.obj
+*.pdb
+*.log
+*.pid
+*.tmp
+*.bak
+
+.idea/
+.vscode/
+.vs/
+.DS_Store
+
+# Build directories
+build/
+build-*/
+cmake-build-*/
+
+# Runtime data
+data/
+.data/
+logs/
+run/
+
+# Build outputs
+bin/
+lib/
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# Logs / temp
+*.log
+*.pid
+*.tmp
+*.bak
+
+# IDE / OS
+.vscode/
+.idea/
+.vs/
+.DS_Store
