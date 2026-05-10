@@ -1,13 +1,32 @@
+# Build directories
 build/
+build-*/
 cmake-build-*/
+
+# Build outputs
 bin/
 lib/
+
+# Runtime data
 data/
+.data/
 logs/
 run/
-.data/
+
+# Logs and temp files
+*.log
+*.pid
+*.tmp
+*.bak
 codex_checkpoint_*.patch
 
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# Object / binary files
 *.o
 *.a
 *.so
@@ -16,42 +35,6 @@ codex_checkpoint_*.patch
 *.lib
 *.obj
 *.pdb
-*.log
-*.pid
-*.tmp
-*.bak
-
-.idea/
-.vscode/
-.vs/
-.DS_Store
-
-# Build directories
-build/
-build-*/
-cmake-build-*/
-
-# Runtime data
-data/
-.data/
-logs/
-run/
-
-# Build outputs
-bin/
-lib/
-
-# Archives
-*.zip
-*.tar
-*.tar.gz
-*.7z
-
-# Logs / temp
-*.log
-*.pid
-*.tmp
-*.bak
 
 # IDE / OS
 .vscode/
