@@ -960,8 +960,3 @@ raft:
 
 ---
 
-## License
-
-本项目基于开源项目 `cq-cdy/cRaft` 二次开发，并保留原项目 LICENSE。
-
-具体请查看仓库中的 `LICENSE` 文件。
