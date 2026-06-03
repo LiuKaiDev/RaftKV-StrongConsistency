@@ -1,6 +1,7 @@
 #include "libgo/defer/defer.h"
 #include "craft/public.h"
 #include "craft/startRpcService.h"
+#include "raft/raft_correctness.h"
 
 namespace craft {
     bool checkLog(Raft *rf, const ::RequestVoteArgs *request);
@@ -35,8 +36,7 @@ namespace craft {
                     break;
                 }
             } else { // peerTerm > m_rf_->m_current_term_
-                m_rf_->m_current_term_ = peerTerm;
-                m_rf_->m_votedFor_ = -1;
+                raft_correctness::ApplyRequestVoteTerm(peerTerm, &m_rf_->m_current_term_, &m_rf_->m_votedFor_);
                 m_rf_->changeToState(STATE::FOLLOWER);
                 if (!checkLog(m_rf_, request)) {
                     m_rf_->m_votedFor_ = request->candidateid();
@@ -53,6 +53,7 @@ namespace craft {
             }
 
         } while (false);
+        response->set_term(m_rf_->m_current_term_);
         m_rf_->co_mtx_.unlock();
         return Status::OK;
     }

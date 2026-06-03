@@ -1,6 +1,7 @@
 #include "libgo/coroutine.h"
 #include "craft/public.h"
 #include "craft/raft.h"
+#include "raft/raft_correctness.h"
 
 namespace craft {
 
@@ -91,8 +92,17 @@ namespace craft {
     bool sendToAppendEntries(Raft *rf, int serverId,
                              const std::shared_ptr<AppendEntriesArgs> &args,
                              const std::shared_ptr<AppendEntriesReply> &reply) {
+        if (!raft_correctness::IsRemotePeerIndex(serverId, rf->m_me_,
+                                                 static_cast<int>(rf->m_clusterAddress_.size()))) {
+            spdlog::error("serverId:{} invalid in sendToAppendEntries!", serverId);
+            return false;
+        }
         static std::vector<std::unique_ptr<RaftRPC::Stub>> &stubs =
                 rf->m_peers_->getPeerStubs();
+        if (!raft_correctness::IsRemotePeerIndex(serverId, rf->m_me_, static_cast<int>(stubs.size()))) {
+            spdlog::error("serverId:{} invalid in sendToAppendEntries!", serverId);
+            return false;
+        }
         bool isCallok = false;
         ClientContext context;
         std::chrono::system_clock::time_point deadline =
@@ -133,6 +143,11 @@ namespace craft {
     }
 
     void sendInstallSnapshotToPeer(Raft *rf, int serverId) {
+        if (!raft_correctness::IsRemotePeerIndex(serverId, rf->m_me_,
+                                                 static_cast<int>(rf->m_clusterAddress_.size()))) {
+            spdlog::error("serverId:{} invalid in sendInstallSnapshotToPeer!", serverId);
+            return;
+        }
 
         InstallSnapshotArgs args;
         args.set_term(rf->m_current_term_);
@@ -144,6 +159,10 @@ namespace craft {
 
         static std::vector<std::unique_ptr<RaftRPC::Stub>> &stubs =
                 rf->m_peers_->getPeerStubs();
+        if (!raft_correctness::IsRemotePeerIndex(serverId, rf->m_me_, static_cast<int>(stubs.size()))) {
+            spdlog::error("serverId:{} invalid in sendInstallSnapshotToPeer!", serverId);
+            return;
+        }
 
         ClientContext context;
         std::chrono::system_clock::time_point deadline =
@@ -166,14 +185,19 @@ namespace craft {
     }
 
     bool toTransferSnapShotFiles(Raft *rf, int serverId) {
-        static std::vector<std::unique_ptr<RaftRPC::Stub>> &stubs =
-                rf->m_peers_->getPeerStubs();
-        spdlog::info("id[{}]:{} transfer snapshot file to id[{}]:{}", rf->m_me_,rf->m_clusterAddress_[rf->m_me_], serverId,
-                     rf->m_clusterAddress_[serverId]);
-        if (serverId < 0 || serverId > rf->m_clusterAddress_.size() || serverId == rf->m_me_) {
+        if (!raft_correctness::IsRemotePeerIndex(serverId, rf->m_me_,
+                                                 static_cast<int>(rf->m_clusterAddress_.size()))) {
             spdlog::error("serverId:{} invalid in toTransferSnapShotFiles!", serverId);
             return false;
         }
+        static std::vector<std::unique_ptr<RaftRPC::Stub>> &stubs =
+                rf->m_peers_->getPeerStubs();
+        if (!raft_correctness::IsRemotePeerIndex(serverId, rf->m_me_, static_cast<int>(stubs.size()))) {
+            spdlog::error("serverId:{} invalid in toTransferSnapShotFiles!", serverId);
+            return false;
+        }
+        spdlog::info("id[{}]:{} transfer snapshot file to id[{}]:{}", rf->m_me_,rf->m_clusterAddress_[rf->m_me_], serverId,
+                     rf->m_clusterAddress_[serverId]);
         std::filesystem::path snapshotFilePath = rf->m_persister_->snapshotPath();
         check(snapshotFilePath);
         TransferSnapShotFileArgs args;

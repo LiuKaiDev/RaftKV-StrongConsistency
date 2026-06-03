@@ -2,6 +2,7 @@
 #include <libgo/coroutine.h>
 #include "craft/peers.h"
 #include "craft/raft.h"
+#include "raft/raft_correctness.h"
 
 namespace craft {
 
@@ -102,9 +103,14 @@ namespace craft {
     void sendRequestVote(Raft *rf, int serverId,
                          const std::shared_ptr<RequestVoteArgs> &request,
                          const std::shared_ptr<RequestVoteReply> &response) {
+        if (!raft_correctness::IsRemotePeerIndex(serverId, rf->m_me_,
+                                                 static_cast<int>(rf->m_clusterAddress_.size()))) {
+            spdlog::error("serverId:{} invalid in sendRequestVote!", serverId);
+            return;
+        }
         static std::vector<std::unique_ptr<RaftRPC::Stub>> &stubs =
                 rf->m_peers_->getPeerStubs();
-        if (serverId < 0 || serverId > rf->m_clusterAddress_.size() || serverId == rf->m_me_) {
+        if (!raft_correctness::IsRemotePeerIndex(serverId, rf->m_me_, static_cast<int>(stubs.size()))) {
             spdlog::error("serverId:{} invalid in sendRequestVote!", serverId);
             return;
         }

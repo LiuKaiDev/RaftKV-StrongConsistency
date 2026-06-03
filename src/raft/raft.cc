@@ -6,6 +6,7 @@
 #include <utility>
 #include "craft/utils/commonUtil.h"
 #include "common/config.h"
+#include "raft/raft_correctness.h"
 
 namespace craft {
     namespace {
@@ -165,9 +166,9 @@ namespace craft {
             m_appendEntriesTimer->stop();
         } else if (toState == STATE::LEADER) {
             int lastLogIndex = getLastLogIndex();
-            for (int i = 0; i < m_peers_->numPeers(); i++) {
-                m_nextIndex_[i] = lastLogIndex + 1;
-                m_matchIndex_[i] = lastLogIndex;
+            if (!raft_correctness::InitializeLeaderReplicationState(
+                    m_peers_->numPeers(), m_me_, lastLogIndex, &m_nextIndex_, &m_matchIndex_)) {
+                spdlog::critical("failed to initialize leader replication state");
             }
             m_leaderId_ = m_me_;
             m_electionTimer->stop();
