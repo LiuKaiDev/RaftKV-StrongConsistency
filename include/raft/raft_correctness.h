@@ -36,6 +36,23 @@ inline bool InitializeLeaderReplicationState(int peer_count,
     return true;
 }
 
+inline bool PrepareLeaderTransition(int peer_count,
+                                    int self_index,
+                                    int leader_last_log_index,
+                                    int* leader_id,
+                                    std::vector<int>* next_index,
+                                    std::vector<int>* match_index) {
+    if (leader_id == nullptr) {
+        return false;
+    }
+    if (!InitializeLeaderReplicationState(peer_count, self_index, leader_last_log_index,
+                                          next_index, match_index)) {
+        return false;
+    }
+    *leader_id = self_index;
+    return true;
+}
+
 inline bool ApplyRequestVoteTerm(int request_term, int* current_term, int* voted_for) {
     if (current_term == nullptr || voted_for == nullptr || request_term <= *current_term) {
         return false;

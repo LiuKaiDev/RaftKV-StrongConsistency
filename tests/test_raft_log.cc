@@ -36,6 +36,32 @@ int main() {
     assert(match_index[1] == 10);
     assert(match_index[2] == 0);
 
+    int leader_id = -1;
+    assert(craft::raft_correctness::PrepareLeaderTransition(3, 1, 10, &leader_id,
+                                                            &next_index, &match_index));
+    assert(leader_id == 1);
+    assert(next_index.size() == 3);
+    assert(match_index.size() == 3);
+    assert(next_index[0] == 11);
+    assert(next_index[1] == 11);
+    assert(next_index[2] == 11);
+    assert(match_index[0] == 0);
+    assert(match_index[1] == 10);
+    assert(match_index[2] == 0);
+
+    leader_id = -1;
+    next_index = {7, 8};
+    match_index = {9, 10};
+    assert(!craft::raft_correctness::PrepareLeaderTransition(3, 3, 10, &leader_id,
+                                                             &next_index, &match_index));
+    assert(leader_id == -1);
+    assert(next_index.size() == 2);
+    assert(match_index.size() == 2);
+    assert(next_index[0] == 7);
+    assert(next_index[1] == 8);
+    assert(match_index[0] == 9);
+    assert(match_index[1] == 10);
+
     assert(!craft::raft_correctness::IsValidPeerIndex(-1, 3));
     assert(craft::raft_correctness::IsValidPeerIndex(0, 3));
     assert(craft::raft_correctness::IsValidPeerIndex(2, 3));

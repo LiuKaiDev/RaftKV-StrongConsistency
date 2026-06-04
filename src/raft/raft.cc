@@ -166,11 +166,11 @@ namespace craft {
             m_appendEntriesTimer->stop();
         } else if (toState == STATE::LEADER) {
             int lastLogIndex = getLastLogIndex();
-            if (!raft_correctness::InitializeLeaderReplicationState(
-                    m_peers_->numPeers(), m_me_, lastLogIndex, &m_nextIndex_, &m_matchIndex_)) {
-                spdlog::critical("failed to initialize leader replication state");
+            if (!raft_correctness::PrepareLeaderTransition(
+                    m_peers_->numPeers(), m_me_, lastLogIndex, &m_leaderId_, &m_nextIndex_, &m_matchIndex_)) {
+                spdlog::critical("failed to initialize leader replication state; abort leader transition");
+                return;
             }
-            m_leaderId_ = m_me_;
             m_electionTimer->stop();
             m_appendEntriesTimer->reset(m_heatBeatInterVal);
         } else {
