@@ -23,6 +23,7 @@ echo "report_dir=${REPORT_DIR}"
 
 core_status=0
 cluster_status=0
+snapshot_cluster_status=SKIPPED
 
 echo "running core tests..."
 if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_core.sh" >"${REPORT_DIR}/test_core.log" 2>&1; then
@@ -44,12 +45,29 @@ else
   exit "${cluster_status}"
 fi
 
+if [[ "${RUN_SNAPSHOT_CLUSTER:-0}" == "1" ]]; then
+  echo "running snapshot cluster test..."
+  if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_snapshot_cluster.sh" >"${REPORT_DIR}/test_snapshot_cluster.log" 2>&1; then
+    echo "snapshot cluster: PASS"
+    snapshot_cluster_status=PASS
+  else
+    snapshot_cluster_status=$?
+    echo "snapshot cluster: FAIL (${snapshot_cluster_status})"
+    echo "log: ${REPORT_DIR}/test_snapshot_cluster.log"
+    exit "${snapshot_cluster_status}"
+  fi
+else
+  echo "snapshot cluster: SKIPPED (set RUN_SNAPSHOT_CLUSTER=1 to run)"
+fi
+
 cat >"${REPORT_DIR}/summary.txt" <<EOF
 run_id=${RUN_ID}
 core_status=PASS
 cluster_smoke_status=PASS
+snapshot_cluster_status=${snapshot_cluster_status}
 core_log=${REPORT_DIR}/test_core.log
 cluster_smoke_log=${REPORT_DIR}/test_cluster_smoke.log
+snapshot_cluster_log=${REPORT_DIR}/test_snapshot_cluster.log
 EOF
 
 echo "ALL TESTS PASSED"

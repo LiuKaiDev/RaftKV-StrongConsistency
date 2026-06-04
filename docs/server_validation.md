@@ -125,7 +125,33 @@ bash scripts/check_consistency.sh
 
 期望：生成 `snapshot.dat`，重启后数据仍可读取。
 
-## 10. 清理运行时文件
+## 10. 三节点 Snapshot 集成验证
+
+三节点 Snapshot 集成脚本会使用独立端口、独立数据目录和独立报告目录，验证严重落后的 follower 通过 InstallSnapshot 恢复、继续追日志、重启后通过本地 Snapshot + WAL 恢复，以及重复请求不会被二次执行：
+
+```bash
+bash scripts/test_snapshot_cluster.sh
+```
+
+验证脚本稳定性时建议在普通 SSH 终端重复运行：
+
+```bash
+for i in {1..5}; do
+  echo "===== snapshot integration round $i ====="
+  RUN_ID="snapshot-repeat-$i-$(date +%Y%m%d-%H%M%S)" \
+    bash scripts/test_snapshot_cluster.sh || break
+done
+```
+
+默认 `scripts/test_all.sh` 不运行该慢速集成测试。需要纳入完整批量测试时显式开启：
+
+```bash
+RUN_SNAPSHOT_CLUSTER=1 bash scripts/test_all.sh
+```
+
+测试数据默认保存到 `/tmp/raftkv-test-data/<run_id>/snapshot-cluster`，报告默认保存到 `/tmp/raftkv-test-reports/<run_id>/snapshot-cluster`，节点日志在测试数据目录的 `logs/` 下。失败时优先查看报告目录中的 `last_error.txt`、`failure_context.txt`、`client_attempts.log`，以及数据目录中的 `logs/node*.log`。可以通过 `TEST_DATA_ROOT`、`TEST_REPORT_ROOT` 和 `RUN_ID` 覆盖。
+
+## 11. 清理运行时文件
 
 验证完成后，如需提交 GitHub，请不要提交：
 
