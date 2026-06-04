@@ -3,6 +3,7 @@
 
 #include "kv/kv_command.h"
 #include "raft/raft_correctness.h"
+#include "raft/raft_log_entry.h"
 #include "storage/wal.h"
 
 int main() {
@@ -23,6 +24,20 @@ int main() {
     assert(restored.index == 10);
     assert(restored.term == 3);
     assert(restored.command == encoded);
+
+    std::string noop = craft::MakeInternalNoopCommand();
+    assert(craft::IsInternalNoopCommand(noop));
+    assert(!craft::IsInternalNoopCommand(encoded));
+    craftkv::ClientRequest noop_as_client;
+    assert(!craftkv::DeserializeClientRequest(noop, &noop_as_client, &error));
+
+    craftkv::storage::RaftLogRecord noop_log{11, 4, noop};
+    std::string noop_payload = craftkv::storage::EncodeLogRecordPayload(noop_log);
+    craftkv::storage::RaftLogRecord noop_restored;
+    assert(craftkv::storage::DecodeLogRecordPayload(noop_payload, &noop_restored));
+    assert(noop_restored.index == 11);
+    assert(noop_restored.term == 4);
+    assert(craft::IsInternalNoopCommand(noop_restored.command));
 
     std::vector<int> next_index;
     std::vector<int> match_index;
@@ -98,6 +113,28 @@ int main() {
     assert(response_term == 5);
     assert(!craft::raft_correctness::ApplyRequestVoteTerm(4, &current_term, &voted_for));
     assert(current_term == 5);
+    assert(voted_for == -1);
+
+    assert(craft::raft_correctness::IsCandidateLogAtLeastUpToDate(3, 10, 3, 10));
+    assert(craft::raft_correctness::IsCandidateLogAtLeastUpToDate(3, 10, 4, 1));
+    assert(!craft::raft_correctness::IsCandidateLogAtLeastUpToDate(4, 1, 3, 100));
+
+    int pre_vote_term = 5;
+    int pre_vote_voted_for = 2;
+    assert(craft::raft_correctness::ShouldGrantPreVote(
+        pre_vote_term, false, false, 3, 10, 6, 3, 10));
+    assert(!craft::raft_correctness::ShouldGrantPreVote(
+        pre_vote_term, true, false, 3, 10, 6, 3, 10));
+    assert(!craft::raft_correctness::ShouldGrantPreVote(
+        pre_vote_term, false, true, 3, 10, 6, 3, 10));
+    assert(!craft::raft_correctness::ShouldGrantPreVote(
+        pre_vote_term, false, false, 4, 10, 6, 3, 99));
+    assert(pre_vote_term == 5);
+    assert(pre_vote_voted_for == 2);
+
+    assert(craft::raft_correctness::HasRecentQuorum({true, true, false}, 0));
+    assert(craft::raft_correctness::HasRecentQuorum({true, false, true}, 0));
+    assert(!craft::raft_correctness::HasRecentQuorum({true, false, false}, 0));
 
     std::cout << "test_raft_log passed" << std::endl;
     return 0;

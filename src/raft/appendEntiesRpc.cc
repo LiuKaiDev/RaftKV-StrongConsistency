@@ -2,6 +2,7 @@
 #include "craft/startRpcService.h"
 #include "raft/raft_correctness.h"
 #include <algorithm>
+#include <chrono>
 
 namespace craft {
 
@@ -43,6 +44,7 @@ namespace craft {
             }
 
             m_rf_->m_leaderId_ = request->leaderid();
+            m_rf_->m_lastLeaderContact_ = std::chrono::steady_clock::now();
             m_rf_->m_electionTimer->reset(getElectionTimeOut(m_rf_->m_leaderEelectionTimeOut_));
             response->set_term(m_rf_->m_current_term_);
 

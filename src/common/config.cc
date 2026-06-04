@@ -15,6 +15,7 @@ enum class Section {
     kPeers,
     kSnapshot,
     kRaft,
+    kRead,
 };
 
 std::string Trim(const std::string& value) {
@@ -69,6 +70,18 @@ bool ParseInt(const std::string& value, int* out) {
     std::istringstream input(value);
     input >> *out;
     return !input.fail();
+}
+
+bool ParseBool(const std::string& value, bool* out) {
+    if (value == "true" || value == "True" || value == "TRUE" || value == "1") {
+        *out = true;
+        return true;
+    }
+    if (value == "false" || value == "False" || value == "FALSE" || value == "0") {
+        *out = false;
+        return true;
+    }
+    return false;
 }
 
 std::string ResolveProjectPath(const std::string& filename, const std::string& value) {
@@ -126,6 +139,8 @@ bool LoadNodeConfig(const std::string& filename, NodeConfig* config, std::string
     NodeConfig parsed;
     Section section = Section::kRoot;
     PeerConfig* current_peer = nullptr;
+    bool invalid_value = false;
+    std::string invalid_message;
 
     std::string raw_line;
     while (std::getline(input, raw_line)) {
@@ -146,6 +161,11 @@ bool LoadNodeConfig(const std::string& filename, NodeConfig* config, std::string
         }
         if (line == "raft:") {
             section = Section::kRaft;
+            current_peer = nullptr;
+            continue;
+        }
+        if (line == "read:") {
+            section = Section::kRead;
             current_peer = nullptr;
             continue;
         }
@@ -198,9 +218,31 @@ bool LoadNodeConfig(const std::string& filename, NodeConfig* config, std::string
                     ParseInt(value, &parsed.raft.heartbeat_interval_ms);
                 } else if (key == "rpc_timeout_ms") {
                     ParseInt(value, &parsed.raft.rpc_timeout_ms);
+                } else if (key == "pre_vote") {
+                    if (!ParseBool(value, &parsed.raft.pre_vote)) {
+                        invalid_value = true;
+                        invalid_message = "invalid raft.pre_vote: " + value;
+                    }
+                } else if (key == "check_quorum") {
+                    if (!ParseBool(value, &parsed.raft.check_quorum)) {
+                        invalid_value = true;
+                        invalid_message = "invalid raft.check_quorum: " + value;
+                    }
+                }
+                break;
+            case Section::kRead:
+                if (key == "mode") {
+                    parsed.read.mode = value;
                 }
                 break;
         }
+    }
+
+    if (invalid_value) {
+        if (error_msg != nullptr) {
+            *error_msg = invalid_message;
+        }
+        return false;
     }
 
     if (parsed.client_addr.empty() && !parsed.listen_addr.empty()) {
@@ -231,6 +273,12 @@ bool LoadNodeConfig(const std::string& filename, NodeConfig* config, std::string
     if (self == parsed.peers.end()) {
         if (error_msg != nullptr) {
             *error_msg = "node_id is not present in peers";
+        }
+        return false;
+    }
+    if (parsed.read.mode != "log" && parsed.read.mode != "read_index") {
+        if (error_msg != nullptr) {
+            *error_msg = "invalid read.mode: " + parsed.read.mode;
         }
         return false;
     }

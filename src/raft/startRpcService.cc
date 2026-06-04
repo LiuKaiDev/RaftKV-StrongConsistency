@@ -62,6 +62,21 @@ namespace craft{
         metrics->set_client_request_total(snapshot.metrics.client_request_total);
         metrics->set_client_request_success(snapshot.metrics.client_request_success);
         metrics->set_client_request_failed(snapshot.metrics.client_request_failed);
+        metrics->set_read_log_total(snapshot.metrics.read_log_total);
+        metrics->set_read_index_total(snapshot.metrics.read_index_total);
+        metrics->set_read_index_success(snapshot.metrics.read_index_success);
+        metrics->set_read_index_failed(snapshot.metrics.read_index_failed);
+        metrics->set_read_index_timeout(snapshot.metrics.read_index_timeout);
+        metrics->set_read_index_quorum_confirm_rounds(snapshot.metrics.read_index_quorum_confirm_rounds);
+        metrics->set_leader_noop_appended(snapshot.metrics.leader_noop_appended);
+        metrics->set_leader_noop_committed(snapshot.metrics.leader_noop_committed);
+        metrics->set_pre_vote_sent(snapshot.metrics.pre_vote_sent);
+        metrics->set_pre_vote_granted(snapshot.metrics.pre_vote_granted);
+        metrics->set_pre_vote_rejected(snapshot.metrics.pre_vote_rejected);
+        metrics->set_check_quorum_stepdown_count(snapshot.metrics.check_quorum_stepdown_count);
+        metrics->set_check_quorum_rounds(snapshot.metrics.check_quorum_rounds);
+        metrics->set_check_quorum_success(snapshot.metrics.check_quorum_success);
+        metrics->set_check_quorum_failed(snapshot.metrics.check_quorum_failed);
         return Status::OK;
     }
 };

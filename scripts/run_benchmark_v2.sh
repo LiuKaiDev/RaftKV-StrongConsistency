@@ -16,6 +16,7 @@ PUT_PERCENT="${PUT_PERCENT:-20}"
 APPEND_PERCENT="${APPEND_PERCENT:-5}"
 DELETE_PERCENT="${DELETE_PERCENT:-5}"
 SEED="${SEED:-20260604}"
+READ_MODE="${READ_MODE:-log}"
 BUILD_JOBS="${BUILD_JOBS:-1}"
 RAFT_BASE_PORT="${RAFT_BASE_PORT:-38000}"
 CLIENT_BASE_PORT="${CLIENT_BASE_PORT:-39000}"
@@ -135,6 +136,7 @@ write_metrics_delta() {
   local metric before after
   : >"${output_file}"
   for metric in \
+    wal_bytes \
     append_entries_sent \
     append_entries_success \
     append_entries_failed \
@@ -143,7 +145,22 @@ write_metrics_delta() {
     snapshot_created_count \
     client_request_total \
     client_request_success \
-    client_request_failed; do
+    client_request_failed \
+    read_log_total \
+    read_index_total \
+    read_index_success \
+    read_index_failed \
+    read_index_timeout \
+    read_index_quorum_confirm_rounds \
+    leader_noop_appended \
+    leader_noop_committed \
+    pre_vote_sent \
+    pre_vote_granted \
+    pre_vote_rejected \
+    check_quorum_stepdown_count \
+    check_quorum_rounds \
+    check_quorum_success \
+    check_quorum_failed; do
     before="$(metric_sum "${before_file}" "${metric}")"
     after="$(metric_sum "${after_file}" "${metric}")"
     echo "${metric}=$((after - before))" >>"${output_file}"
@@ -181,6 +198,11 @@ raft:
   election_timeout_ms_max: 600
   heartbeat_interval_ms: 100
   rpc_timeout_ms: 300
+  pre_vote: true
+  check_quorum: true
+
+read:
+  mode: ${READ_MODE}
 EOF
 }
 
@@ -266,6 +288,10 @@ case "${SCENARIO}" in
   steady|follower_down|leader_failover) ;;
   *) fail "unknown SCENARIO: ${SCENARIO}" ;;
 esac
+case "${READ_MODE}" in
+  log|read_index) ;;
+  *) fail "unknown READ_MODE: ${READ_MODE}" ;;
+esac
 
 ensure_under_root "${RUN_DIR}" "${TEST_DATA_ROOT}"
 ensure_under_root "${REPORT_DIR}" "${TEST_REPORT_ROOT}"
@@ -300,6 +326,7 @@ git_commit="$(cat "${REPORT_DIR}/git_commit.txt")"
   echo "append_percent=${APPEND_PERCENT}"
   echo "delete_percent=${DELETE_PERCENT}"
   echo "seed=${SEED}"
+  echo "read_mode=${READ_MODE}"
   echo "client_servers=${CLIENT_SERVERS}"
 } >"${REPORT_DIR}/config.txt"
 
@@ -330,6 +357,7 @@ fi
   --append_percent="${APPEND_PERCENT}" \
   --delete_percent="${DELETE_PERCENT}" \
   --seed="${SEED}" \
+  --read_mode="${READ_MODE}" \
   --git_commit="${git_commit}" \
   --output_json="${REPORT_DIR}/result.json" \
   --output_csv="${REPORT_DIR}/result.csv"

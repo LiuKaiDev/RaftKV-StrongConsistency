@@ -34,6 +34,7 @@
 #include "google/protobuf/message.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 // @@protoc_insertion_point(includes)
 
@@ -103,6 +104,39 @@ namespace protobuf {
 }  // namespace protobuf
 }  // namespace google
 
+enum LogEntry_EntryType : int {
+  LogEntry_EntryType_NORMAL = 0,
+  LogEntry_EntryType_NO_OP = 1,
+  LogEntry_EntryType_LogEntry_EntryType_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      std::numeric_limits<::int32_t>::min(),
+  LogEntry_EntryType_LogEntry_EntryType_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      std::numeric_limits<::int32_t>::max(),
+};
+
+bool LogEntry_EntryType_IsValid(int value);
+extern const uint32_t LogEntry_EntryType_internal_data_[];
+constexpr LogEntry_EntryType LogEntry_EntryType_EntryType_MIN = static_cast<LogEntry_EntryType>(0);
+constexpr LogEntry_EntryType LogEntry_EntryType_EntryType_MAX = static_cast<LogEntry_EntryType>(1);
+constexpr int LogEntry_EntryType_EntryType_ARRAYSIZE = 1 + 1;
+const ::google::protobuf::EnumDescriptor*
+LogEntry_EntryType_descriptor();
+template <typename T>
+const std::string& LogEntry_EntryType_Name(T value) {
+  static_assert(std::is_same<T, LogEntry_EntryType>::value ||
+                    std::is_integral<T>::value,
+                "Incorrect type passed to EntryType_Name().");
+  return LogEntry_EntryType_Name(static_cast<LogEntry_EntryType>(value));
+}
+template <>
+inline const std::string& LogEntry_EntryType_Name(LogEntry_EntryType value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<LogEntry_EntryType_descriptor,
+                                                 0, 1>(
+      static_cast<int>(value));
+}
+inline bool LogEntry_EntryType_Parse(absl::string_view name, LogEntry_EntryType* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<LogEntry_EntryType>(
+      LogEntry_EntryType_descriptor(), name, value);
+}
 
 // ===================================================================
 
@@ -1346,6 +1380,21 @@ class MetricsStatus final :
     kClientRequestTotalFieldNumber = 14,
     kClientRequestSuccessFieldNumber = 15,
     kClientRequestFailedFieldNumber = 16,
+    kReadLogTotalFieldNumber = 17,
+    kReadIndexTotalFieldNumber = 18,
+    kReadIndexSuccessFieldNumber = 19,
+    kReadIndexFailedFieldNumber = 20,
+    kReadIndexTimeoutFieldNumber = 21,
+    kReadIndexQuorumConfirmRoundsFieldNumber = 22,
+    kLeaderNoopAppendedFieldNumber = 23,
+    kLeaderNoopCommittedFieldNumber = 24,
+    kPreVoteSentFieldNumber = 25,
+    kPreVoteGrantedFieldNumber = 26,
+    kPreVoteRejectedFieldNumber = 27,
+    kCheckQuorumStepdownCountFieldNumber = 28,
+    kCheckQuorumRoundsFieldNumber = 29,
+    kCheckQuorumSuccessFieldNumber = 30,
+    kCheckQuorumFailedFieldNumber = 31,
   };
   // uint64 election_count = 1;
   void clear_election_count() ;
@@ -1507,13 +1556,163 @@ class MetricsStatus final :
   void _internal_set_client_request_failed(::uint64_t value);
 
   public:
+  // uint64 read_log_total = 17;
+  void clear_read_log_total() ;
+  ::uint64_t read_log_total() const;
+  void set_read_log_total(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_log_total() const;
+  void _internal_set_read_log_total(::uint64_t value);
+
+  public:
+  // uint64 read_index_total = 18;
+  void clear_read_index_total() ;
+  ::uint64_t read_index_total() const;
+  void set_read_index_total(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_index_total() const;
+  void _internal_set_read_index_total(::uint64_t value);
+
+  public:
+  // uint64 read_index_success = 19;
+  void clear_read_index_success() ;
+  ::uint64_t read_index_success() const;
+  void set_read_index_success(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_index_success() const;
+  void _internal_set_read_index_success(::uint64_t value);
+
+  public:
+  // uint64 read_index_failed = 20;
+  void clear_read_index_failed() ;
+  ::uint64_t read_index_failed() const;
+  void set_read_index_failed(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_index_failed() const;
+  void _internal_set_read_index_failed(::uint64_t value);
+
+  public:
+  // uint64 read_index_timeout = 21;
+  void clear_read_index_timeout() ;
+  ::uint64_t read_index_timeout() const;
+  void set_read_index_timeout(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_index_timeout() const;
+  void _internal_set_read_index_timeout(::uint64_t value);
+
+  public:
+  // uint64 read_index_quorum_confirm_rounds = 22;
+  void clear_read_index_quorum_confirm_rounds() ;
+  ::uint64_t read_index_quorum_confirm_rounds() const;
+  void set_read_index_quorum_confirm_rounds(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_index_quorum_confirm_rounds() const;
+  void _internal_set_read_index_quorum_confirm_rounds(::uint64_t value);
+
+  public:
+  // uint64 leader_noop_appended = 23;
+  void clear_leader_noop_appended() ;
+  ::uint64_t leader_noop_appended() const;
+  void set_leader_noop_appended(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_leader_noop_appended() const;
+  void _internal_set_leader_noop_appended(::uint64_t value);
+
+  public:
+  // uint64 leader_noop_committed = 24;
+  void clear_leader_noop_committed() ;
+  ::uint64_t leader_noop_committed() const;
+  void set_leader_noop_committed(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_leader_noop_committed() const;
+  void _internal_set_leader_noop_committed(::uint64_t value);
+
+  public:
+  // uint64 pre_vote_sent = 25;
+  void clear_pre_vote_sent() ;
+  ::uint64_t pre_vote_sent() const;
+  void set_pre_vote_sent(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_pre_vote_sent() const;
+  void _internal_set_pre_vote_sent(::uint64_t value);
+
+  public:
+  // uint64 pre_vote_granted = 26;
+  void clear_pre_vote_granted() ;
+  ::uint64_t pre_vote_granted() const;
+  void set_pre_vote_granted(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_pre_vote_granted() const;
+  void _internal_set_pre_vote_granted(::uint64_t value);
+
+  public:
+  // uint64 pre_vote_rejected = 27;
+  void clear_pre_vote_rejected() ;
+  ::uint64_t pre_vote_rejected() const;
+  void set_pre_vote_rejected(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_pre_vote_rejected() const;
+  void _internal_set_pre_vote_rejected(::uint64_t value);
+
+  public:
+  // uint64 check_quorum_stepdown_count = 28;
+  void clear_check_quorum_stepdown_count() ;
+  ::uint64_t check_quorum_stepdown_count() const;
+  void set_check_quorum_stepdown_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_check_quorum_stepdown_count() const;
+  void _internal_set_check_quorum_stepdown_count(::uint64_t value);
+
+  public:
+  // uint64 check_quorum_rounds = 29;
+  void clear_check_quorum_rounds() ;
+  ::uint64_t check_quorum_rounds() const;
+  void set_check_quorum_rounds(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_check_quorum_rounds() const;
+  void _internal_set_check_quorum_rounds(::uint64_t value);
+
+  public:
+  // uint64 check_quorum_success = 30;
+  void clear_check_quorum_success() ;
+  ::uint64_t check_quorum_success() const;
+  void set_check_quorum_success(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_check_quorum_success() const;
+  void _internal_set_check_quorum_success(::uint64_t value);
+
+  public:
+  // uint64 check_quorum_failed = 31;
+  void clear_check_quorum_failed() ;
+  ::uint64_t check_quorum_failed() const;
+  void set_check_quorum_failed(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_check_quorum_failed() const;
+  void _internal_set_check_quorum_failed(::uint64_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:MetricsStatus)
  private:
   class _Internal;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<
-      4, 16, 0,
+      5, 31, 0,
       0, 2>
       _table_;
   friend class ::google::protobuf::MessageLite;
@@ -1546,6 +1745,21 @@ class MetricsStatus final :
     ::uint64_t client_request_total_;
     ::uint64_t client_request_success_;
     ::uint64_t client_request_failed_;
+    ::uint64_t read_log_total_;
+    ::uint64_t read_index_total_;
+    ::uint64_t read_index_success_;
+    ::uint64_t read_index_failed_;
+    ::uint64_t read_index_timeout_;
+    ::uint64_t read_index_quorum_confirm_rounds_;
+    ::uint64_t leader_noop_appended_;
+    ::uint64_t leader_noop_committed_;
+    ::uint64_t pre_vote_sent_;
+    ::uint64_t pre_vote_granted_;
+    ::uint64_t pre_vote_rejected_;
+    ::uint64_t check_quorum_stepdown_count_;
+    ::uint64_t check_quorum_rounds_;
+    ::uint64_t check_quorum_success_;
+    ::uint64_t check_quorum_failed_;
     mutable ::google::protobuf::internal::CachedSize _cached_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -1682,11 +1896,32 @@ class LogEntry final :
 
   // nested types ----------------------------------------------------
 
+  using EntryType = LogEntry_EntryType;
+  static constexpr EntryType NORMAL = LogEntry_EntryType_NORMAL;
+  static constexpr EntryType NO_OP = LogEntry_EntryType_NO_OP;
+  static inline bool EntryType_IsValid(int value) {
+    return LogEntry_EntryType_IsValid(value);
+  }
+  static constexpr EntryType EntryType_MIN = LogEntry_EntryType_EntryType_MIN;
+  static constexpr EntryType EntryType_MAX = LogEntry_EntryType_EntryType_MAX;
+  static constexpr int EntryType_ARRAYSIZE = LogEntry_EntryType_EntryType_ARRAYSIZE;
+  static inline const ::google::protobuf::EnumDescriptor* EntryType_descriptor() {
+    return LogEntry_EntryType_descriptor();
+  }
+  template <typename T>
+  static inline const std::string& EntryType_Name(T value) {
+    return LogEntry_EntryType_Name(value);
+  }
+  static inline bool EntryType_Parse(absl::string_view name, EntryType* value) {
+    return LogEntry_EntryType_Parse(name, value);
+  }
+
   // accessors -------------------------------------------------------
 
   enum : int {
     kCommandFieldNumber = 2,
     kTermFieldNumber = 1,
+    kTypeFieldNumber = 3,
   };
   // string command = 2;
   void clear_command() ;
@@ -1714,13 +1949,23 @@ class LogEntry final :
   void _internal_set_term(::int32_t value);
 
   public:
+  // .LogEntry.EntryType type = 3;
+  void clear_type() ;
+  ::LogEntry_EntryType type() const;
+  void set_type(::LogEntry_EntryType value);
+
+  private:
+  ::LogEntry_EntryType _internal_type() const;
+  void _internal_set_type(::LogEntry_EntryType value);
+
+  public:
   // @@protoc_insertion_point(class_scope:LogEntry)
  private:
   class _Internal;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<
-      1, 2, 0,
+      2, 3, 0,
       24, 2>
       _table_;
   friend class ::google::protobuf::MessageLite;
@@ -1739,6 +1984,7 @@ class LogEntry final :
                               ::google::protobuf::Arena* arena, const Impl_& from);
     ::google::protobuf::internal::ArenaStringPtr command_;
     ::int32_t term_;
+    int type_;
     mutable ::google::protobuf::internal::CachedSize _cached_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -3566,6 +3812,29 @@ inline void LogEntry::set_allocated_command(std::string* value) {
   // @@protoc_insertion_point(field_set_allocated:LogEntry.command)
 }
 
+// .LogEntry.EntryType type = 3;
+inline void LogEntry::clear_type() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.type_ = 0;
+}
+inline ::LogEntry_EntryType LogEntry::type() const {
+  // @@protoc_insertion_point(field_get:LogEntry.type)
+  return _internal_type();
+}
+inline void LogEntry::set_type(::LogEntry_EntryType value) {
+  _internal_set_type(value);
+  // @@protoc_insertion_point(field_set:LogEntry.type)
+}
+inline ::LogEntry_EntryType LogEntry::_internal_type() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return static_cast<::LogEntry_EntryType>(_impl_.type_);
+}
+inline void LogEntry::_internal_set_type(::LogEntry_EntryType value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.type_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // AppendEntriesArgs
@@ -4336,6 +4605,351 @@ inline void MetricsStatus::_internal_set_client_request_failed(::uint64_t value)
   _impl_.client_request_failed_ = value;
 }
 
+// uint64 read_log_total = 17;
+inline void MetricsStatus::clear_read_log_total() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_log_total_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_log_total() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_log_total)
+  return _internal_read_log_total();
+}
+inline void MetricsStatus::set_read_log_total(::uint64_t value) {
+  _internal_set_read_log_total(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_log_total)
+}
+inline ::uint64_t MetricsStatus::_internal_read_log_total() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_log_total_;
+}
+inline void MetricsStatus::_internal_set_read_log_total(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_log_total_ = value;
+}
+
+// uint64 read_index_total = 18;
+inline void MetricsStatus::clear_read_index_total() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_index_total_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_index_total() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_index_total)
+  return _internal_read_index_total();
+}
+inline void MetricsStatus::set_read_index_total(::uint64_t value) {
+  _internal_set_read_index_total(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_index_total)
+}
+inline ::uint64_t MetricsStatus::_internal_read_index_total() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_index_total_;
+}
+inline void MetricsStatus::_internal_set_read_index_total(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_index_total_ = value;
+}
+
+// uint64 read_index_success = 19;
+inline void MetricsStatus::clear_read_index_success() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_index_success_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_index_success() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_index_success)
+  return _internal_read_index_success();
+}
+inline void MetricsStatus::set_read_index_success(::uint64_t value) {
+  _internal_set_read_index_success(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_index_success)
+}
+inline ::uint64_t MetricsStatus::_internal_read_index_success() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_index_success_;
+}
+inline void MetricsStatus::_internal_set_read_index_success(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_index_success_ = value;
+}
+
+// uint64 read_index_failed = 20;
+inline void MetricsStatus::clear_read_index_failed() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_index_failed_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_index_failed() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_index_failed)
+  return _internal_read_index_failed();
+}
+inline void MetricsStatus::set_read_index_failed(::uint64_t value) {
+  _internal_set_read_index_failed(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_index_failed)
+}
+inline ::uint64_t MetricsStatus::_internal_read_index_failed() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_index_failed_;
+}
+inline void MetricsStatus::_internal_set_read_index_failed(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_index_failed_ = value;
+}
+
+// uint64 read_index_timeout = 21;
+inline void MetricsStatus::clear_read_index_timeout() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_index_timeout_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_index_timeout() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_index_timeout)
+  return _internal_read_index_timeout();
+}
+inline void MetricsStatus::set_read_index_timeout(::uint64_t value) {
+  _internal_set_read_index_timeout(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_index_timeout)
+}
+inline ::uint64_t MetricsStatus::_internal_read_index_timeout() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_index_timeout_;
+}
+inline void MetricsStatus::_internal_set_read_index_timeout(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_index_timeout_ = value;
+}
+
+// uint64 read_index_quorum_confirm_rounds = 22;
+inline void MetricsStatus::clear_read_index_quorum_confirm_rounds() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_index_quorum_confirm_rounds_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_index_quorum_confirm_rounds() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_index_quorum_confirm_rounds)
+  return _internal_read_index_quorum_confirm_rounds();
+}
+inline void MetricsStatus::set_read_index_quorum_confirm_rounds(::uint64_t value) {
+  _internal_set_read_index_quorum_confirm_rounds(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_index_quorum_confirm_rounds)
+}
+inline ::uint64_t MetricsStatus::_internal_read_index_quorum_confirm_rounds() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_index_quorum_confirm_rounds_;
+}
+inline void MetricsStatus::_internal_set_read_index_quorum_confirm_rounds(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_index_quorum_confirm_rounds_ = value;
+}
+
+// uint64 leader_noop_appended = 23;
+inline void MetricsStatus::clear_leader_noop_appended() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.leader_noop_appended_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::leader_noop_appended() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.leader_noop_appended)
+  return _internal_leader_noop_appended();
+}
+inline void MetricsStatus::set_leader_noop_appended(::uint64_t value) {
+  _internal_set_leader_noop_appended(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.leader_noop_appended)
+}
+inline ::uint64_t MetricsStatus::_internal_leader_noop_appended() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.leader_noop_appended_;
+}
+inline void MetricsStatus::_internal_set_leader_noop_appended(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.leader_noop_appended_ = value;
+}
+
+// uint64 leader_noop_committed = 24;
+inline void MetricsStatus::clear_leader_noop_committed() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.leader_noop_committed_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::leader_noop_committed() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.leader_noop_committed)
+  return _internal_leader_noop_committed();
+}
+inline void MetricsStatus::set_leader_noop_committed(::uint64_t value) {
+  _internal_set_leader_noop_committed(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.leader_noop_committed)
+}
+inline ::uint64_t MetricsStatus::_internal_leader_noop_committed() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.leader_noop_committed_;
+}
+inline void MetricsStatus::_internal_set_leader_noop_committed(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.leader_noop_committed_ = value;
+}
+
+// uint64 pre_vote_sent = 25;
+inline void MetricsStatus::clear_pre_vote_sent() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.pre_vote_sent_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::pre_vote_sent() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.pre_vote_sent)
+  return _internal_pre_vote_sent();
+}
+inline void MetricsStatus::set_pre_vote_sent(::uint64_t value) {
+  _internal_set_pre_vote_sent(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.pre_vote_sent)
+}
+inline ::uint64_t MetricsStatus::_internal_pre_vote_sent() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.pre_vote_sent_;
+}
+inline void MetricsStatus::_internal_set_pre_vote_sent(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.pre_vote_sent_ = value;
+}
+
+// uint64 pre_vote_granted = 26;
+inline void MetricsStatus::clear_pre_vote_granted() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.pre_vote_granted_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::pre_vote_granted() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.pre_vote_granted)
+  return _internal_pre_vote_granted();
+}
+inline void MetricsStatus::set_pre_vote_granted(::uint64_t value) {
+  _internal_set_pre_vote_granted(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.pre_vote_granted)
+}
+inline ::uint64_t MetricsStatus::_internal_pre_vote_granted() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.pre_vote_granted_;
+}
+inline void MetricsStatus::_internal_set_pre_vote_granted(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.pre_vote_granted_ = value;
+}
+
+// uint64 pre_vote_rejected = 27;
+inline void MetricsStatus::clear_pre_vote_rejected() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.pre_vote_rejected_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::pre_vote_rejected() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.pre_vote_rejected)
+  return _internal_pre_vote_rejected();
+}
+inline void MetricsStatus::set_pre_vote_rejected(::uint64_t value) {
+  _internal_set_pre_vote_rejected(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.pre_vote_rejected)
+}
+inline ::uint64_t MetricsStatus::_internal_pre_vote_rejected() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.pre_vote_rejected_;
+}
+inline void MetricsStatus::_internal_set_pre_vote_rejected(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.pre_vote_rejected_ = value;
+}
+
+// uint64 check_quorum_stepdown_count = 28;
+inline void MetricsStatus::clear_check_quorum_stepdown_count() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.check_quorum_stepdown_count_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::check_quorum_stepdown_count() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.check_quorum_stepdown_count)
+  return _internal_check_quorum_stepdown_count();
+}
+inline void MetricsStatus::set_check_quorum_stepdown_count(::uint64_t value) {
+  _internal_set_check_quorum_stepdown_count(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.check_quorum_stepdown_count)
+}
+inline ::uint64_t MetricsStatus::_internal_check_quorum_stepdown_count() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.check_quorum_stepdown_count_;
+}
+inline void MetricsStatus::_internal_set_check_quorum_stepdown_count(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.check_quorum_stepdown_count_ = value;
+}
+
+// uint64 check_quorum_rounds = 29;
+inline void MetricsStatus::clear_check_quorum_rounds() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.check_quorum_rounds_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::check_quorum_rounds() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.check_quorum_rounds)
+  return _internal_check_quorum_rounds();
+}
+inline void MetricsStatus::set_check_quorum_rounds(::uint64_t value) {
+  _internal_set_check_quorum_rounds(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.check_quorum_rounds)
+}
+inline ::uint64_t MetricsStatus::_internal_check_quorum_rounds() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.check_quorum_rounds_;
+}
+inline void MetricsStatus::_internal_set_check_quorum_rounds(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.check_quorum_rounds_ = value;
+}
+
+// uint64 check_quorum_success = 30;
+inline void MetricsStatus::clear_check_quorum_success() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.check_quorum_success_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::check_quorum_success() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.check_quorum_success)
+  return _internal_check_quorum_success();
+}
+inline void MetricsStatus::set_check_quorum_success(::uint64_t value) {
+  _internal_set_check_quorum_success(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.check_quorum_success)
+}
+inline ::uint64_t MetricsStatus::_internal_check_quorum_success() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.check_quorum_success_;
+}
+inline void MetricsStatus::_internal_set_check_quorum_success(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.check_quorum_success_ = value;
+}
+
+// uint64 check_quorum_failed = 31;
+inline void MetricsStatus::clear_check_quorum_failed() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.check_quorum_failed_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::check_quorum_failed() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.check_quorum_failed)
+  return _internal_check_quorum_failed();
+}
+inline void MetricsStatus::set_check_quorum_failed(::uint64_t value) {
+  _internal_set_check_quorum_failed(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.check_quorum_failed)
+}
+inline ::uint64_t MetricsStatus::_internal_check_quorum_failed() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.check_quorum_failed_;
+}
+inline void MetricsStatus::_internal_set_check_quorum_failed(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.check_quorum_failed_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // NodeStatusReply
@@ -4725,6 +5339,19 @@ inline void NodeStatusReply::set_allocated_metrics(::MetricsStatus* value) {
 
 // @@protoc_insertion_point(namespace_scope)
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::LogEntry_EntryType> : std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor<::LogEntry_EntryType>() {
+  return ::LogEntry_EntryType_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

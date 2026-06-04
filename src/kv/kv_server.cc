@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "raft/raft_status.h"
+#include "raft/raft_log_entry.h"
 
 #ifndef _WIN32
 #include <arpa/inet.h>
@@ -127,6 +128,10 @@ void KVServer::deserialization(const char* filename) {
         throw std::runtime_error("restore KV state machine failed: " + error);
     }
     setSnapshotMeta(snapshot.meta.last_included_index, snapshot.meta.last_included_term);
+    {
+        std::lock_guard<std::mutex> lock(pending_mutex_);
+        state_machine_applied_index_ = snapshot.meta.last_included_index;
+    }
     spdlog::info("restore KV snapshot index={}, term={}, keys={}",
                  snapshot.meta.last_included_index, snapshot.meta.last_included_term, state_machine_.Size());
 }
@@ -140,6 +145,13 @@ void KVServer::serialization() {
 }
 
 KVResponse KVServer::HandleRequest(const ClientRequest& request, int timeout_ms) {
+    if (request.op_type == KVOpType::kGet && config_.read.mode == "read_index") {
+        return HandleReadIndexGet(request, timeout_ms);
+    }
+    if (raft_ != nullptr && request.op_type == KVOpType::kGet) {
+        raft_->recordLogRead();
+    }
+
     if (raft_ == nullptr || !raft_->isLeader()) {
         KVResponse response{false, KVErrorCode::kNotLeader, ExternalLeaderId(), LeaderClientAddr(), "", "not leader"};
         if (raft_ != nullptr) {
@@ -201,6 +213,17 @@ void KVServer::ApplyLoop() {
             continue;
         }
 
+        if (craft::IsInternalNoopCommand(msg.command.content)) {
+            {
+                std::lock_guard<std::mutex> lock(pending_mutex_);
+                if (msg.commandIndex > state_machine_applied_index_) {
+                    state_machine_applied_index_ = msg.commandIndex;
+                }
+            }
+            pending_cv_.notify_all();
+            continue;
+        }
+
         ClientRequest request;
         std::string error;
         CommandResult result;
@@ -213,6 +236,9 @@ void KVServer::ApplyLoop() {
         {
             std::lock_guard<std::mutex> lock(pending_mutex_);
             applied_results_[msg.commandIndex] = AppliedEntry{msg.command.content, result};
+            if (msg.commandIndex > state_machine_applied_index_) {
+                state_machine_applied_index_ = msg.commandIndex;
+            }
         }
         pending_cv_.notify_all();
 
@@ -221,6 +247,53 @@ void KVServer::ApplyLoop() {
             raft_->saveSnapShot(msg.commandIndex);
         }
     }
+}
+
+KVResponse KVServer::HandleReadIndexGet(const ClientRequest& request, int timeout_ms) {
+    if (raft_ == nullptr) {
+        return {false, KVErrorCode::kNotLeader, -1, "", "", "not leader"};
+    }
+
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+    ReadIndexResult read_index = raft_->confirmReadIndex(timeout_ms);
+    if (!read_index.ok) {
+        raft_->recordClientRequestResult(false);
+        KVErrorCode code = read_index.timeout ? KVErrorCode::kTimeout : KVErrorCode::kNotLeader;
+        return {false, code, ExternalLeaderId(), LeaderClientAddr(), "",
+                read_index.message.empty() ? "ReadIndex failed" : read_index.message};
+    }
+
+    int applied_index = 0;
+    if (!WaitForStateMachineApplied(read_index.read_index, deadline, &applied_index)) {
+        raft_->recordReadIndexTimeoutFailure();
+        raft_->recordClientRequestResult(false);
+        return {false, KVErrorCode::kTimeout, ExternalLeaderId(), LeaderClientAddr(), "",
+                "ReadIndex wait for local apply timeout"};
+    }
+
+    std::string value;
+    if (!state_machine_.GetLocal(request.key, &value)) {
+        raft_->recordReadIndexFailure();
+        raft_->recordClientRequestResult(false);
+        return {false, KVErrorCode::kKeyNotFound, ExternalLeaderId(), LeaderClientAddr(), "",
+                "key not found"};
+    }
+    raft_->recordReadIndexSuccess();
+    raft_->recordClientRequestResult(true);
+    return {true, KVErrorCode::kOK, ExternalLeaderId(), LeaderClientAddr(), value, ""};
+}
+
+bool KVServer::WaitForStateMachineApplied(int index,
+                                          std::chrono::steady_clock::time_point deadline,
+                                          int* applied_index) {
+    std::unique_lock<std::mutex> lock(pending_mutex_);
+    bool applied = pending_cv_.wait_until(lock, deadline, [this, index] {
+        return state_machine_applied_index_ >= index;
+    });
+    if (applied_index != nullptr) {
+        *applied_index = state_machine_applied_index_;
+    }
+    return applied;
 }
 
 void KVServer::ClientListenLoop() {

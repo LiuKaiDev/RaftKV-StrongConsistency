@@ -197,6 +197,7 @@ std::string WriteJsonSummary(const BenchSummary& summary) {
     AppendJsonString(&out, "hostname", config.hostname);
     AppendJsonUint(&out, "cpu_count", config.cpu_count);
     AppendJsonString(&out, "build_type", config.build_type);
+    AppendJsonString(&out, "read_mode", config.read_mode);
     AppendJsonUint(&out, "seed", config.seed);
     AppendJsonUint(&out, "threads", config.threads);
     AppendJsonUint(&out, "duration_seconds", config.duration_seconds);
@@ -228,7 +229,7 @@ std::string WriteJsonSummary(const BenchSummary& summary) {
 }
 
 std::string WriteCsvHeader() {
-    return "git_commit,timestamp,hostname,cpu_count,build_type,seed,threads,duration_seconds,warmup_seconds,"
+    return "git_commit,timestamp,hostname,cpu_count,build_type,read_mode,seed,threads,duration_seconds,warmup_seconds,"
            "key_count,value_size,read_percent,put_percent,append_percent,delete_percent,total_operations,"
            "successful_operations,failed_operations,retry_count,throughput_ops_per_second,latency_us_min,"
            "latency_us_avg,latency_us_p50,latency_us_p95,latency_us_p99,latency_us_max,get_success,"
@@ -253,6 +254,8 @@ std::string WriteCsvSummary(const BenchSummary& summary) {
     AppendCsvValue(&out, config.hostname);
     out << ',' << config.cpu_count << ',';
     AppendCsvValue(&out, config.build_type);
+    out << ',';
+    AppendCsvValue(&out, config.read_mode);
     out << ',' << config.seed << ',' << config.threads << ',' << config.duration_seconds << ','
         << config.warmup_seconds << ',' << config.key_count << ',' << config.value_size << ','
         << config.mix.read_percent << ',' << config.mix.put_percent << ',' << config.mix.append_percent << ','

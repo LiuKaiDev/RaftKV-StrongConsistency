@@ -93,6 +93,22 @@ RaftMetricsSnapshot RaftMetrics::Snapshot() const {
     snapshot.client_request_total = client_request_total_.load(std::memory_order_relaxed);
     snapshot.client_request_success = client_request_success_.load(std::memory_order_relaxed);
     snapshot.client_request_failed = client_request_failed_.load(std::memory_order_relaxed);
+    snapshot.read_log_total = read_log_total_.load(std::memory_order_relaxed);
+    snapshot.read_index_total = read_index_total_.load(std::memory_order_relaxed);
+    snapshot.read_index_success = read_index_success_.load(std::memory_order_relaxed);
+    snapshot.read_index_failed = read_index_failed_.load(std::memory_order_relaxed);
+    snapshot.read_index_timeout = read_index_timeout_.load(std::memory_order_relaxed);
+    snapshot.read_index_quorum_confirm_rounds =
+        read_index_quorum_confirm_rounds_.load(std::memory_order_relaxed);
+    snapshot.leader_noop_appended = leader_noop_appended_.load(std::memory_order_relaxed);
+    snapshot.leader_noop_committed = leader_noop_committed_.load(std::memory_order_relaxed);
+    snapshot.pre_vote_sent = pre_vote_sent_.load(std::memory_order_relaxed);
+    snapshot.pre_vote_granted = pre_vote_granted_.load(std::memory_order_relaxed);
+    snapshot.pre_vote_rejected = pre_vote_rejected_.load(std::memory_order_relaxed);
+    snapshot.check_quorum_stepdown_count = check_quorum_stepdown_count_.load(std::memory_order_relaxed);
+    snapshot.check_quorum_rounds = check_quorum_rounds_.load(std::memory_order_relaxed);
+    snapshot.check_quorum_success = check_quorum_success_.load(std::memory_order_relaxed);
+    snapshot.check_quorum_failed = check_quorum_failed_.load(std::memory_order_relaxed);
     return snapshot;
 }
 
@@ -123,6 +139,25 @@ void RaftMetrics::IncrementClientRequestSuccess() {
     client_request_success_.fetch_add(1, std::memory_order_relaxed);
 }
 void RaftMetrics::IncrementClientRequestFailed() { client_request_failed_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementReadLogTotal() { read_log_total_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementReadIndexTotal() { read_index_total_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementReadIndexSuccess() { read_index_success_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementReadIndexFailed() { read_index_failed_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementReadIndexTimeout() { read_index_timeout_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementReadIndexQuorumConfirmRounds() {
+    read_index_quorum_confirm_rounds_.fetch_add(1, std::memory_order_relaxed);
+}
+void RaftMetrics::IncrementLeaderNoopAppended() { leader_noop_appended_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementLeaderNoopCommitted() { leader_noop_committed_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementPreVoteSent() { pre_vote_sent_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementPreVoteGranted() { pre_vote_granted_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementPreVoteRejected() { pre_vote_rejected_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementCheckQuorumStepdown() {
+    check_quorum_stepdown_count_.fetch_add(1, std::memory_order_relaxed);
+}
+void RaftMetrics::IncrementCheckQuorumRounds() { check_quorum_rounds_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementCheckQuorumSuccess() { check_quorum_success_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementCheckQuorumFailed() { check_quorum_failed_.fetch_add(1, std::memory_order_relaxed); }
 
 std::string RaftRoleCodeToString(int role_code) {
     switch (role_code) {
@@ -167,6 +202,23 @@ std::string SerializeRaftStatusSnapshot(const RaftStatusSnapshot& snapshot) {
     AppendField(&out, "client_request_total", snapshot.metrics.client_request_total);
     AppendField(&out, "client_request_success", snapshot.metrics.client_request_success);
     AppendField(&out, "client_request_failed", snapshot.metrics.client_request_failed);
+    AppendField(&out, "read_log_total", snapshot.metrics.read_log_total);
+    AppendField(&out, "read_index_total", snapshot.metrics.read_index_total);
+    AppendField(&out, "read_index_success", snapshot.metrics.read_index_success);
+    AppendField(&out, "read_index_failed", snapshot.metrics.read_index_failed);
+    AppendField(&out, "read_index_timeout", snapshot.metrics.read_index_timeout);
+    AppendField(&out, "read_index_quorum_confirm_rounds",
+                snapshot.metrics.read_index_quorum_confirm_rounds);
+    AppendField(&out, "leader_noop_appended", snapshot.metrics.leader_noop_appended);
+    AppendField(&out, "leader_noop_committed", snapshot.metrics.leader_noop_committed);
+    AppendField(&out, "pre_vote_sent", snapshot.metrics.pre_vote_sent);
+    AppendField(&out, "pre_vote_granted", snapshot.metrics.pre_vote_granted);
+    AppendField(&out, "pre_vote_rejected", snapshot.metrics.pre_vote_rejected);
+    AppendField(&out, "check_quorum_stepdown_count",
+                snapshot.metrics.check_quorum_stepdown_count);
+    AppendField(&out, "check_quorum_rounds", snapshot.metrics.check_quorum_rounds);
+    AppendField(&out, "check_quorum_success", snapshot.metrics.check_quorum_success);
+    AppendField(&out, "check_quorum_failed", snapshot.metrics.check_quorum_failed);
     return out.str();
 }
 
@@ -249,6 +301,36 @@ bool DeserializeRaftStatusSnapshot(const std::string& data,
             ok = ParseUint64(decoded, &parsed.metrics.client_request_success);
         } else if (key == "client_request_failed") {
             ok = ParseUint64(decoded, &parsed.metrics.client_request_failed);
+        } else if (key == "read_log_total") {
+            ok = ParseUint64(decoded, &parsed.metrics.read_log_total);
+        } else if (key == "read_index_total") {
+            ok = ParseUint64(decoded, &parsed.metrics.read_index_total);
+        } else if (key == "read_index_success") {
+            ok = ParseUint64(decoded, &parsed.metrics.read_index_success);
+        } else if (key == "read_index_failed") {
+            ok = ParseUint64(decoded, &parsed.metrics.read_index_failed);
+        } else if (key == "read_index_timeout") {
+            ok = ParseUint64(decoded, &parsed.metrics.read_index_timeout);
+        } else if (key == "read_index_quorum_confirm_rounds") {
+            ok = ParseUint64(decoded, &parsed.metrics.read_index_quorum_confirm_rounds);
+        } else if (key == "leader_noop_appended") {
+            ok = ParseUint64(decoded, &parsed.metrics.leader_noop_appended);
+        } else if (key == "leader_noop_committed") {
+            ok = ParseUint64(decoded, &parsed.metrics.leader_noop_committed);
+        } else if (key == "pre_vote_sent") {
+            ok = ParseUint64(decoded, &parsed.metrics.pre_vote_sent);
+        } else if (key == "pre_vote_granted") {
+            ok = ParseUint64(decoded, &parsed.metrics.pre_vote_granted);
+        } else if (key == "pre_vote_rejected") {
+            ok = ParseUint64(decoded, &parsed.metrics.pre_vote_rejected);
+        } else if (key == "check_quorum_stepdown_count") {
+            ok = ParseUint64(decoded, &parsed.metrics.check_quorum_stepdown_count);
+        } else if (key == "check_quorum_rounds") {
+            ok = ParseUint64(decoded, &parsed.metrics.check_quorum_rounds);
+        } else if (key == "check_quorum_success") {
+            ok = ParseUint64(decoded, &parsed.metrics.check_quorum_success);
+        } else if (key == "check_quorum_failed") {
+            ok = ParseUint64(decoded, &parsed.metrics.check_quorum_failed);
         }
         if (!ok) {
             if (error_msg != nullptr) {

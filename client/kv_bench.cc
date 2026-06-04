@@ -263,6 +263,7 @@ void PrintUsage() {
         << "Usage: kv_bench --servers=a,b,c --threads=4 --duration_seconds=30 --warmup_seconds=5 "
         << "--key_count=1000 --value_size=128 --read_percent=70 --put_percent=20 "
         << "--append_percent=5 --delete_percent=5 --seed=20260604 "
+        << "--read_mode=log "
         << "--output_json=/tmp/result.json --output_csv=/tmp/result.csv\n";
 }
 
@@ -295,6 +296,8 @@ bool ParseArgs(int argc, char** argv, Args* args, std::string* error) {
                 args->config.mix.delete_percent = std::stoi(value("--delete_percent="));
             } else if (arg.rfind("--seed=", 0) == 0) {
                 args->config.seed = static_cast<std::uint64_t>(std::stoull(value("--seed=")));
+            } else if (arg.rfind("--read_mode=", 0) == 0) {
+                args->config.read_mode = value("--read_mode=");
             } else if (arg.rfind("--output_json=", 0) == 0) {
                 args->output_json = value("--output_json=");
             } else if (arg.rfind("--output_csv=", 0) == 0) {
@@ -325,6 +328,10 @@ bool ParseArgs(int argc, char** argv, Args* args, std::string* error) {
         args->config.key_count <= 0 || args->config.value_size < 0 || args->timeout_ms <= 0 ||
         args->max_retries <= 0) {
         *error = "threads, duration, key_count, timeout, and retries must be positive";
+        return false;
+    }
+    if (args->config.read_mode != "log" && args->config.read_mode != "read_index") {
+        *error = "read_mode must be log or read_index";
         return false;
     }
     return craftkv::bench::ValidateOperationMix(args->config.mix, error);

@@ -62,4 +62,41 @@ inline bool ApplyRequestVoteTerm(int request_term, int* current_term, int* voted
     return true;
 }
 
+inline bool IsCandidateLogAtLeastUpToDate(int local_last_log_term,
+                                          int local_last_log_index,
+                                          int candidate_last_log_term,
+                                          int candidate_last_log_index) {
+    return candidate_last_log_term > local_last_log_term ||
+           (candidate_last_log_term == local_last_log_term &&
+            candidate_last_log_index >= local_last_log_index);
+}
+
+inline bool ShouldGrantPreVote(int current_term,
+                               bool local_is_leader,
+                               bool has_recent_leader_contact,
+                               int local_last_log_term,
+                               int local_last_log_index,
+                               int request_term,
+                               int candidate_last_log_term,
+                               int candidate_last_log_index) {
+    if (request_term < current_term || local_is_leader || has_recent_leader_contact) {
+        return false;
+    }
+    return IsCandidateLogAtLeastUpToDate(local_last_log_term, local_last_log_index,
+                                         candidate_last_log_term, candidate_last_log_index);
+}
+
+inline bool HasRecentQuorum(const std::vector<bool>& recent_contact, int self_index) {
+    if (!IsValidPeerIndex(self_index, static_cast<int>(recent_contact.size()))) {
+        return false;
+    }
+    int count = 0;
+    for (bool recent : recent_contact) {
+        if (recent) {
+            ++count;
+        }
+    }
+    return count > static_cast<int>(recent_contact.size()) / 2;
+}
+
 }  // namespace craft::raft_correctness

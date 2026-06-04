@@ -28,6 +28,8 @@ seeded_chaos_status=SKIPPED
 linearizability_status=SKIPPED
 admin_status_status=SKIPPED
 benchmark_smoke_status=SKIPPED
+read_index_status=SKIPPED
+leader_stability_status=SKIPPED
 
 echo "running core tests..."
 if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_core.sh" >"${REPORT_DIR}/test_core.log" 2>&1; then
@@ -124,6 +126,36 @@ else
   echo "benchmark smoke: SKIPPED (set RUN_BENCHMARK_SMOKE=1 to run)"
 fi
 
+if [[ "${RUN_READ_INDEX:-0}" == "1" ]]; then
+  echo "running ReadIndex integration test..."
+  if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_read_index.sh" >"${REPORT_DIR}/test_read_index.log" 2>&1; then
+    echo "ReadIndex integration: PASS"
+    read_index_status=PASS
+  else
+    read_index_status=$?
+    echo "ReadIndex integration: FAIL (${read_index_status})"
+    echo "log: ${REPORT_DIR}/test_read_index.log"
+    exit "${read_index_status}"
+  fi
+else
+  echo "ReadIndex integration: SKIPPED (set RUN_READ_INDEX=1 to run)"
+fi
+
+if [[ "${RUN_LEADER_STABILITY:-0}" == "1" ]]; then
+  echo "running leader stability integration test..."
+  if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_leader_stability.sh" >"${REPORT_DIR}/test_leader_stability.log" 2>&1; then
+    echo "leader stability: PASS"
+    leader_stability_status=PASS
+  else
+    leader_stability_status=$?
+    echo "leader stability: FAIL (${leader_stability_status})"
+    echo "log: ${REPORT_DIR}/test_leader_stability.log"
+    exit "${leader_stability_status}"
+  fi
+else
+  echo "leader stability: SKIPPED (set RUN_LEADER_STABILITY=1 to run)"
+fi
+
 cat >"${REPORT_DIR}/summary.txt" <<EOF
 run_id=${RUN_ID}
 core_status=PASS
@@ -133,6 +165,8 @@ seeded_chaos_status=${seeded_chaos_status}
 linearizability_status=${linearizability_status}
 admin_status_status=${admin_status_status}
 benchmark_smoke_status=${benchmark_smoke_status}
+read_index_status=${read_index_status}
+leader_stability_status=${leader_stability_status}
 core_log=${REPORT_DIR}/test_core.log
 cluster_smoke_log=${REPORT_DIR}/test_cluster_smoke.log
 snapshot_cluster_log=${REPORT_DIR}/test_snapshot_cluster.log
@@ -140,6 +174,8 @@ seeded_chaos_log=${REPORT_DIR}/test_seeded_chaos.log
 linearizability_log=${REPORT_DIR}/test_concurrent_linearizability.log
 admin_status_log=${REPORT_DIR}/test_admin_status.log
 benchmark_smoke_log=${REPORT_DIR}/test_benchmark_smoke.log
+read_index_log=${REPORT_DIR}/test_read_index.log
+leader_stability_log=${REPORT_DIR}/test_leader_stability.log
 EOF
 
 echo "ALL TESTS PASSED"

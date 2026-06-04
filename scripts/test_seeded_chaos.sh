@@ -25,6 +25,7 @@ CLIENT_RETRIES="${CLIENT_RETRIES:-8}"
 CLIENT_COMMAND_ATTEMPTS="${CLIENT_COMMAND_ATTEMPTS:-30}"
 CLIENT_COMMAND_RETRY_SLEEP="${CLIENT_COMMAND_RETRY_SLEEP:-1}"
 SNAPSHOT_MAX_LOG_ENTRIES="${SNAPSHOT_MAX_LOG_ENTRIES:-40}"
+READ_MODE="${READ_MODE:-log}"
 CLIENT="${ROOT_DIR}/bin/kv_client"
 SERVER="${ROOT_DIR}/bin/kv_server"
 CHECKER="${ROOT_DIR}/scripts/check_chaos_history.py"
@@ -680,6 +681,11 @@ raft:
   election_timeout_ms_max: 600
   heartbeat_interval_ms: 100
   rpc_timeout_ms: 300
+  pre_vote: true
+  check_quorum: true
+
+read:
+  mode: ${READ_MODE}
 EOF
 }
 

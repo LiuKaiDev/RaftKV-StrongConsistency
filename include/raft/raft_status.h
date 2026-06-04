@@ -24,6 +24,21 @@ struct RaftMetricsSnapshot {
     std::uint64_t client_request_total = 0;
     std::uint64_t client_request_success = 0;
     std::uint64_t client_request_failed = 0;
+    std::uint64_t read_log_total = 0;
+    std::uint64_t read_index_total = 0;
+    std::uint64_t read_index_success = 0;
+    std::uint64_t read_index_failed = 0;
+    std::uint64_t read_index_timeout = 0;
+    std::uint64_t read_index_quorum_confirm_rounds = 0;
+    std::uint64_t leader_noop_appended = 0;
+    std::uint64_t leader_noop_committed = 0;
+    std::uint64_t pre_vote_sent = 0;
+    std::uint64_t pre_vote_granted = 0;
+    std::uint64_t pre_vote_rejected = 0;
+    std::uint64_t check_quorum_stepdown_count = 0;
+    std::uint64_t check_quorum_rounds = 0;
+    std::uint64_t check_quorum_success = 0;
+    std::uint64_t check_quorum_failed = 0;
 };
 
 class RaftMetrics {
@@ -47,6 +62,21 @@ public:
     void IncrementClientRequestTotal();
     void IncrementClientRequestSuccess();
     void IncrementClientRequestFailed();
+    void IncrementReadLogTotal();
+    void IncrementReadIndexTotal();
+    void IncrementReadIndexSuccess();
+    void IncrementReadIndexFailed();
+    void IncrementReadIndexTimeout();
+    void IncrementReadIndexQuorumConfirmRounds();
+    void IncrementLeaderNoopAppended();
+    void IncrementLeaderNoopCommitted();
+    void IncrementPreVoteSent();
+    void IncrementPreVoteGranted();
+    void IncrementPreVoteRejected();
+    void IncrementCheckQuorumStepdown();
+    void IncrementCheckQuorumRounds();
+    void IncrementCheckQuorumSuccess();
+    void IncrementCheckQuorumFailed();
 
 private:
     std::atomic<std::uint64_t> election_count_{0};
@@ -65,6 +95,21 @@ private:
     std::atomic<std::uint64_t> client_request_total_{0};
     std::atomic<std::uint64_t> client_request_success_{0};
     std::atomic<std::uint64_t> client_request_failed_{0};
+    std::atomic<std::uint64_t> read_log_total_{0};
+    std::atomic<std::uint64_t> read_index_total_{0};
+    std::atomic<std::uint64_t> read_index_success_{0};
+    std::atomic<std::uint64_t> read_index_failed_{0};
+    std::atomic<std::uint64_t> read_index_timeout_{0};
+    std::atomic<std::uint64_t> read_index_quorum_confirm_rounds_{0};
+    std::atomic<std::uint64_t> leader_noop_appended_{0};
+    std::atomic<std::uint64_t> leader_noop_committed_{0};
+    std::atomic<std::uint64_t> pre_vote_sent_{0};
+    std::atomic<std::uint64_t> pre_vote_granted_{0};
+    std::atomic<std::uint64_t> pre_vote_rejected_{0};
+    std::atomic<std::uint64_t> check_quorum_stepdown_count_{0};
+    std::atomic<std::uint64_t> check_quorum_rounds_{0};
+    std::atomic<std::uint64_t> check_quorum_success_{0};
+    std::atomic<std::uint64_t> check_quorum_failed_{0};
 };
 
 struct RaftStatusSnapshot {

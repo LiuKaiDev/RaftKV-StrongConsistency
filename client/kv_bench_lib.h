@@ -28,6 +28,7 @@ struct BenchConfig {
     std::string hostname = "unknown";
     unsigned int cpu_count = 0;
     std::string build_type = "unknown";
+    std::string read_mode = "log";
     std::uint64_t seed = 20260604;
     int threads = 4;
     int duration_seconds = 30;

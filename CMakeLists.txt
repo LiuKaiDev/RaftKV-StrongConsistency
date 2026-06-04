@@ -30,6 +30,7 @@ set(STORAGE_SRC
 set(KV_CORE_SRC
   src/kv/kv_command.cc
   src/kv/kv_state_machine.cc
+  src/raft/raft_log_entry.cc
   src/raft/raft_status.cc
 )
 
@@ -130,7 +131,8 @@ foreach(test_name
     test_snapshot
     test_raft_log
     test_restart_replay
-    test_admin_status)
+    test_admin_status
+    test_read_mode_config)
   add_executable(${test_name} tests/${test_name}.cc)
   target_link_libraries(${test_name} PRIVATE craft_core)
   target_compile_definitions(${test_name} PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")

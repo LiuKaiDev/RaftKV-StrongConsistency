@@ -25,6 +25,10 @@ namespace craft {
                               const ::RequestVoteArgs *request,
                               ::RequestVoteReply *response) override;
 
+        Status preVoteRPC(::grpc::ServerContext *context,
+                          const ::RequestVoteArgs *request,
+                          ::RequestVoteReply *response) override;
+
         Status appendEntries(::grpc::ServerContext *context,
                              const ::AppendEntriesArgs *request,
                              ::AppendEntriesReply *response) override;

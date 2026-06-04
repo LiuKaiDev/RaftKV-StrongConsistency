@@ -3,6 +3,8 @@
 #include "craft/raft.h"
 #include "raft/raft_correctness.h"
 
+#include <chrono>
+
 namespace craft {
 
     bool sendToAppendEntries(Raft *rf, int serverId,
@@ -25,6 +27,23 @@ namespace craft {
                 RETURN_TYPE X;
                 m_appendEntriesTimer->m_chan_ >> X;
                 m_appendEntriesTimer->reset(m_heatBeatInterVal);
+                co_mtx_.lock();
+                if (m_state_ == STATE::LEADER && m_checkQuorumEnabled_) {
+                    m_metrics_.IncrementCheckQuorumRounds();
+                    if (recentlyContactedQuorum(std::chrono::steady_clock::now())) {
+                        m_metrics_.IncrementCheckQuorumSuccess();
+                    } else {
+                        m_metrics_.IncrementCheckQuorumFailed();
+                        m_metrics_.IncrementCheckQuorumStepdown();
+                        spdlog::warn("[{}]:{} step down because CheckQuorum lost majority",
+                                     m_me_, m_clusterAddress_[m_me_]);
+                        changeToState(STATE::FOLLOWER);
+                        m_leaderId_ = -1;
+                        m_electionTimer->reset(getElectionTimeOut(m_leaderEelectionTimeOut_));
+                        persist();
+                    }
+                }
+                co_mtx_.unlock();
                 if (m_state_ == STATE::LEADER) {
                     spdlog::debug("in co_appendAentries state:[{}],my term is [{}]",
                                   stringState(m_state_), m_current_term_);
@@ -50,6 +69,7 @@ namespace craft {
                                 auto a = args->add_entries();
                                 a->set_term(m.term());
                                 a->set_command(m.command());
+                                a->set_type(m.type());
                             }
                             std::shared_ptr<AppendEntriesReply> reply(
                                     new AppendEntriesReply);
@@ -114,6 +134,7 @@ namespace craft {
         if (ok.ok()) {
             if (reply->success()) {
                 rf->m_metrics_.IncrementAppendEntriesSuccess();
+                rf->recordPeerContact(serverId, std::chrono::steady_clock::now());
             } else {
                 rf->m_metrics_.IncrementAppendEntriesFailed();
             }

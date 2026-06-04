@@ -114,8 +114,23 @@ Metrics 字段含义：
 - `client_request_total`: TCP KV 客户端 Put/Get/Append/Delete 请求总数。
 - `client_request_success`: TCP KV 客户端请求成功数。
 - `client_request_failed`: TCP KV 客户端请求失败数，包括 NotLeader、BadRequest、Timeout 和业务失败。
+- `read_log_total`: 使用 `read.mode: log` 的 Get 请求数。
+- `read_index_total`: 进入 ReadIndex 路径的 Get 请求数。
+- `read_index_success`: 完成 quorum 确认、等待本地状态机应用并成功读取的 ReadIndex 请求数。
+- `read_index_failed`: ReadIndex 路径失败数，包括非 Leader、领导权变化、未满足安全屏障和超时。
+- `read_index_timeout`: ReadIndex quorum 确认、本地 apply 等待或当前 term 提交屏障未满足导致的超时/可重试失败。
+- `read_index_quorum_confirm_rounds`: Leader 发起 ReadIndex 多数派确认轮数。
+- `leader_noop_appended`: 本节点成为 Leader 后追加内部 no-op 屏障日志的次数。
+- `leader_noop_committed`: 本节点提交当前 term 内部 no-op 屏障日志的次数。
+- `pre_vote_sent`: 本节点发出的 PreVote RPC 次数。
+- `pre_vote_granted`: 本节点收到同意票的 PreVote 次数。
+- `pre_vote_rejected`: PreVote RPC 失败或收到拒绝票的次数。
+- `check_quorum_stepdown_count`: Leader 因 CheckQuorum 无法联系多数派而主动退位的次数。
+- `check_quorum_rounds`: Leader 执行 CheckQuorum 检查轮数。
+- `check_quorum_success`: CheckQuorum 检查时仍能联系多数派的轮数。
+- `check_quorum_failed`: CheckQuorum 检查时未能联系多数派的轮数。
 
-Metrics 默认启用但不持久化，节点重启后从 0 重新开始。它们是低成本核心观测信号，不是完整监控系统；后续 benchmark 可以用 `commit_index`、`last_applied`、`wal_bytes` 和客户端请求计数观察吞吐与积压，ReadIndex 阶段可以用 leader/term/commit/apply 指标排查只读路径是否落后或经历选举。
+Metrics 默认启用但不持久化，节点重启后从 0 重新开始。它们是低成本核心观测信号，不是完整监控系统；benchmark 可以用 `commit_index`、`last_applied`、`wal_bytes`、客户端请求计数、ReadIndex 计数和 Leader 稳定性计数观察吞吐、积压、读路径切换、选举影响和多数派丢失。
 
 ## 6. KV 基础功能
 
@@ -136,6 +151,84 @@ Metrics 默认启用但不持久化，节点重启后从 0 重新开始。它们
 ```
 
 期望：`get name` 先返回 `chaos`，append 后返回 `chaos_raft`，delete 后返回 `KEY_NOT_FOUND`。
+
+## 6.1 ReadIndex 读模式
+
+默认读模式仍是日志读：
+
+```yaml
+read:
+  mode: log
+```
+
+显式启用 ReadIndex：
+
+```yaml
+read:
+  mode: read_index
+```
+
+旧配置不写 `read:` 时等价于 `log`。非法值会导致 `kv_server` 启动时配置加载失败。
+
+当前 `log` 读路径为：`kv_client get` 发送 TCP 请求，Leader 将 GET 序列化后调用 `Raft::submitCommand` 追加 WAL 和 Raft 日志，经 AppendEntries 复制到多数派，commit 后由 apply loop 按日志 index 应用到 `KVStateMachine::Apply`，再唤醒客户端返回。
+
+`read_index` 路径为：Leader 不追加 GET 日志，而是先确认当前 term 已有提交点，再用空 AppendEntries heartbeat 对多数派做一次往返确认，记录 `read_index=commit_index`，等待 KV 层状态机已应用到该 index，最后通过 `KVStateMachine::GetLocal` 本地读取。Follower 直接返回 Leader hint。
+
+不能只判断 `role == LEADER` 后直接读。旧 Leader 在网络分区或选举切换期间可能尚未感知新 term；ReadIndex 必须通过当前 term 的多数派 heartbeat 确认仍拥有领导权。也必须等待 `lastApplied/read_index` 对应的 KV 状态机应用完成，否则会从落后的本地状态机读取旧值。
+
+本项目没有实现 Lease Read。Leader 当选后会追加并提交一条内部 no-op 日志作为当前 term 屏障，因此在没有业务写入的情况下也可以建立 ReadIndex 所需的当前 term 提交点。
+
+ReadIndex 集成验证：
+
+```bash
+bash scripts/test_read_index.sh
+```
+
+默认 `scripts/test_all.sh` 不运行该慢速测试。需要显式开启：
+
+```bash
+RUN_READ_INDEX=1 bash scripts/test_all.sh
+```
+
+ReadIndex 模式下运行现有正确性脚本：
+
+```bash
+READ_MODE=read_index SEED=20260604 DURATION_SECONDS=60 OPERATION_COUNT=300 CLIENT_COUNT=4 \
+  bash scripts/test_seeded_chaos.sh
+
+READ_MODE=read_index SEED=20260604 CLIENT_COUNT=4 OPERATIONS_PER_CLIENT=40 KEY_COUNT=3 \
+  bash scripts/test_concurrent_linearizability.sh
+```
+
+## 6.2 Leader 稳定性
+
+Leader 稳定性增强包含 Leader no-op barrier、PreVote 和 CheckQuorum。它们默认保持兼容关闭；在配置中显式启用：
+
+```yaml
+raft:
+  pre_vote: true
+  check_quorum: true
+```
+
+Leader no-op barrier 在节点转为 Leader 后立即追加一条内部 `NO_OP` 日志，写入现有 WAL 并通过普通 AppendEntries 复制提交。Apply 阶段识别内部 no-op，只推进 applied index 和等待者通知，不调用 KV 状态机，不写 dedup 表，也不会产生客户端业务响应。WAL frame 格式不变；内部 no-op 通过日志类型和不可由普通客户端构造的二进制命令标记识别，旧 WAL replay 也可以安全识别。
+
+PreVote 在正式选举前发送 `preVoteRPC`，使用与 RequestVote 相同的日志新旧比较。PreVote 不增加本地 `current_term`，不修改 `voted_for`，不持久化 meta；只有获得多数派 PreVote 后才进入正式 Candidate 并增加 term。正式选举前还会重新检查最近 Leader 联系，避免 PreVote 往返期间刚恢复的 Leader 心跳被忽略。
+
+CheckQuorum 只在 Leader 上运行，使用 `steady_clock` 和最近一次成功 AppendEntries/heartbeat 响应维护多数派联系窗口。当前窗口为 `election_timeout_ms_min`。Leader 在一个检查轮中发现最近窗口内无法联系多数派时主动退位为 Follower，停止对外声称自己是 Leader；后续通过正常选举恢复服务。
+
+运行三节点 Leader 稳定性集成测试：
+
+```bash
+bash scripts/test_leader_stability.sh
+```
+
+默认 `scripts/test_all.sh` 不运行该慢速测试。需要显式开启：
+
+```bash
+RUN_LEADER_STABILITY=1 bash scripts/test_all.sh
+```
+
+该脚本使用隔离端口和数据目录，覆盖无业务写入时 no-op 屏障后的 ReadIndex、Leader 切换后立即 ReadIndex、Follower 停止恢复时 PreVote term 稳定性、停止两个 Follower 后 CheckQuorum 退位或拒绝成功读写，以及恢复多数派后的收敛。当前脚本通过停止进程模拟故障，不使用 iptables，也不覆盖真实网络分区的所有时序。
 
 ## 7. Leader 故障
 
@@ -295,7 +388,7 @@ Benchmark v2 使用常驻 C++ 客户端 `kv_bench`，在一个进程中启动多
 直接运行稳态基线：
 
 ```bash
-SCENARIO=steady THREADS=4 DURATION_SECONDS=30 WARMUP_SECONDS=5 \
+SCENARIO=steady READ_MODE=log THREADS=4 DURATION_SECONDS=30 WARMUP_SECONDS=5 \
   KEY_COUNT=1000 VALUE_SIZE=128 \
   READ_PERCENT=70 PUT_PERCENT=20 APPEND_PERCENT=5 DELETE_PERCENT=5 \
   SEED=20260604 bash scripts/run_benchmark_v2.sh
@@ -342,7 +435,17 @@ RUN_BENCHMARK_SMOKE=1 bash scripts/test_all.sh
 
 不要只看平均延迟。平均值会掩盖少量非常慢的请求，而 Raft 复制、选举、WAL fsync 和 snapshot 都可能主要体现在 p95/p99 上。
 
-当前 `Get` 仍进入 Raft 日志；Benchmark v2 的结果是 ReadIndex 优化前基线。单机阿里云 2 vCPU 小规格结果只用于项目学习和回归比较，不能宣传为生产级性能。
+`READ_MODE=log` 的 `Get` 仍进入 Raft 日志，是 ReadIndex 优化前基线。`READ_MODE=read_index` 可用于同参数对比：
+
+```bash
+READ_MODE=log SCENARIO=steady READ_PERCENT=100 PUT_PERCENT=0 APPEND_PERCENT=0 DELETE_PERCENT=0 \
+  bash scripts/run_benchmark_v2.sh
+
+READ_MODE=read_index SCENARIO=steady READ_PERCENT=100 PUT_PERCENT=0 APPEND_PERCENT=0 DELETE_PERCENT=0 \
+  bash scripts/run_benchmark_v2.sh
+```
+
+对比 `result.json` 中的 throughput、p50、p95、p99，以及 `metrics_delta.txt` 中的 `wal_bytes`、`append_entries_sent`、`snapshot_created_count`、`read_log_total` 和 `read_index_success`。单机阿里云 2 vCPU 小规格结果只用于项目学习和回归比较，不能宣传为生产级性能。
 
 ## 15. 清理运行时文件
 

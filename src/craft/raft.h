@@ -2,6 +2,7 @@
 
 #include "public.h"
 #include "nocopyable.h"
+#include <chrono>
 #include "libgo/coroutine.h"
 #include "grpc++/grpc++.h"
 #include  "peers.h"
@@ -39,6 +40,7 @@ namespace craft {
 
         void changeToState(STATE toState) ;
         ServerCallResult submitCommand(std::string command );
+        ServerCallResult appendLeaderNoop();
         void initFromConfig(const std::string& filename) ;
         void setClusterAddress(const std::vector<std::string> &clusterAddress) ;
         void setLeaderEelectionTimeOut(uint millisecond) ;
@@ -52,6 +54,13 @@ namespace craft {
         int getLogCountAfterSnapshot();
         RaftStatusSnapshot getStatusSnapshot();
         void recordClientRequestResult(bool success);
+        void recordLogRead();
+        void recordReadIndexSuccess();
+        void recordReadIndexFailure();
+        void recordReadIndexTimeoutFailure();
+        ReadIndexResult confirmReadIndex(int timeout_ms);
+        bool recentlyContactedQuorum(std::chrono::steady_clock::time_point now);
+        void recordPeerContact(int peerId, std::chrono::steady_clock::time_point now);
 
         //some util function
 
@@ -110,6 +119,10 @@ namespace craft {
         std::vector<Timer *> m_appendEntriesTimers_{nullptr};
         co_chan<RETURN_TYPE>* isCompleteSnapFileInstallCh_;
         RaftMetrics m_metrics_;
+        bool m_preVoteEnabled_ = false;
+        bool m_checkQuorumEnabled_ = false;
+        std::vector<std::chrono::steady_clock::time_point> m_lastPeerContact_;
+        std::chrono::steady_clock::time_point m_lastLeaderContact_{};
 
 
     };

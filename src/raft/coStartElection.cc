@@ -4,13 +4,20 @@
 #include "craft/raft.h"
 #include "raft/raft_correctness.h"
 
+#include <chrono>
+
 namespace craft {
 
     void sendRequestVote(Raft *rf, int serverId,
                          const std::shared_ptr<RequestVoteArgs> &request,
                          const std::shared_ptr<RequestVoteReply> &response);
+    void sendPreVote(Raft *rf, int serverId,
+                     const std::shared_ptr<RequestVoteArgs> &request,
+                     const std::shared_ptr<RequestVoteReply> &response);
 
     void startElection(Raft *rf);
+    bool startPreVote(Raft *rf);
+    bool hasRecentLeaderContactForElection(Raft *rf);
 
     void Raft::co_startElection() {
         go [this] {
@@ -37,6 +44,26 @@ namespace craft {
         }
         if (rf->m_state_ == STATE::LEADER) {
             spdlog::debug("already leader,return\n");
+            rf->co_mtx_.unlock();
+            return;
+        }
+        bool preVoteEnabled = rf->m_preVoteEnabled_;
+        rf->co_mtx_.unlock();
+        if (preVoteEnabled && !startPreVote(rf)) {
+            rf->co_mtx_.lock();
+            if (!rf->m_iskilled_ && rf->m_state_ != STATE::LEADER) {
+                rf->m_electionTimer->reset(getElectionTimeOut(rf->m_leaderEelectionTimeOut_));
+            }
+            rf->co_mtx_.unlock();
+            return;
+        }
+        rf->co_mtx_.lock();
+        if (rf->m_iskilled_ || rf->m_state_ == STATE::LEADER) {
+            rf->co_mtx_.unlock();
+            return;
+        }
+        if (preVoteEnabled && hasRecentLeaderContactForElection(rf)) {
+            rf->m_electionTimer->reset(getElectionTimeOut(rf->m_leaderEelectionTimeOut_));
             rf->co_mtx_.unlock();
             return;
         }
@@ -101,6 +128,54 @@ namespace craft {
 
     }
 
+    bool startPreVote(Raft *rf) {
+        rf->co_mtx_.lock();
+        if (rf->m_iskilled_ || rf->m_state_ == STATE::LEADER) {
+            rf->co_mtx_.unlock();
+            return false;
+        }
+        int allCount = rf->m_clusterAddress_.size(), grantedCount = 1, resCount = 1;
+        int nextTerm = rf->m_current_term_ + 1;
+        int lastLogTerm = rf->getLastLogTerm();
+        int lastLogIndex = rf->getLastLogIndex();
+        std::shared_ptr<co_chan<bool>> grantedChan(new co_chan<bool>(allCount - 1));
+        rf->co_mtx_.unlock();
+
+        for (int i = 0; i < allCount; i++) {
+            if (i == rf->m_me_) {
+                continue;
+            }
+            go [rf, i, grantedChan, nextTerm, lastLogTerm, lastLogIndex] {
+                std::shared_ptr<RequestVoteArgs> args(new RequestVoteArgs);
+                args->set_candidateid(rf->m_me_);
+                args->set_term(nextTerm);
+                args->set_lastlogterm(lastLogTerm);
+                args->set_lastlogindex(lastLogIndex);
+                std::shared_ptr<RequestVoteReply> reply(new RequestVoteReply);
+                sendPreVote(rf, i, args, reply);
+                *grantedChan << reply->votegranted();
+            };
+        }
+
+        bool granted = false;
+        while (resCount != allCount) {
+            *grantedChan >> granted;
+            resCount++;
+            if (granted) {
+                grantedCount++;
+            }
+        }
+        spdlog::info("[{}],PreVote next_term = {},VoteCount:[{}/{}]", rf->m_me_, nextTerm,
+                     grantedCount, allCount);
+        return grantedCount > (allCount / 2);
+    }
+
+    bool hasRecentLeaderContactForElection(Raft *rf) {
+        auto now = std::chrono::steady_clock::now();
+        auto age = std::chrono::duration_cast<std::chrono::milliseconds>(now - rf->m_lastLeaderContact_);
+        return age.count() >= 0 && age.count() <= static_cast<long long>(rf->m_leaderEelectionTimeOut_);
+    }
+
     void sendRequestVote(Raft *rf, int serverId,
                          const std::shared_ptr<RequestVoteArgs> &request,
                          const std::shared_ptr<RequestVoteReply> &response) {
@@ -136,6 +211,39 @@ namespace craft {
                 spdlog::debug("to {} success call voteRPC\n", serverId);
                 break;
             }
+        }
+    }
+
+    void sendPreVote(Raft *rf, int serverId,
+                     const std::shared_ptr<RequestVoteArgs> &request,
+                     const std::shared_ptr<RequestVoteReply> &response) {
+        if (!raft_correctness::IsRemotePeerIndex(serverId, rf->m_me_,
+                                                 static_cast<int>(rf->m_clusterAddress_.size()))) {
+            spdlog::error("serverId:{} invalid in sendPreVote!", serverId);
+            return;
+        }
+        static std::vector<std::unique_ptr<RaftRPC::Stub>> &stubs =
+                rf->m_peers_->getPeerStubs();
+        if (!raft_correctness::IsRemotePeerIndex(serverId, rf->m_me_, static_cast<int>(stubs.size()))) {
+            spdlog::error("serverId:{} invalid in sendPreVote!", serverId);
+            return;
+        }
+        ClientContext context;
+        std::chrono::system_clock::time_point deadline =
+                std::chrono::system_clock::now() +
+                std::chrono::milliseconds(rf->m_rpcTimeOut_);
+        context.set_deadline(deadline);
+        Status ok = stubs[serverId]->preVoteRPC(&context, *request, response.get());
+        rf->m_metrics_.IncrementPreVoteSent();
+        if (!ok.ok()) {
+            spdlog::error("disconnect to id[{}]:{} to try preVote\n", serverId, rf->m_clusterAddress_[serverId]);
+            rf->m_metrics_.IncrementPreVoteRejected();
+            return;
+        }
+        if (response->votegranted()) {
+            rf->m_metrics_.IncrementPreVoteGranted();
+        } else {
+            rf->m_metrics_.IncrementPreVoteRejected();
         }
     }
 

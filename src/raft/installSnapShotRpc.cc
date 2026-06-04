@@ -2,6 +2,8 @@
 #include "craft/startRpcService.h"
 #include "raft/raft_correctness.h"
 
+#include <chrono>
+
 namespace craft {
 
     // return is can isntall snapshot file ?
@@ -30,6 +32,7 @@ namespace craft {
             m_rf_->m_electionTimer->reset(getElectionTimeOut(m_rf_->m_leaderEelectionTimeOut_));
             m_rf_->persist();
         }
+        m_rf_->m_lastLeaderContact_ = std::chrono::steady_clock::now();
         if (m_rf_->m_snapShotIndex >= request->lastincludeindex()) {
             response->set_iscansendsnapfile(false);
             m_rf_->co_mtx_.unlock();

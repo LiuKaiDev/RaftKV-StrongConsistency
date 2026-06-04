@@ -39,6 +39,7 @@ Metrics are atomics and are not persisted. Restarting a node resets them to zero
 - Snapshot creation increments only after local snapshot creation succeeds.
 - WAL recovery truncated-tail count is read from the WAL instance after crash recovery repairs a truncated or corrupted tail.
 - Client request metrics count only Put/Get/Append/Delete through the TCP API, not status, leader, or dump commands.
+- Read metrics split log reads and ReadIndex reads. `read_index_quorum_confirm_rounds` counts Leader quorum-confirmation rounds; success/failure/timeout counters describe the observable ReadIndex path and reset on restart like the rest of the metrics.
 
 ## Safety
 

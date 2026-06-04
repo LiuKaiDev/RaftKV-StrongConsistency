@@ -39,6 +39,7 @@ int main() {
     bench.config.hostname = "host";
     bench.config.cpu_count = 2;
     bench.config.build_type = "Release";
+    bench.config.read_mode = "read_index";
     bench.config.seed = 20260604;
     bench.config.threads = 2;
     bench.config.duration_seconds = 3;
@@ -58,6 +59,7 @@ int main() {
 
     std::string json = craftkv::bench::WriteJsonSummary(bench);
     assert(json.find("\"git_commit\"") != std::string::npos);
+    assert(json.find("\"read_mode\": \"read_index\"") != std::string::npos);
     assert(json.find("\"latency_us_p50\"") != std::string::npos);
     assert(json.find("\"get_success\"") != std::string::npos);
     assert(json.find("\"put_latency_us_p99\"") != std::string::npos);
@@ -65,8 +67,10 @@ int main() {
     std::string csv_header = craftkv::bench::WriteCsvHeader();
     std::string csv_row = craftkv::bench::WriteCsvSummary(bench);
     assert(csv_header.find("git_commit") != std::string::npos);
+    assert(csv_header.find("read_mode") != std::string::npos);
     assert(csv_header.find("delete_latency_us_p99") != std::string::npos);
     assert(csv_row.find("\"abc123\"") != std::string::npos);
+    assert(csv_row.find("\"read_index\"") != std::string::npos);
     assert(csv_row.find("10.500") != std::string::npos);
 
     std::cout << "test_kv_bench_lib passed" << std::endl;

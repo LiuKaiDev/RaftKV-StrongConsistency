@@ -154,6 +154,21 @@ inline constexpr MetricsStatus::Impl_::Impl_(
         client_request_total_{::uint64_t{0u}},
         client_request_success_{::uint64_t{0u}},
         client_request_failed_{::uint64_t{0u}},
+        read_log_total_{::uint64_t{0u}},
+        read_index_total_{::uint64_t{0u}},
+        read_index_success_{::uint64_t{0u}},
+        read_index_failed_{::uint64_t{0u}},
+        read_index_timeout_{::uint64_t{0u}},
+        read_index_quorum_confirm_rounds_{::uint64_t{0u}},
+        leader_noop_appended_{::uint64_t{0u}},
+        leader_noop_committed_{::uint64_t{0u}},
+        pre_vote_sent_{::uint64_t{0u}},
+        pre_vote_granted_{::uint64_t{0u}},
+        pre_vote_rejected_{::uint64_t{0u}},
+        check_quorum_stepdown_count_{::uint64_t{0u}},
+        check_quorum_rounds_{::uint64_t{0u}},
+        check_quorum_success_{::uint64_t{0u}},
+        check_quorum_failed_{::uint64_t{0u}},
         _cached_size_{0} {}
 
 template <typename>
@@ -176,6 +191,7 @@ inline constexpr LogEntry::Impl_::Impl_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         term_{0},
+        type_{static_cast< ::LogEntry_EntryType >(0)},
         _cached_size_{0} {}
 
 template <typename>
@@ -333,8 +349,7 @@ struct AppendEntriesArgsDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AppendEntriesArgsDefaultTypeInternal _AppendEntriesArgs_default_instance_;
 static ::_pb::Metadata file_level_metadata_raft_2eproto[14];
-static constexpr const ::_pb::EnumDescriptor**
-    file_level_enum_descriptors_raft_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* file_level_enum_descriptors_raft_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor**
     file_level_service_descriptors_raft_2eproto = nullptr;
 const ::uint32_t TableStruct_raft_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(
@@ -411,6 +426,7 @@ const ::uint32_t TableStruct_raft_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(
     ~0u,  // no sizeof(Split)
     PROTOBUF_FIELD_OFFSET(::LogEntry, _impl_.term_),
     PROTOBUF_FIELD_OFFSET(::LogEntry, _impl_.command_),
+    PROTOBUF_FIELD_OFFSET(::LogEntry, _impl_.type_),
     ~0u,  // no _has_bits_
     PROTOBUF_FIELD_OFFSET(::AppendEntriesArgs, _internal_metadata_),
     ~0u,  // no _extensions_
@@ -489,6 +505,21 @@ const ::uint32_t TableStruct_raft_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(
     PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.client_request_total_),
     PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.client_request_success_),
     PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.client_request_failed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_log_total_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_index_total_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_index_success_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_index_failed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_index_timeout_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_index_quorum_confirm_rounds_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.leader_noop_appended_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.leader_noop_committed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.pre_vote_sent_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.pre_vote_granted_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.pre_vote_rejected_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.check_quorum_stepdown_count_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.check_quorum_rounds_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.check_quorum_success_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.check_quorum_failed_),
     PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_._has_bits_),
     PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _internal_metadata_),
     ~0u,  // no _extensions_
@@ -532,13 +563,13 @@ static const ::_pbi::MigrationSchema
         {40, -1, -1, sizeof(::RequestVoteArgs)},
         {52, -1, -1, sizeof(::RequestVoteReply)},
         {62, -1, -1, sizeof(::LogEntry)},
-        {72, -1, -1, sizeof(::AppendEntriesArgs)},
-        {86, -1, -1, sizeof(::AppendEntriesReply)},
-        {98, -1, -1, sizeof(::ResultPackge)},
-        {109, -1, -1, sizeof(::Command)},
-        {118, -1, -1, sizeof(::NodeStatusRequest)},
-        {126, -1, -1, sizeof(::MetricsStatus)},
-        {150, 170, -1, sizeof(::NodeStatusReply)},
+        {73, -1, -1, sizeof(::AppendEntriesArgs)},
+        {87, -1, -1, sizeof(::AppendEntriesReply)},
+        {99, -1, -1, sizeof(::ResultPackge)},
+        {110, -1, -1, sizeof(::Command)},
+        {119, -1, -1, sizeof(::NodeStatusRequest)},
+        {127, -1, -1, sizeof(::MetricsStatus)},
+        {166, 186, -1, sizeof(::NodeStatusReply)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -568,53 +599,67 @@ const char descriptor_table_protodef_raft_2eproto[] PROTOBUF_SECTION_VARIABLE(pr
     "\010\"_\n\017RequestVoteArgs\022\014\n\004term\030\001 \001(\005\022\023\n\013ca"
     "ndidateId\030\002 \001(\005\022\024\n\014lastLogIndex\030\003 \001(\005\022\023\n"
     "\013lastLogTerm\030\004 \001(\005\"5\n\020RequestVoteReply\022\014"
-    "\n\004term\030\001 \001(\005\022\023\n\013voteGranted\030\002 \001(\010\")\n\010Log"
-    "Entry\022\014\n\004term\030\001 \001(\005\022\017\n\007command\030\002 \001(\t\"\220\001\n"
-    "\021AppendEntriesArgs\022\014\n\004term\030\001 \001(\005\022\020\n\010lead"
-    "erId\030\002 \001(\005\022\024\n\014prevLogIndex\030\003 \001(\005\022\023\n\013prev"
-    "LogTerm\030\004 \001(\005\022\032\n\007entries\030\005 \003(\0132\t.LogEntr"
-    "y\022\024\n\014leaderCommit\030\006 \001(\005\"^\n\022AppendEntries"
-    "Reply\022\014\n\004term\030\001 \001(\005\022\017\n\007success\030\002 \001(\010\022\023\n\013"
-    "nextLogTerm\030\003 \001(\005\022\024\n\014nextLogIndex\030\004 \001(\005\""
-    "=\n\014ResultPackge\022\r\n\005index\030\001 \001(\005\022\014\n\004term\030\002"
-    " \001(\005\022\020\n\010isLeader\030\003 \001(\010\"\032\n\007Command\022\017\n\007con"
-    "tent\030\001 \001(\t\"\023\n\021NodeStatusRequest\"\202\004\n\rMetr"
-    "icsStatus\022\026\n\016election_count\030\001 \001(\004\022\033\n\023lea"
-    "der_change_count\030\002 \001(\004\022\033\n\023append_entries"
-    "_sent\030\003 \001(\004\022\036\n\026append_entries_success\030\004 "
-    "\001(\004\022\035\n\025append_entries_failed\030\005 \001(\004\022\031\n\021re"
-    "quest_vote_sent\030\006 \001(\004\022\034\n\024request_vote_gr"
-    "anted\030\007 \001(\004\022\035\n\025request_vote_rejected\030\010 \001"
-    "(\004\022\035\n\025install_snapshot_sent\030\t \001(\004\022 \n\030ins"
-    "tall_snapshot_success\030\n \001(\004\022\037\n\027install_s"
-    "napshot_failed\030\013 \001(\004\022\036\n\026snapshot_created"
-    "_count\030\014 \001(\004\022)\n!wal_recovery_truncated_t"
-    "ail_count\030\r \001(\004\022\034\n\024client_request_total\030"
-    "\016 \001(\004\022\036\n\026client_request_success\030\017 \001(\004\022\035\n"
-    "\025client_request_failed\030\020 \001(\004\"\231\002\n\017NodeSta"
-    "tusReply\022\017\n\007node_id\030\001 \001(\005\022\014\n\004role\030\002 \001(\t\022"
-    "\024\n\014current_term\030\003 \001(\005\022\021\n\tleader_id\030\004 \001(\005"
-    "\022\024\n\014commit_index\030\005 \001(\005\022\024\n\014last_applied\030\006"
-    " \001(\005\022\026\n\016last_log_index\030\007 \001(\005\022\026\n\016snapshot"
-    "_index\030\010 \001(\005\022\025\n\rsnapshot_term\030\t \001(\005\022\027\n\017l"
-    "og_entry_count\030\n \001(\004\022\021\n\twal_bytes\030\013 \001(\004\022"
-    "\037\n\007metrics\030\014 \001(\0132\016.MetricsStatus2\370\002\n\007Raf"
-    "tRPC\022@\n\017installSnapshot\022\024.InstallSnapsho"
-    "tArgs\032\025.InstallSnapshotReply\"\000\022Q\n\024Transf"
-    "erSnapShotFile\022\031.TransferSnapShotFileArg"
-    "s\032\032.TransferSnapShotFileReply\"\000(\001\022*\n\rsub"
-    "mitCommand\022\010.Command\032\r.ResultPackge\"\000\0227\n"
-    "\016requestVoteRPC\022\020.RequestVoteArgs\032\021.Requ"
-    "estVoteReply\"\000\022:\n\rappendEntries\022\022.Append"
-    "EntriesArgs\032\023.AppendEntriesReply\"\000\0227\n\rGe"
-    "tNodeStatus\022\022.NodeStatusRequest\032\020.NodeSt"
-    "atusReply\"\000b\006proto3"
+    "\n\004term\030\001 \001(\005\022\023\n\013voteGranted\030\002 \001(\010\"p\n\010Log"
+    "Entry\022\014\n\004term\030\001 \001(\005\022\017\n\007command\030\002 \001(\t\022!\n\004"
+    "type\030\003 \001(\0162\023.LogEntry.EntryType\"\"\n\tEntry"
+    "Type\022\n\n\006NORMAL\020\000\022\t\n\005NO_OP\020\001\"\220\001\n\021AppendEn"
+    "triesArgs\022\014\n\004term\030\001 \001(\005\022\020\n\010leaderId\030\002 \001("
+    "\005\022\024\n\014prevLogIndex\030\003 \001(\005\022\023\n\013prevLogTerm\030\004"
+    " \001(\005\022\032\n\007entries\030\005 \003(\0132\t.LogEntry\022\024\n\014lead"
+    "erCommit\030\006 \001(\005\"^\n\022AppendEntriesReply\022\014\n\004"
+    "term\030\001 \001(\005\022\017\n\007success\030\002 \001(\010\022\023\n\013nextLogTe"
+    "rm\030\003 \001(\005\022\024\n\014nextLogIndex\030\004 \001(\005\"=\n\014Result"
+    "Packge\022\r\n\005index\030\001 \001(\005\022\014\n\004term\030\002 \001(\005\022\020\n\010i"
+    "sLeader\030\003 \001(\010\"\032\n\007Command\022\017\n\007content\030\001 \001("
+    "\t\"\023\n\021NodeStatusRequest\"\267\007\n\rMetricsStatus"
+    "\022\026\n\016election_count\030\001 \001(\004\022\033\n\023leader_chang"
+    "e_count\030\002 \001(\004\022\033\n\023append_entries_sent\030\003 \001"
+    "(\004\022\036\n\026append_entries_success\030\004 \001(\004\022\035\n\025ap"
+    "pend_entries_failed\030\005 \001(\004\022\031\n\021request_vot"
+    "e_sent\030\006 \001(\004\022\034\n\024request_vote_granted\030\007 \001"
+    "(\004\022\035\n\025request_vote_rejected\030\010 \001(\004\022\035\n\025ins"
+    "tall_snapshot_sent\030\t \001(\004\022 \n\030install_snap"
+    "shot_success\030\n \001(\004\022\037\n\027install_snapshot_f"
+    "ailed\030\013 \001(\004\022\036\n\026snapshot_created_count\030\014 "
+    "\001(\004\022)\n!wal_recovery_truncated_tail_count"
+    "\030\r \001(\004\022\034\n\024client_request_total\030\016 \001(\004\022\036\n\026"
+    "client_request_success\030\017 \001(\004\022\035\n\025client_r"
+    "equest_failed\030\020 \001(\004\022\026\n\016read_log_total\030\021 "
+    "\001(\004\022\030\n\020read_index_total\030\022 \001(\004\022\032\n\022read_in"
+    "dex_success\030\023 \001(\004\022\031\n\021read_index_failed\030\024"
+    " \001(\004\022\032\n\022read_index_timeout\030\025 \001(\004\022(\n read"
+    "_index_quorum_confirm_rounds\030\026 \001(\004\022\034\n\024le"
+    "ader_noop_appended\030\027 \001(\004\022\035\n\025leader_noop_"
+    "committed\030\030 \001(\004\022\025\n\rpre_vote_sent\030\031 \001(\004\022\030"
+    "\n\020pre_vote_granted\030\032 \001(\004\022\031\n\021pre_vote_rej"
+    "ected\030\033 \001(\004\022#\n\033check_quorum_stepdown_cou"
+    "nt\030\034 \001(\004\022\033\n\023check_quorum_rounds\030\035 \001(\004\022\034\n"
+    "\024check_quorum_success\030\036 \001(\004\022\033\n\023check_quo"
+    "rum_failed\030\037 \001(\004\"\231\002\n\017NodeStatusReply\022\017\n\007"
+    "node_id\030\001 \001(\005\022\014\n\004role\030\002 \001(\t\022\024\n\014current_t"
+    "erm\030\003 \001(\005\022\021\n\tleader_id\030\004 \001(\005\022\024\n\014commit_i"
+    "ndex\030\005 \001(\005\022\024\n\014last_applied\030\006 \001(\005\022\026\n\016last"
+    "_log_index\030\007 \001(\005\022\026\n\016snapshot_index\030\010 \001(\005"
+    "\022\025\n\rsnapshot_term\030\t \001(\005\022\027\n\017log_entry_cou"
+    "nt\030\n \001(\004\022\021\n\twal_bytes\030\013 \001(\004\022\037\n\007metrics\030\014"
+    " \001(\0132\016.MetricsStatus2\255\003\n\007RaftRPC\022@\n\017inst"
+    "allSnapshot\022\024.InstallSnapshotArgs\032\025.Inst"
+    "allSnapshotReply\"\000\022Q\n\024TransferSnapShotFi"
+    "le\022\031.TransferSnapShotFileArgs\032\032.Transfer"
+    "SnapShotFileReply\"\000(\001\022*\n\rsubmitCommand\022\010"
+    ".Command\032\r.ResultPackge\"\000\0227\n\016requestVote"
+    "RPC\022\020.RequestVoteArgs\032\021.RequestVoteReply"
+    "\"\000\0223\n\npreVoteRPC\022\020.RequestVoteArgs\032\021.Req"
+    "uestVoteReply\"\000\022:\n\rappendEntries\022\022.Appen"
+    "dEntriesArgs\032\023.AppendEntriesReply\"\000\0227\n\rG"
+    "etNodeStatus\022\022.NodeStatusRequest\032\020.NodeS"
+    "tatusReply\"\000b\006proto3"
 };
 static ::absl::once_flag descriptor_table_raft_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_raft_2eproto = {
     false,
     false,
-    2019,
+    2580,
     descriptor_table_protodef_raft_2eproto,
     "raft.proto",
     &descriptor_table_raft_2eproto_once,
@@ -646,6 +691,26 @@ PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_raft_2ep
 // Force running AddDescriptors() at dynamic initialization time.
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2
 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_raft_2eproto(&descriptor_table_raft_2eproto);
+const ::google::protobuf::EnumDescriptor* LogEntry_EntryType_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_raft_2eproto);
+  return file_level_enum_descriptors_raft_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t LogEntry_EntryType_internal_data_[] = {
+    131072u, 0u, };
+bool LogEntry_EntryType_IsValid(int value) {
+  return 0 <= value && value <= 1;
+}
+#if (__cplusplus < 201703) && \
+  (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+
+constexpr LogEntry_EntryType LogEntry::NORMAL;
+constexpr LogEntry_EntryType LogEntry::NO_OP;
+constexpr LogEntry_EntryType LogEntry::EntryType_MIN;
+constexpr LogEntry_EntryType LogEntry::EntryType_MAX;
+constexpr int LogEntry::EntryType_ARRAYSIZE;
+
+#endif  // (__cplusplus < 201703) &&
+        // (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
 // ===================================================================
 
 class InstallSnapshotArgs::_Internal {
@@ -1928,7 +1993,13 @@ LogEntry::LogEntry(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_);
-  _impl_.term_ = from._impl_.term_;
+  ::memcpy(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, term_),
+           reinterpret_cast<const char *>(&from._impl_) +
+               offsetof(Impl_, term_),
+           offsetof(Impl_, type_) -
+               offsetof(Impl_, term_) +
+               sizeof(Impl_::type_));
 
   // @@protoc_insertion_point(copy_constructor:LogEntry)
 }
@@ -1940,7 +2011,12 @@ inline PROTOBUF_NDEBUG_INLINE LogEntry::Impl_::Impl_(
 
 inline void LogEntry::SharedCtor(::_pb::Arena* arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.term_ = {};
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, term_),
+           0,
+           offsetof(Impl_, type_) -
+               offsetof(Impl_, term_) +
+               sizeof(Impl_::type_));
 }
 LogEntry::~LogEntry() {
   // @@protoc_insertion_point(destructor:LogEntry)
@@ -1961,7 +2037,9 @@ PROTOBUF_NOINLINE void LogEntry::Clear() {
   (void) cached_has_bits;
 
   _impl_.command_.ClearToEmpty();
-  _impl_.term_ = 0;
+  ::memset(&_impl_.term_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.type_) -
+      reinterpret_cast<char*>(&_impl_.term_)) + sizeof(_impl_.type_));
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
@@ -1973,26 +2051,30 @@ const char* LogEntry::_InternalParse(
 
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 24, 2> LogEntry::_table_ = {
+const ::_pbi::TcParseTable<2, 3, 0, 24, 2> LogEntry::_table_ = {
   {
     0,  // no _has_bits_
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     &_LogEntry_default_instance_._instance,
     ::_pbi::TcParser::GenericFallback,  // fallback
   }, {{
-    // string command = 2;
-    {::_pbi::TcParser::FastUS1,
-     {18, 63, 0, PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.command_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // int32 term = 1;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(LogEntry, _impl_.term_), 63>(),
      {8, 63, 0, PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.term_)}},
+    // string command = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.command_)}},
+    // .LogEntry.EntryType type = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(LogEntry, _impl_.type_), 63>(),
+     {24, 63, 0, PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.type_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -2002,6 +2084,9 @@ const ::_pbi::TcParseTable<1, 2, 0, 24, 2> LogEntry::_table_ = {
     // string command = 2;
     {PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.command_), 0, 0,
     (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .LogEntry.EntryType type = 3;
+    {PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.type_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kOpenEnum)},
   }},
   // no aux_entries
   {{
@@ -2033,6 +2118,13 @@ const ::_pbi::TcParseTable<1, 2, 0, 24, 2> LogEntry::_table_ = {
     target = stream->WriteStringMaybeAliased(2, _s, target);
   }
 
+  // .LogEntry.EntryType type = 3;
+  if (this->_internal_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+        3, this->_internal_type(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -2062,6 +2154,12 @@ const ::_pbi::TcParseTable<1, 2, 0, 24, 2> LogEntry::_table_ = {
         this->_internal_term());
   }
 
+  // .LogEntry.EntryType type = 3;
+  if (this->_internal_type() != 0) {
+    total_size += 1 +
+                  ::_pbi::WireFormatLite::EnumSize(this->_internal_type());
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -2087,6 +2185,9 @@ void LogEntry::MergeImpl(::google::protobuf::Message& to_msg, const ::google::pr
   if (from._internal_term() != 0) {
     _this->_internal_set_term(from._internal_term());
   }
+  if (from._internal_type() != 0) {
+    _this->_internal_set_type(from._internal_type());
+  }
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -2110,7 +2211,12 @@ void LogEntry::InternalSwap(LogEntry* PROTOBUF_RESTRICT other) {
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.command_, &other->_impl_.command_, arena);
-        swap(_impl_.term_, other->_impl_.term_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.type_)
+      + sizeof(LogEntry::_impl_.type_)
+      - PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.term_)>(
+          reinterpret_cast<char*>(&_impl_.term_),
+          reinterpret_cast<char*>(&other->_impl_.term_));
 }
 
 ::google::protobuf::Metadata LogEntry::GetMetadata() const {
@@ -3159,9 +3265,9 @@ inline void MetricsStatus::SharedCtor(::_pb::Arena* arena) {
   ::memset(reinterpret_cast<char *>(&_impl_) +
                offsetof(Impl_, election_count_),
            0,
-           offsetof(Impl_, client_request_failed_) -
+           offsetof(Impl_, check_quorum_failed_) -
                offsetof(Impl_, election_count_) +
-               sizeof(Impl_::client_request_failed_));
+               sizeof(Impl_::check_quorum_failed_));
 }
 MetricsStatus::~MetricsStatus() {
   // @@protoc_insertion_point(destructor:MetricsStatus)
@@ -3181,8 +3287,8 @@ PROTOBUF_NOINLINE void MetricsStatus::Clear() {
   (void) cached_has_bits;
 
   ::memset(&_impl_.election_count_, 0, static_cast<::size_t>(
-      reinterpret_cast<char*>(&_impl_.client_request_failed_) -
-      reinterpret_cast<char*>(&_impl_.election_count_)) + sizeof(_impl_.client_request_failed_));
+      reinterpret_cast<char*>(&_impl_.check_quorum_failed_) -
+      reinterpret_cast<char*>(&_impl_.election_count_)) + sizeof(_impl_.check_quorum_failed_));
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
@@ -3194,23 +3300,21 @@ const char* MetricsStatus::_InternalParse(
 
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 16, 0, 0, 2> MetricsStatus::_table_ = {
+const ::_pbi::TcParseTable<5, 31, 0, 0, 2> MetricsStatus::_table_ = {
   {
     0,  // no _has_bits_
     0, // no _extensions_
-    16, 120,  // max_field_number, fast_idx_mask
+    31, 248,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294901760,  // skipmap
+    2147483648,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    16,  // num_field_entries
+    31,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     &_MetricsStatus_default_instance_._instance,
     ::_pbi::TcParser::GenericFallback,  // fallback
   }, {{
-    // uint64 client_request_failed = 16;
-    {::_pbi::TcParser::FastV64S2,
-     {384, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.client_request_failed_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // uint64 election_count = 1;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.election_count_), 63>(),
      {8, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.election_count_)}},
@@ -3256,6 +3360,54 @@ const ::_pbi::TcParseTable<4, 16, 0, 0, 2> MetricsStatus::_table_ = {
     // uint64 client_request_success = 15;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.client_request_success_), 63>(),
      {120, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.client_request_success_)}},
+    // uint64 client_request_failed = 16;
+    {::_pbi::TcParser::FastV64S2,
+     {384, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.client_request_failed_)}},
+    // uint64 read_log_total = 17;
+    {::_pbi::TcParser::FastV64S2,
+     {392, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_log_total_)}},
+    // uint64 read_index_total = 18;
+    {::_pbi::TcParser::FastV64S2,
+     {400, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_total_)}},
+    // uint64 read_index_success = 19;
+    {::_pbi::TcParser::FastV64S2,
+     {408, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_success_)}},
+    // uint64 read_index_failed = 20;
+    {::_pbi::TcParser::FastV64S2,
+     {416, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_failed_)}},
+    // uint64 read_index_timeout = 21;
+    {::_pbi::TcParser::FastV64S2,
+     {424, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_timeout_)}},
+    // uint64 read_index_quorum_confirm_rounds = 22;
+    {::_pbi::TcParser::FastV64S2,
+     {432, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_quorum_confirm_rounds_)}},
+    // uint64 leader_noop_appended = 23;
+    {::_pbi::TcParser::FastV64S2,
+     {440, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.leader_noop_appended_)}},
+    // uint64 leader_noop_committed = 24;
+    {::_pbi::TcParser::FastV64S2,
+     {448, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.leader_noop_committed_)}},
+    // uint64 pre_vote_sent = 25;
+    {::_pbi::TcParser::FastV64S2,
+     {456, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_sent_)}},
+    // uint64 pre_vote_granted = 26;
+    {::_pbi::TcParser::FastV64S2,
+     {464, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_granted_)}},
+    // uint64 pre_vote_rejected = 27;
+    {::_pbi::TcParser::FastV64S2,
+     {472, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_rejected_)}},
+    // uint64 check_quorum_stepdown_count = 28;
+    {::_pbi::TcParser::FastV64S2,
+     {480, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_stepdown_count_)}},
+    // uint64 check_quorum_rounds = 29;
+    {::_pbi::TcParser::FastV64S2,
+     {488, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_rounds_)}},
+    // uint64 check_quorum_success = 30;
+    {::_pbi::TcParser::FastV64S2,
+     {496, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_success_)}},
+    // uint64 check_quorum_failed = 31;
+    {::_pbi::TcParser::FastV64S2,
+     {504, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_failed_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -3306,6 +3458,51 @@ const ::_pbi::TcParseTable<4, 16, 0, 0, 2> MetricsStatus::_table_ = {
     (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
     // uint64 client_request_failed = 16;
     {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.client_request_failed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_log_total = 17;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_log_total_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_index_total = 18;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_total_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_index_success = 19;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_success_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_index_failed = 20;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_failed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_index_timeout = 21;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_timeout_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_index_quorum_confirm_rounds = 22;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_quorum_confirm_rounds_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 leader_noop_appended = 23;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.leader_noop_appended_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 leader_noop_committed = 24;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.leader_noop_committed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 pre_vote_sent = 25;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_sent_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 pre_vote_granted = 26;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_granted_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 pre_vote_rejected = 27;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_rejected_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 check_quorum_stepdown_count = 28;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_stepdown_count_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 check_quorum_rounds = 29;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_rounds_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 check_quorum_success = 30;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_success_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 check_quorum_failed = 31;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_failed_), 0, 0,
     (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
   }},
   // no aux_entries
@@ -3432,6 +3629,111 @@ const ::_pbi::TcParseTable<4, 16, 0, 0, 2> MetricsStatus::_table_ = {
         16, this->_internal_client_request_failed(), target);
   }
 
+  // uint64 read_log_total = 17;
+  if (this->_internal_read_log_total() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        17, this->_internal_read_log_total(), target);
+  }
+
+  // uint64 read_index_total = 18;
+  if (this->_internal_read_index_total() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        18, this->_internal_read_index_total(), target);
+  }
+
+  // uint64 read_index_success = 19;
+  if (this->_internal_read_index_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        19, this->_internal_read_index_success(), target);
+  }
+
+  // uint64 read_index_failed = 20;
+  if (this->_internal_read_index_failed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        20, this->_internal_read_index_failed(), target);
+  }
+
+  // uint64 read_index_timeout = 21;
+  if (this->_internal_read_index_timeout() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        21, this->_internal_read_index_timeout(), target);
+  }
+
+  // uint64 read_index_quorum_confirm_rounds = 22;
+  if (this->_internal_read_index_quorum_confirm_rounds() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        22, this->_internal_read_index_quorum_confirm_rounds(), target);
+  }
+
+  // uint64 leader_noop_appended = 23;
+  if (this->_internal_leader_noop_appended() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        23, this->_internal_leader_noop_appended(), target);
+  }
+
+  // uint64 leader_noop_committed = 24;
+  if (this->_internal_leader_noop_committed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        24, this->_internal_leader_noop_committed(), target);
+  }
+
+  // uint64 pre_vote_sent = 25;
+  if (this->_internal_pre_vote_sent() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        25, this->_internal_pre_vote_sent(), target);
+  }
+
+  // uint64 pre_vote_granted = 26;
+  if (this->_internal_pre_vote_granted() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        26, this->_internal_pre_vote_granted(), target);
+  }
+
+  // uint64 pre_vote_rejected = 27;
+  if (this->_internal_pre_vote_rejected() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        27, this->_internal_pre_vote_rejected(), target);
+  }
+
+  // uint64 check_quorum_stepdown_count = 28;
+  if (this->_internal_check_quorum_stepdown_count() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        28, this->_internal_check_quorum_stepdown_count(), target);
+  }
+
+  // uint64 check_quorum_rounds = 29;
+  if (this->_internal_check_quorum_rounds() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        29, this->_internal_check_quorum_rounds(), target);
+  }
+
+  // uint64 check_quorum_success = 30;
+  if (this->_internal_check_quorum_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        30, this->_internal_check_quorum_success(), target);
+  }
+
+  // uint64 check_quorum_failed = 31;
+  if (this->_internal_check_quorum_failed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        31, this->_internal_check_quorum_failed(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -3545,6 +3847,96 @@ const ::_pbi::TcParseTable<4, 16, 0, 0, 2> MetricsStatus::_table_ = {
                                     this->_internal_client_request_failed());
   }
 
+  // uint64 read_log_total = 17;
+  if (this->_internal_read_log_total() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_log_total());
+  }
+
+  // uint64 read_index_total = 18;
+  if (this->_internal_read_index_total() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_index_total());
+  }
+
+  // uint64 read_index_success = 19;
+  if (this->_internal_read_index_success() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_index_success());
+  }
+
+  // uint64 read_index_failed = 20;
+  if (this->_internal_read_index_failed() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_index_failed());
+  }
+
+  // uint64 read_index_timeout = 21;
+  if (this->_internal_read_index_timeout() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_index_timeout());
+  }
+
+  // uint64 read_index_quorum_confirm_rounds = 22;
+  if (this->_internal_read_index_quorum_confirm_rounds() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_index_quorum_confirm_rounds());
+  }
+
+  // uint64 leader_noop_appended = 23;
+  if (this->_internal_leader_noop_appended() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_leader_noop_appended());
+  }
+
+  // uint64 leader_noop_committed = 24;
+  if (this->_internal_leader_noop_committed() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_leader_noop_committed());
+  }
+
+  // uint64 pre_vote_sent = 25;
+  if (this->_internal_pre_vote_sent() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_pre_vote_sent());
+  }
+
+  // uint64 pre_vote_granted = 26;
+  if (this->_internal_pre_vote_granted() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_pre_vote_granted());
+  }
+
+  // uint64 pre_vote_rejected = 27;
+  if (this->_internal_pre_vote_rejected() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_pre_vote_rejected());
+  }
+
+  // uint64 check_quorum_stepdown_count = 28;
+  if (this->_internal_check_quorum_stepdown_count() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_check_quorum_stepdown_count());
+  }
+
+  // uint64 check_quorum_rounds = 29;
+  if (this->_internal_check_quorum_rounds() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_check_quorum_rounds());
+  }
+
+  // uint64 check_quorum_success = 30;
+  if (this->_internal_check_quorum_success() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_check_quorum_success());
+  }
+
+  // uint64 check_quorum_failed = 31;
+  if (this->_internal_check_quorum_failed() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_check_quorum_failed());
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -3612,6 +4004,51 @@ void MetricsStatus::MergeImpl(::google::protobuf::Message& to_msg, const ::googl
   if (from._internal_client_request_failed() != 0) {
     _this->_internal_set_client_request_failed(from._internal_client_request_failed());
   }
+  if (from._internal_read_log_total() != 0) {
+    _this->_internal_set_read_log_total(from._internal_read_log_total());
+  }
+  if (from._internal_read_index_total() != 0) {
+    _this->_internal_set_read_index_total(from._internal_read_index_total());
+  }
+  if (from._internal_read_index_success() != 0) {
+    _this->_internal_set_read_index_success(from._internal_read_index_success());
+  }
+  if (from._internal_read_index_failed() != 0) {
+    _this->_internal_set_read_index_failed(from._internal_read_index_failed());
+  }
+  if (from._internal_read_index_timeout() != 0) {
+    _this->_internal_set_read_index_timeout(from._internal_read_index_timeout());
+  }
+  if (from._internal_read_index_quorum_confirm_rounds() != 0) {
+    _this->_internal_set_read_index_quorum_confirm_rounds(from._internal_read_index_quorum_confirm_rounds());
+  }
+  if (from._internal_leader_noop_appended() != 0) {
+    _this->_internal_set_leader_noop_appended(from._internal_leader_noop_appended());
+  }
+  if (from._internal_leader_noop_committed() != 0) {
+    _this->_internal_set_leader_noop_committed(from._internal_leader_noop_committed());
+  }
+  if (from._internal_pre_vote_sent() != 0) {
+    _this->_internal_set_pre_vote_sent(from._internal_pre_vote_sent());
+  }
+  if (from._internal_pre_vote_granted() != 0) {
+    _this->_internal_set_pre_vote_granted(from._internal_pre_vote_granted());
+  }
+  if (from._internal_pre_vote_rejected() != 0) {
+    _this->_internal_set_pre_vote_rejected(from._internal_pre_vote_rejected());
+  }
+  if (from._internal_check_quorum_stepdown_count() != 0) {
+    _this->_internal_set_check_quorum_stepdown_count(from._internal_check_quorum_stepdown_count());
+  }
+  if (from._internal_check_quorum_rounds() != 0) {
+    _this->_internal_set_check_quorum_rounds(from._internal_check_quorum_rounds());
+  }
+  if (from._internal_check_quorum_success() != 0) {
+    _this->_internal_set_check_quorum_success(from._internal_check_quorum_success());
+  }
+  if (from._internal_check_quorum_failed() != 0) {
+    _this->_internal_set_check_quorum_failed(from._internal_check_quorum_failed());
+  }
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -3633,8 +4070,8 @@ void MetricsStatus::InternalSwap(MetricsStatus* PROTOBUF_RESTRICT other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.client_request_failed_)
-      + sizeof(MetricsStatus::_impl_.client_request_failed_)
+      PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_failed_)
+      + sizeof(MetricsStatus::_impl_.check_quorum_failed_)
       - PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.election_count_)>(
           reinterpret_cast<char*>(&_impl_.election_count_),
           reinterpret_cast<char*>(&other->_impl_.election_count_));
