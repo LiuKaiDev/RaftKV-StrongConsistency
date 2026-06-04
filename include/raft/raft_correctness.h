@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 namespace craft::raft_correctness {
@@ -10,6 +11,13 @@ inline bool IsValidPeerIndex(int peer_index, int peer_count) {
 
 inline bool IsRemotePeerIndex(int peer_index, int self_index, int peer_count) {
     return IsValidPeerIndex(peer_index, peer_count) && peer_index != self_index;
+}
+
+inline std::string PeerAddressForLog(int peer_index, const std::vector<std::string>& peer_addresses) {
+    if (!IsValidPeerIndex(peer_index, static_cast<int>(peer_addresses.size()))) {
+        return "<invalid-peer>";
+    }
+    return peer_addresses[static_cast<std::size_t>(peer_index)];
 }
 
 inline bool InitializeLeaderReplicationState(int peer_count,

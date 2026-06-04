@@ -1,5 +1,6 @@
 #include "craft/public.h"
 #include "craft/startRpcService.h"
+#include "raft/raft_correctness.h"
 
 namespace craft {
 
@@ -10,8 +11,14 @@ namespace craft {
         m_rf_->co_mtx_.lock();
 
         response->set_term(m_rf_->m_current_term_);
+        response->set_iscansendsnapfile(false);
+        if (!raft_correctness::IsValidPeerIndex(request->leaderid(),
+                                                static_cast<int>(m_rf_->m_clusterAddress_.size()))) {
+            spdlog::error("reject InstallSnapshot from invalid leader id [{}]", request->leaderid());
+            m_rf_->co_mtx_.unlock();
+            return Status::OK;
+        }
         if (m_rf_->m_current_term_ > request->term()) {
-            response->set_iscansendsnapfile(false);
             m_rf_->co_mtx_.unlock();
             return Status::OK;
         }

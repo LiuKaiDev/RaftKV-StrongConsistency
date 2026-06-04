@@ -1,5 +1,6 @@
 #include "craft/public.h"
 #include "craft/startRpcService.h"
+#include "raft/raft_correctness.h"
 #include <algorithm>
 
 namespace craft {
@@ -11,6 +12,12 @@ namespace craft {
         m_rf_->co_mtx_.lock();
         response->set_term(m_rf_->m_current_term_);
         response->set_success(false);
+        if (!raft_correctness::IsValidPeerIndex(request->leaderid(),
+                                                static_cast<int>(m_rf_->m_clusterAddress_.size()))) {
+            spdlog::error("reject AppendEntries from invalid leader id [{}]", request->leaderid());
+            m_rf_->co_mtx_.unlock();
+            return Status::OK;
+        }
         auto rewriteLogs = [this]() {
             std::vector<std::pair<int, std::string>> entries;
             for (int i = 1; i < static_cast<int>(m_rf_->m_logs_.size()); ++i) {

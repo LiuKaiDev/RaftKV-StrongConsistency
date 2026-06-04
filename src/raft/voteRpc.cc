@@ -14,6 +14,12 @@ namespace craft {
         response->set_votegranted(false);
         response->set_term(m_rf_->m_current_term_);
         auto peerTerm = request->term();
+        if (!raft_correctness::IsValidPeerIndex(request->candidateid(),
+                                                static_cast<int>(m_rf_->m_clusterAddress_.size()))) {
+            spdlog::error("reject RequestVote from invalid candidate id [{}]", request->candidateid());
+            m_rf_->co_mtx_.unlock();
+            return Status::OK;
+        }
         do {
             if (peerTerm < m_rf_->m_current_term_) {
                 break;
@@ -31,7 +37,8 @@ namespace craft {
                     m_rf_->m_electionTimer->reset(getElectionTimeOut(m_rf_->m_leaderEelectionTimeOut_));
                     m_rf_->persist();
                     spdlog::debug("[{}]:{} to [{}]:{} vote success", m_rf_->m_me_, m_rf_->m_clusterAddress_[m_rf_->m_me_],
-                                  request->candidateid(),m_rf_->m_clusterAddress_[request->candidateid()]);
+                                  request->candidateid(),
+                                  raft_correctness::PeerAddressForLog(request->candidateid(), m_rf_->m_clusterAddress_));
                 } else {
                     break;
                 }
@@ -44,11 +51,13 @@ namespace craft {
                     m_rf_->m_electionTimer->reset(getElectionTimeOut(m_rf_->m_leaderEelectionTimeOut_));
                     m_rf_->persist();
                     spdlog::debug("[{}]:{} to [{}]:{} vote success", m_rf_->m_me_, m_rf_->m_clusterAddress_[m_rf_->m_me_],
-                                  request->candidateid(),m_rf_->m_clusterAddress_[request->candidateid()]);
+                                  request->candidateid(),
+                                  raft_correctness::PeerAddressForLog(request->candidateid(), m_rf_->m_clusterAddress_));
                 } else {
                     m_rf_->persist();
-                    spdlog::error("[{}] to [{}] vote faild,Log check failed", m_rf_->m_me_, m_rf_->m_clusterAddress_[m_rf_->m_me_],
-                                  request->candidateid(),m_rf_->m_clusterAddress_[request->candidateid()]);
+                    spdlog::error("[{}]:{} to [{}]:{} vote faild,Log check failed", m_rf_->m_me_, m_rf_->m_clusterAddress_[m_rf_->m_me_],
+                                  request->candidateid(),
+                                  raft_correctness::PeerAddressForLog(request->candidateid(), m_rf_->m_clusterAddress_));
                 }
             }
 

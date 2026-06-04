@@ -41,9 +41,27 @@ int main() {
     assert(craft::raft_correctness::IsValidPeerIndex(2, 3));
     assert(!craft::raft_correctness::IsValidPeerIndex(3, 3));
     assert(!craft::raft_correctness::IsValidPeerIndex(4, 3));
+    int peer_count = 3;
+    int invalid_candidate_negative = -1;
+    int invalid_candidate_at_count = peer_count;
+    int invalid_candidate_past_count = peer_count + 1;
+    int invalid_leader_negative = -1;
+    int invalid_leader_at_count = peer_count;
+    int invalid_leader_past_count = peer_count + 1;
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_candidate_negative, peer_count));
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_candidate_at_count, peer_count));
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_candidate_past_count, peer_count));
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_leader_negative, peer_count));
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_leader_at_count, peer_count));
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_leader_past_count, peer_count));
     assert(!craft::raft_correctness::IsRemotePeerIndex(1, 1, 3));
     assert(craft::raft_correctness::IsRemotePeerIndex(2, 1, 3));
     assert(!craft::raft_correctness::InitializeLeaderReplicationState(3, 3, 10, &next_index, &match_index));
+    std::vector<std::string> peer_addresses{"node0", "node1", "node2"};
+    assert(craft::raft_correctness::PeerAddressForLog(1, peer_addresses) == "node1");
+    assert(craft::raft_correctness::PeerAddressForLog(-1, peer_addresses) == "<invalid-peer>");
+    assert(craft::raft_correctness::PeerAddressForLog(3, peer_addresses) == "<invalid-peer>");
+    assert(craft::raft_correctness::PeerAddressForLog(4, peer_addresses) == "<invalid-peer>");
 
     int current_term = 2;
     int voted_for = 1;
