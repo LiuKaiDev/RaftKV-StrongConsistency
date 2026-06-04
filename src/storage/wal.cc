@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstring>
 #include <fstream>
+#include <system_error>
 #include <utility>
 
 #include "storage/file_util.h"
@@ -12,6 +13,15 @@ namespace {
 
 constexpr char kMetaMagic[] = "CRM1";
 constexpr char kLogMagic[] = "CRL1";
+
+enum class DecodeFrameStatus {
+    kOk,
+    kEndOfFile,
+    kPartialHeader,
+    kBadMagic,
+    kPartialPayload,
+    kChecksumMismatch,
+};
 
 std::string EncodeMetaPayload(const RaftMeta& meta) {
     std::string payload;
@@ -49,15 +59,27 @@ std::string EncodeFrame(const char* magic, const std::string& payload) {
     return frame;
 }
 
-bool DecodeOneFrame(const std::string& data, std::size_t* offset, const char* magic, std::string* payload) {
+bool DecodeOneFrame(const std::string& data,
+                    std::size_t* offset,
+                    const char* magic,
+                    std::string* payload,
+                    DecodeFrameStatus* status = nullptr) {
+    auto set_status = [status](DecodeFrameStatus value) {
+        if (status != nullptr) {
+            *status = value;
+        }
+    };
     if (*offset == data.size()) {
+        set_status(DecodeFrameStatus::kEndOfFile);
         return false;
     }
     if (*offset + 12 > data.size()) {
+        set_status(DecodeFrameStatus::kPartialHeader);
         *offset = data.size();
         return false;
     }
     if (std::memcmp(data.data() + *offset, magic, 4) != 0) {
+        set_status(DecodeFrameStatus::kBadMagic);
         *offset = data.size();
         return false;
     }
@@ -65,20 +87,47 @@ bool DecodeOneFrame(const std::string& data, std::size_t* offset, const char* ma
     uint32_t size = 0;
     uint32_t checksum = 0;
     if (!ReadFixed32(data, offset, &size) || !ReadFixed32(data, offset, &checksum)) {
+        set_status(DecodeFrameStatus::kPartialHeader);
         *offset = data.size();
         return false;
     }
     if (*offset + size > data.size()) {
+        set_status(DecodeFrameStatus::kPartialPayload);
         *offset = data.size();
         return false;
     }
     payload->assign(data.data() + *offset, size);
     *offset += size;
     if (Checksum32(*payload) != checksum) {
+        set_status(DecodeFrameStatus::kChecksumMismatch);
         *offset = data.size();
         return false;
     }
+    set_status(DecodeFrameStatus::kOk);
     return true;
+}
+
+bool ContainsFrameMagicAfter(const std::string& data, std::size_t offset, const char* magic) {
+    for (std::size_t i = offset; i + 4 <= data.size(); ++i) {
+        if (std::memcmp(data.data() + i, magic, 4) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool RepairCorruptedTail(const std::filesystem::path& log_path,
+                         std::size_t valid_size,
+                         std::string* error_msg) {
+    std::error_code ec;
+    std::filesystem::resize_file(log_path, valid_size, ec);
+    if (ec) {
+        if (error_msg != nullptr) {
+            *error_msg = "failed to truncate corrupted raft log tail: " + ec.message();
+        }
+        return false;
+    }
+    return FsyncFile(log_path, error_msg);
 }
 
 }  // namespace
@@ -128,23 +177,37 @@ bool WAL::LoadLogs(std::vector<RaftLogRecord>* logs, std::string* error_msg) con
         return false;
     }
     std::size_t offset = 0;
+    std::size_t last_valid_offset = 0;
     while (offset < data.size()) {
         std::string payload;
         std::size_t before = offset;
-        if (!DecodeOneFrame(data, &offset, kLogMagic, &payload)) {
-            if (before != data.size() && error_msg != nullptr) {
-                *error_msg = "raft log contains a partial or corrupted tail; valid prefix loaded";
+        DecodeFrameStatus status = DecodeFrameStatus::kOk;
+        if (!DecodeOneFrame(data, &offset, kLogMagic, &payload, &status)) {
+            if (before != data.size()) {
+                if (ContainsFrameMagicAfter(data, before + 1, kLogMagic)) {
+                    if (error_msg != nullptr) {
+                        *error_msg = "raft log corruption is not limited to the tail";
+                    }
+                    return false;
+                }
+                if (!RepairCorruptedTail(LogPath(), last_valid_offset, error_msg)) {
+                    return false;
+                }
+                if (error_msg != nullptr) {
+                    *error_msg = "raft log contains a partial or corrupted tail; valid prefix loaded and tail truncated";
+                }
             }
             break;
         }
         RaftLogRecord record;
         if (!DecodeLogRecordPayload(payload, &record)) {
             if (error_msg != nullptr) {
-                *error_msg = "raft log record payload is invalid; valid prefix loaded";
+                *error_msg = "raft log record payload is invalid";
             }
-            break;
+            return false;
         }
         logs->push_back(std::move(record));
+        last_valid_offset = offset;
     }
     std::sort(logs->begin(), logs->end(), [](const auto& left, const auto& right) {
         return left.index < right.index;
