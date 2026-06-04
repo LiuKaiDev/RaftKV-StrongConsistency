@@ -30,6 +30,7 @@ public:
 
     KVResponse HandleRequest(const ClientRequest& request, int timeout_ms);
     std::string DebugDump() const;
+    std::string StatusText() const;
 
 private:
     struct AppliedEntry {

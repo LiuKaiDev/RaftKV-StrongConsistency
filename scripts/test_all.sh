@@ -27,6 +27,7 @@ snapshot_cluster_status=SKIPPED
 seeded_chaos_status=SKIPPED
 linearizability_status=SKIPPED
 admin_status_status=SKIPPED
+benchmark_smoke_status=SKIPPED
 
 echo "running core tests..."
 if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_core.sh" >"${REPORT_DIR}/test_core.log" 2>&1; then
@@ -108,6 +109,21 @@ else
   echo "admin status: SKIPPED (set RUN_ADMIN_STATUS=1 to run)"
 fi
 
+if [[ "${RUN_BENCHMARK_SMOKE:-0}" == "1" ]]; then
+  echo "running benchmark v2 smoke test..."
+  if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_benchmark_smoke.sh" >"${REPORT_DIR}/test_benchmark_smoke.log" 2>&1; then
+    echo "benchmark smoke: PASS"
+    benchmark_smoke_status=PASS
+  else
+    benchmark_smoke_status=$?
+    echo "benchmark smoke: FAIL (${benchmark_smoke_status})"
+    echo "log: ${REPORT_DIR}/test_benchmark_smoke.log"
+    exit "${benchmark_smoke_status}"
+  fi
+else
+  echo "benchmark smoke: SKIPPED (set RUN_BENCHMARK_SMOKE=1 to run)"
+fi
+
 cat >"${REPORT_DIR}/summary.txt" <<EOF
 run_id=${RUN_ID}
 core_status=PASS
@@ -116,12 +132,14 @@ snapshot_cluster_status=${snapshot_cluster_status}
 seeded_chaos_status=${seeded_chaos_status}
 linearizability_status=${linearizability_status}
 admin_status_status=${admin_status_status}
+benchmark_smoke_status=${benchmark_smoke_status}
 core_log=${REPORT_DIR}/test_core.log
 cluster_smoke_log=${REPORT_DIR}/test_cluster_smoke.log
 snapshot_cluster_log=${REPORT_DIR}/test_snapshot_cluster.log
 seeded_chaos_log=${REPORT_DIR}/test_seeded_chaos.log
 linearizability_log=${REPORT_DIR}/test_concurrent_linearizability.log
 admin_status_log=${REPORT_DIR}/test_admin_status.log
+benchmark_smoke_log=${REPORT_DIR}/test_benchmark_smoke.log
 EOF
 
 echo "ALL TESTS PASSED"

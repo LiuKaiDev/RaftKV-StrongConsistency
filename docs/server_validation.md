@@ -288,7 +288,63 @@ RUN_LINEARIZABILITY=1 bash scripts/test_all.sh
 
 测试报告默认保存到 `/tmp/raftkv-test-reports/<run_id>/linearizability/`，数据默认保存到 `/tmp/raftkv-test-data/<run_id>/linearizability/`。报告中包含 `summary.txt`、`run_info.txt`、`history.jsonl`、`normalized_history.jsonl`、`faults.jsonl`、`checker_output.txt`、`client_attempts.log`、`linearizability_failure.json`、`linearizability_failure.txt`、生成配置、PID 文件、节点日志、worker traceback、失败片段和可复制的 `replay_command`。如果 checker 通过，failure 文件可以不存在。
 
-## 14. 清理运行时文件
+## 14. Benchmark v2 性能基线
+
+Benchmark v2 使用常驻 C++ 客户端 `kv_bench`，在一个进程中启动多个 worker 线程，不通过反复启动 shell 或 `kv_client` 进程测性能。
+
+直接运行稳态基线：
+
+```bash
+SCENARIO=steady THREADS=4 DURATION_SECONDS=30 WARMUP_SECONDS=5 \
+  KEY_COUNT=1000 VALUE_SIZE=128 \
+  READ_PERCENT=70 PUT_PERCENT=20 APPEND_PERCENT=5 DELETE_PERCENT=5 \
+  SEED=20260604 bash scripts/run_benchmark_v2.sh
+```
+
+三种场景：
+
+- `SCENARIO=steady`: 三节点稳定运行，测基础吞吐和延迟。
+- `SCENARIO=follower_down`: 正式测量中途停止一个 follower，保持多数派可用。
+- `SCENARIO=leader_failover`: 正式测量中途停止 leader，等待重新选举，观察错误率、retry、p99 和恢复时间。
+
+报告默认保存到：
+
+```text
+/tmp/raftkv-test-reports/<run_id>/benchmark-v2/
+```
+
+主要文件：
+
+- `result.json`: 机器信息、参数、吞吐、成功/失败/retry、整体和分操作类型延迟。
+- `result.csv`: 与 JSON 对齐的一行 CSV，便于后续画图。
+- `status_before.txt`、`status_after.txt`: benchmark 前后三节点 Admin Status。
+- `metrics_delta.txt`: Admin Metrics 差值。
+- `faults.jsonl`: follower/leader 故障事件。
+- `summary.txt`、`config.txt`、`git_commit.txt`、`machine_info.txt`、`node_logs/`: 复现实验所需上下文。
+
+Smoke test 使用保守小参数：
+
+```bash
+bash scripts/test_benchmark_smoke.sh
+```
+
+默认 `scripts/test_all.sh` 不运行 benchmark smoke。需要显式开启：
+
+```bash
+RUN_BENCHMARK_SMOKE=1 bash scripts/test_all.sh
+```
+
+延迟指标含义：
+
+- `p50`: 50% 请求延迟不超过该值，代表中位数体验。
+- `p95`: 95% 请求延迟不超过该值，代表常见尾延迟。
+- `p99`: 99% 请求延迟不超过该值，适合观察 failover、重试和磁盘抖动影响。
+
+不要只看平均延迟。平均值会掩盖少量非常慢的请求，而 Raft 复制、选举、WAL fsync 和 snapshot 都可能主要体现在 p95/p99 上。
+
+当前 `Get` 仍进入 Raft 日志；Benchmark v2 的结果是 ReadIndex 优化前基线。单机阿里云 2 vCPU 小规格结果只用于项目学习和回归比较，不能宣传为生产级性能。
+
+## 15. 清理运行时文件
 
 验证完成后，如需提交 GitHub，请不要提交：
 

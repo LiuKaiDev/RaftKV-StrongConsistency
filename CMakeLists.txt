@@ -40,8 +40,17 @@ add_library(craft_core STATIC
 )
 target_link_libraries(craft_core PUBLIC Threads::Threads)
 
+add_library(kv_bench_core STATIC
+  client/kv_bench_lib.cc
+)
+target_include_directories(kv_bench_core PUBLIC ${PROJECT_SOURCE_DIR}/client)
+target_link_libraries(kv_bench_core PUBLIC Threads::Threads)
+
 add_executable(kv_client client/kv_client.cc)
 target_link_libraries(kv_client PRIVATE craft_core)
+
+add_executable(kv_bench client/kv_bench.cc)
+target_link_libraries(kv_bench PRIVATE craft_core kv_bench_core)
 
 if(CRAFTKV_BUILD_RAFT)
   include(common.cmake)
@@ -127,3 +136,7 @@ foreach(test_name
   target_compile_definitions(${test_name} PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
   add_test(NAME ${test_name} COMMAND ${test_name})
 endforeach()
+
+add_executable(test_kv_bench_lib tests/test_kv_bench_lib.cc)
+target_link_libraries(test_kv_bench_lib PRIVATE kv_bench_core)
+add_test(NAME test_kv_bench_lib COMMAND test_kv_bench_lib)
