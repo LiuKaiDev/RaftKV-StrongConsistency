@@ -81,14 +81,21 @@ bool AtomicWriteStringToFile(const std::filesystem::path& file_path, const std::
     std::filesystem::path tmp_path = file_path;
     tmp_path += ".tmp";
     if (!WriteStringToFile(tmp_path, data, error_msg)) {
+        std::error_code ec;
+        std::filesystem::remove(tmp_path, ec);
         return false;
     }
     if (!FsyncFile(tmp_path, error_msg)) {
+        std::error_code ec;
+        std::filesystem::remove(tmp_path, ec);
         return false;
     }
     std::error_code ec;
     std::filesystem::rename(tmp_path, file_path, ec);
     if (!ec) {
+        if (!FsyncDirectory(file_path.parent_path(), error_msg)) {
+            return false;
+        }
         return true;
     }
     std::filesystem::remove(file_path, ec);
@@ -98,9 +105,11 @@ bool AtomicWriteStringToFile(const std::filesystem::path& file_path, const std::
         if (error_msg != nullptr) {
             *error_msg = ec.message();
         }
+        std::error_code remove_ec;
+        std::filesystem::remove(tmp_path, remove_ec);
         return false;
     }
-    return FsyncFile(file_path, error_msg);
+    return FsyncDirectory(file_path.parent_path(), error_msg);
 }
 
 bool AppendAndSync(const std::filesystem::path& file_path, const std::string& data, std::string* error_msg) {
@@ -161,6 +170,32 @@ bool FsyncFile(const std::filesystem::path& file_path, std::string* error_msg) {
     if (rc != 0 || close_rc != 0) {
         if (error_msg != nullptr) {
             *error_msg = "failed to sync file: " + file_path.string() + ": " + std::strerror(errno);
+        }
+        return false;
+    }
+    return true;
+#endif
+}
+
+bool FsyncDirectory(const std::filesystem::path& dir_path, std::string* error_msg) {
+#ifdef _WIN32
+    (void)dir_path;
+    (void)error_msg;
+    return true;
+#else
+    std::filesystem::path sync_path = dir_path.empty() ? std::filesystem::path(".") : dir_path;
+    int fd = open(sync_path.string().c_str(), O_RDONLY | O_DIRECTORY);
+    if (fd < 0) {
+        if (error_msg != nullptr) {
+            *error_msg = "failed to open directory for sync: " + sync_path.string() + ": " + std::strerror(errno);
+        }
+        return false;
+    }
+    int rc = fsync(fd);
+    int close_rc = close(fd);
+    if (rc != 0 || close_rc != 0) {
+        if (error_msg != nullptr) {
+            *error_msg = "failed to sync directory: " + sync_path.string() + ": " + std::strerror(errno);
         }
         return false;
     }

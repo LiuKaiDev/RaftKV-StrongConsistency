@@ -15,6 +15,7 @@ bool AtomicWriteStringToFile(const std::filesystem::path& file_path, const std::
                              std::string* error_msg = nullptr);
 bool AppendAndSync(const std::filesystem::path& file_path, const std::string& data, std::string* error_msg = nullptr);
 bool FsyncFile(const std::filesystem::path& file_path, std::string* error_msg = nullptr);
+bool FsyncDirectory(const std::filesystem::path& dir_path, std::string* error_msg = nullptr);
 
 uint32_t Checksum32(const std::string& data);
 

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <stdexcept>
 
 namespace craft {
 namespace {
@@ -24,7 +25,7 @@ AbstractPersist::AbstractPersist(std::string absPersistPath, std::string snapsho
     std::string error;
     craftkv::storage::RaftMeta meta;
     if (!wal_.LoadMeta(&meta, &error)) {
-        spdlog::warn("load raft meta failed: {}", error);
+        throw std::runtime_error("load raft meta failed: " + error);
     }
     currentTerm_ = meta.current_term;
     votedFor_ = meta.voted_for;

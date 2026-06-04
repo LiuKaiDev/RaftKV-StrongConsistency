@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 
+#include "storage/file_util.h"
 #include "storage/wal.h"
 
 namespace {
@@ -29,6 +30,29 @@ std::uintmax_t FileSize(const craftkv::storage::WAL& wal) {
 void WriteString(const std::filesystem::path& path, const std::string& value) {
     std::ofstream out(path, std::ios::binary | std::ios::app);
     out.write(value.data(), static_cast<std::streamsize>(value.size()));
+}
+
+void WriteFile(const std::filesystem::path& path, const std::string& value) {
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    out.write(value.data(), static_cast<std::streamsize>(value.size()));
+}
+
+std::string MakeFrame(const char* magic, const std::string& payload) {
+    std::string frame;
+    frame.append(magic, 4);
+    craftkv::storage::AppendFixed32(&frame, static_cast<uint32_t>(payload.size()));
+    craftkv::storage::AppendFixed32(&frame, craftkv::storage::Checksum32(payload));
+    frame.append(payload);
+    return frame;
+}
+
+std::string MakeMetaPayload(int current_term, int voted_for, int commit_index, int last_applied) {
+    std::string payload;
+    craftkv::storage::AppendFixed64(&payload, static_cast<uint64_t>(current_term));
+    craftkv::storage::AppendFixed64(&payload, static_cast<uint64_t>(static_cast<int64_t>(voted_for)));
+    craftkv::storage::AppendFixed64(&payload, static_cast<uint64_t>(commit_index));
+    craftkv::storage::AppendFixed64(&payload, static_cast<uint64_t>(last_applied));
+    return payload;
 }
 
 std::vector<craftkv::storage::RaftLogRecord> LoadLogs(craftkv::storage::WAL* wal) {
@@ -142,6 +166,97 @@ void TestValidWalUnchanged() {
     std::filesystem::remove_all(dir);
 }
 
+void TestMissingMetaUsesDefaults() {
+    auto dir = CaseDir("missing_meta");
+    craftkv::storage::WAL wal(dir);
+    craftkv::storage::RaftMeta meta{9, 9, 9, 9};
+    std::string error;
+    Require(wal.LoadMeta(&meta, &error));
+    Require(meta.current_term == 0);
+    Require(meta.voted_for == -1);
+    Require(meta.commit_index == 0);
+    Require(meta.last_applied == 0);
+    std::filesystem::remove_all(dir);
+}
+
+void TestValidMetaRestoresFields() {
+    auto dir = CaseDir("valid_meta");
+    craftkv::storage::WAL wal(dir);
+    Require(wal.SaveMeta({7, 2, 5, 4}));
+    craftkv::storage::RaftMeta meta;
+    std::string error;
+    Require(wal.LoadMeta(&meta, &error));
+    Require(meta.current_term == 7);
+    Require(meta.voted_for == 2);
+    Require(meta.commit_index == 5);
+    Require(meta.last_applied == 4);
+    Require(!std::filesystem::exists(wal.MetaPath().string() + ".tmp"));
+    std::filesystem::remove_all(dir);
+}
+
+void ExpectCorruptMetaFails(const std::string& name, const std::string& data) {
+    auto dir = CaseDir(name);
+    craftkv::storage::WAL wal(dir);
+    Require(craftkv::storage::EnsureDirectory(dir));
+    WriteFile(wal.MetaPath(), data);
+    craftkv::storage::RaftMeta meta{9, 9, 9, 9};
+    std::string error;
+    Require(!wal.LoadMeta(&meta, &error));
+    Require(!error.empty());
+    Require(meta.current_term == 0);
+    Require(meta.voted_for == -1);
+    Require(meta.commit_index == 0);
+    Require(meta.last_applied == 0);
+    std::filesystem::remove_all(dir);
+}
+
+void TestCorruptMetaFailsClosed() {
+    ExpectCorruptMetaFails("meta_partial_header", "CRM1xx");
+
+    std::string bad_magic = MakeFrame("BAD1", MakeMetaPayload(1, 2, 3, 4));
+    ExpectCorruptMetaFails("meta_bad_magic", bad_magic);
+
+    std::string checksum_mismatch = MakeFrame("CRM1", MakeMetaPayload(1, 2, 3, 4));
+    checksum_mismatch[12] ^= 0x01;
+    ExpectCorruptMetaFails("meta_checksum_mismatch", checksum_mismatch);
+
+    std::string partial_payload = MakeFrame("CRM1", MakeMetaPayload(1, 2, 3, 4));
+    partial_payload.resize(partial_payload.size() - 5);
+    ExpectCorruptMetaFails("meta_partial_payload", partial_payload);
+
+    std::string incomplete_payload = MakeFrame("CRM1", std::string(8, '\0'));
+    ExpectCorruptMetaFails("meta_incomplete_payload", incomplete_payload);
+
+    std::string invalid_payload_size = MakeFrame("CRM1", MakeMetaPayload(1, 2, 3, 4) + std::string(8, '\0'));
+    ExpectCorruptMetaFails("meta_invalid_payload_size", invalid_payload_size);
+}
+
+void TestAtomicWriteSuccessAndCleanup() {
+    auto dir = CaseDir("atomic_write_success");
+    auto file_path = dir / "atomic.dat";
+    std::string error;
+    Require(craftkv::storage::AtomicWriteStringToFile(file_path, "first", &error));
+    std::string data;
+    Require(craftkv::storage::ReadFileToString(file_path, &data, &error));
+    Require(data == "first");
+    Require(!std::filesystem::exists(file_path.string() + ".tmp"));
+
+    Require(craftkv::storage::AtomicWriteStringToFile(file_path, "second", &error));
+    Require(craftkv::storage::ReadFileToString(file_path, &data, &error));
+    Require(data == "second");
+    Require(!std::filesystem::exists(file_path.string() + ".tmp"));
+    std::filesystem::remove_all(dir);
+}
+
+void TestDirectorySyncFailureReturnsFalse() {
+    auto dir = CaseDir("missing_sync_dir");
+    auto missing_dir = dir / "missing";
+    std::string error;
+    Require(!craftkv::storage::FsyncDirectory(missing_dir, &error));
+    Require(!error.empty());
+    std::filesystem::remove_all(dir);
+}
+
 }  // namespace
 
 int main() {
@@ -193,6 +308,11 @@ int main() {
     TestChecksumMismatchTail();
     TestAppendAfterTailRepair();
     TestValidWalUnchanged();
+    TestMissingMetaUsesDefaults();
+    TestValidMetaRestoresFields();
+    TestCorruptMetaFailsClosed();
+    TestAtomicWriteSuccessAndCleanup();
+    TestDirectorySyncFailureReturnsFalse();
 
     std::cout << "test_wal passed" << std::endl;
     return 0;

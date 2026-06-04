@@ -144,21 +144,37 @@ std::filesystem::path WAL::LogPath() const {
 
 bool WAL::LoadMeta(RaftMeta* meta, std::string* error_msg) const {
     *meta = RaftMeta{};
+    std::error_code ec;
+    bool meta_exists = std::filesystem::exists(MetaPath(), ec);
+    if (ec) {
+        if (error_msg != nullptr) {
+            *error_msg = "failed to inspect raft meta: " + ec.message();
+        }
+        return false;
+    }
+    if (!meta_exists) {
+        return true;
+    }
     std::string data;
     if (!ReadFileToString(MetaPath(), &data, error_msg)) {
         return false;
     }
-    if (data.empty()) {
-        return true;
-    }
     std::size_t offset = 0;
     std::string payload;
-    if (!DecodeOneFrame(data, &offset, kMetaMagic, &payload) || !DecodeMetaPayload(payload, meta)) {
+    DecodeFrameStatus status = DecodeFrameStatus::kOk;
+    if (!DecodeOneFrame(data, &offset, kMetaMagic, &payload, &status) || !DecodeMetaPayload(payload, meta)) {
         if (error_msg != nullptr) {
-            *error_msg = "invalid raft meta, using defaults";
+            *error_msg = "invalid raft meta";
         }
         *meta = RaftMeta{};
-        return true;
+        return false;
+    }
+    if (offset != data.size()) {
+        if (error_msg != nullptr) {
+            *error_msg = "invalid raft meta: trailing bytes";
+        }
+        *meta = RaftMeta{};
+        return false;
     }
     return true;
 }
