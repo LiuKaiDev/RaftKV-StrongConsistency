@@ -229,6 +229,10 @@ int main(int argc, char** argv) {
         }
 
         if (response.error_code == craftkv::KVErrorCode::kNotLeader && !response.leader_addr.empty()) {
+            last_error = "not leader";
+            if (response.leader_id >= 0 || !response.leader_addr.empty()) {
+                last_error += "; leader hint: " + std::to_string(response.leader_id) + " " + response.leader_addr;
+            }
             auto it = std::find(servers.begin(), servers.end(), response.leader_addr);
             if (it == servers.end()) {
                 servers.insert(servers.begin(), response.leader_addr);

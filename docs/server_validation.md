@@ -151,7 +151,35 @@ RUN_SNAPSHOT_CLUSTER=1 bash scripts/test_all.sh
 
 测试数据默认保存到 `/tmp/raftkv-test-data/<run_id>/snapshot-cluster`，报告默认保存到 `/tmp/raftkv-test-reports/<run_id>/snapshot-cluster`，节点日志在测试数据目录的 `logs/` 下。失败时优先查看报告目录中的 `last_error.txt`、`failure_context.txt`、`client_attempts.log`，以及数据目录中的 `logs/node*.log`。可以通过 `TEST_DATA_ROOT`、`TEST_REPORT_ROOT` 和 `RUN_ID` 覆盖。
 
-## 11. 清理运行时文件
+## 11. Seeded chaos 集成验证
+
+seeded chaos 脚本会启动独立三节点集群，用固定 seed 生成随机 KV 请求和节点停止/重启事件，并保存请求历史、故障历史和失败现场。本阶段做基础一致性校验，不声称完成形式化线性一致性证明。
+
+```bash
+SEED=20260604 DURATION_SECONDS=60 OPERATION_COUNT=300 CLIENT_COUNT=4 \
+  bash scripts/test_seeded_chaos.sh
+```
+
+验证稳定性时建议在普通 SSH 终端重复运行：
+
+```bash
+for i in {1..10}; do
+  echo "===== seeded chaos round $i ====="
+  RUN_ID="seeded-chaos-$i-$(date +%Y%m%d-%H%M%S)" \
+    SEED=20260604 DURATION_SECONDS=60 OPERATION_COUNT=300 CLIENT_COUNT=4 \
+    bash scripts/test_seeded_chaos.sh || break
+done
+```
+
+默认 `scripts/test_all.sh` 不运行 chaos。需要纳入完整批量测试时显式开启：
+
+```bash
+RUN_SEEDED_CHAOS=1 bash scripts/test_all.sh
+```
+
+测试报告默认保存到 `/tmp/raftkv-test-reports/<run_id>/seeded-chaos/`，数据默认保存到 `/tmp/raftkv-test-data/<run_id>/seeded-chaos/`。报告中包含 `summary.txt`、`run_info.txt`、`history.jsonl`、`faults.jsonl`、`client_attempts.log`、`last_error.txt`、`failure_context.txt`、最终节点 dump、生成配置、PID 文件和节点日志。失败时 `summary.txt` 中的 `replay_command` 可直接复制重放同一 seed。
+
+## 12. 清理运行时文件
 
 验证完成后，如需提交 GitHub，请不要提交：
 
