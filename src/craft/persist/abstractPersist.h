@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <fstream>
 
 #include "map"
@@ -47,6 +48,9 @@ namespace craft {
         virtual void setSnapshotMeta(int lastIncludedIndex, int lastIncludedTerm) final;
 
         virtual std::string snapshotPath() const final;
+
+        virtual std::uint64_t walBytes() const final;
+        virtual std::uint64_t walRecoveryTruncatedTailCount() const final;
 
         virtual ~AbstractPersist();
 

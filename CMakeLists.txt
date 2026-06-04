@@ -30,6 +30,7 @@ set(STORAGE_SRC
 set(KV_CORE_SRC
   src/kv/kv_command.cc
   src/kv/kv_state_machine.cc
+  src/raft/raft_status.cc
 )
 
 add_library(craft_core STATIC
@@ -69,6 +70,7 @@ if(CRAFTKV_BUILD_RAFT)
   endforeach()
 
   file(GLOB RAFT_SRC "${PROJECT_SOURCE_DIR}/src/raft/*.cc")
+  list(REMOVE_ITEM RAFT_SRC "${PROJECT_SOURCE_DIR}/src/raft/raft_status.cc")
 
   find_library(LIBGO_LIBRARY
     NAMES libgo go
@@ -118,8 +120,10 @@ foreach(test_name
     test_wal
     test_snapshot
     test_raft_log
-    test_restart_replay)
+    test_restart_replay
+    test_admin_status)
   add_executable(${test_name} tests/${test_name}.cc)
   target_link_libraries(${test_name} PRIVATE craft_core)
+  target_compile_definitions(${test_name} PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
   add_test(NAME ${test_name} COMMAND ${test_name})
 endforeach()

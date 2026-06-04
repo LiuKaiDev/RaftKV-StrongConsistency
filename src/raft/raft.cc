@@ -177,6 +177,9 @@ namespace craft {
             spdlog::critical("change to unkown toState");
         }
         m_state_ = toState;
+        if (fromState != STATE::LEADER && toState == STATE::LEADER) {
+            m_metrics_.IncrementLeaderChange();
+        }
 
         spdlog::info("[{}]:{} from {} change to {},term = [{}]", m_me_, m_clusterAddress_[m_me_],
                      stringState(fromState),
@@ -212,6 +215,7 @@ namespace craft {
         spdlog::info("[{}]:{} saveSnapShot success,index = [{}],snapshotIndex = [{}]", m_me_, m_clusterAddress_[m_me_],
                      index,
                      snapshotIndex);
+        m_metrics_.IncrementSnapshotCreated();
         return true;
     }
 
@@ -500,6 +504,39 @@ namespace craft {
         co_mtx_.lock();
         co_defer[this] { co_mtx_.unlock(); };
         return static_cast<int>(m_logs_.size()) - 1;
+    }
+
+    RaftStatusSnapshot Raft::getStatusSnapshot() {
+        RaftStatusSnapshot snapshot;
+        co_mtx_.lock();
+        snapshot.node_id = (m_me_ >= 0 && m_me_ < static_cast<int>(m_peerIds_.size())) ? m_peerIds_[m_me_] : m_me_;
+        snapshot.role = RaftRoleCodeToString(static_cast<int>(m_state_));
+        snapshot.current_term = m_current_term_;
+        snapshot.leader_id =
+            (m_leaderId_ >= 0 && m_leaderId_ < static_cast<int>(m_peerIds_.size())) ? m_peerIds_[m_leaderId_] : -1;
+        snapshot.commit_index = m_commitIndex_;
+        snapshot.last_applied = m_lastApplied_;
+        snapshot.last_log_index = getLastLogIndex();
+        snapshot.snapshot_index = m_snapShotIndex;
+        snapshot.snapshot_term = m_snapShotTerm;
+        snapshot.log_entry_count = m_logs_.empty() ? 0 : m_logs_.size() - 1;
+        snapshot.metrics = m_metrics_.Snapshot();
+        co_mtx_.unlock();
+        if (m_persister_ != nullptr) {
+            snapshot.wal_bytes = m_persister_->walBytes();
+            snapshot.metrics.wal_recovery_truncated_tail_count =
+                m_persister_->walRecoveryTruncatedTailCount();
+        }
+        return snapshot;
+    }
+
+    void Raft::recordClientRequestResult(bool success) {
+        m_metrics_.IncrementClientRequestTotal();
+        if (success) {
+            m_metrics_.IncrementClientRequestSuccess();
+        } else {
+            m_metrics_.IncrementClientRequestFailed();
+        }
     }
 
 

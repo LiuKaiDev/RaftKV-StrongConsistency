@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -30,6 +32,8 @@ public:
     bool AppendLog(const RaftLogRecord& log, std::string* error_msg = nullptr) const;
     bool RewriteLogs(const std::vector<RaftLogRecord>& logs, std::string* error_msg = nullptr) const;
     bool TruncatePrefix(int last_included_index, std::string* error_msg = nullptr) const;
+    std::uint64_t LogBytes() const;
+    std::uint64_t recovery_truncated_tail_count() const { return recovery_truncated_tail_count_.load(); }
 
     const std::filesystem::path& data_dir() const { return data_dir_; }
     std::filesystem::path MetaPath() const;
@@ -37,6 +41,7 @@ public:
 
 private:
     std::filesystem::path data_dir_;
+    mutable std::atomic<std::uint64_t> recovery_truncated_tail_count_{0};
 };
 
 std::string EncodeLogRecordPayload(const RaftLogRecord& log);

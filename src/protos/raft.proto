@@ -66,10 +66,45 @@ message ResultPackge{
 message Command{
     string content = 1;
 }
+message NodeStatusRequest {
+}
+message MetricsStatus {
+    uint64 election_count = 1;
+    uint64 leader_change_count = 2;
+    uint64 append_entries_sent = 3;
+    uint64 append_entries_success = 4;
+    uint64 append_entries_failed = 5;
+    uint64 request_vote_sent = 6;
+    uint64 request_vote_granted = 7;
+    uint64 request_vote_rejected = 8;
+    uint64 install_snapshot_sent = 9;
+    uint64 install_snapshot_success = 10;
+    uint64 install_snapshot_failed = 11;
+    uint64 snapshot_created_count = 12;
+    uint64 wal_recovery_truncated_tail_count = 13;
+    uint64 client_request_total = 14;
+    uint64 client_request_success = 15;
+    uint64 client_request_failed = 16;
+}
+message NodeStatusReply {
+    int32 node_id = 1;
+    string role = 2;
+    int32 current_term = 3;
+    int32 leader_id = 4;
+    int32 commit_index = 5;
+    int32 last_applied = 6;
+    int32 last_log_index = 7;
+    int32 snapshot_index = 8;
+    int32 snapshot_term = 9;
+    uint64 log_entry_count = 10;
+    uint64 wal_bytes = 11;
+    MetricsStatus metrics = 12;
+}
 service RaftRPC{
     rpc installSnapshot(InstallSnapshotArgs) returns(InstallSnapshotReply){}
     rpc TransferSnapShotFile(stream TransferSnapShotFileArgs) returns(TransferSnapShotFileReply){}
     rpc submitCommand(Command) returns(ResultPackge){}
     rpc requestVoteRPC(RequestVoteArgs)  returns (RequestVoteReply){}
     rpc appendEntries(AppendEntriesArgs) returns (AppendEntriesReply){}
+    rpc GetNodeStatus(NodeStatusRequest) returns (NodeStatusReply){}
 }

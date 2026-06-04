@@ -256,6 +256,7 @@ bool WAL::LoadLogs(std::vector<RaftLogRecord>* logs, std::string* error_msg) con
                 if (!RepairCorruptedTail(LogPath(), last_valid_offset, error_msg)) {
                     return false;
                 }
+                recovery_truncated_tail_count_.fetch_add(1, std::memory_order_relaxed);
                 if (error_msg != nullptr) {
                     *error_msg = "raft log contains a partial or corrupted tail; valid prefix loaded and tail truncated";
                 }
@@ -326,6 +327,15 @@ bool WAL::TruncatePrefix(int last_included_index, std::string* error_msg) const 
                }),
                logs.end());
     return RewriteLogs(logs, error_msg);
+}
+
+std::uint64_t WAL::LogBytes() const {
+    std::error_code ec;
+    auto size = std::filesystem::file_size(LogPath(), ec);
+    if (ec) {
+        return 0;
+    }
+    return static_cast<std::uint64_t>(size);
 }
 
 std::string EncodeLogRecordPayload(const RaftLogRecord& log) {

@@ -148,6 +148,14 @@ std::string AbstractPersist::snapshotPath() const {
     return ResolveSnapshotPath(absPersistPath_, snapshotFileName_).string();
 }
 
+std::uint64_t AbstractPersist::walBytes() const {
+    return wal_.LogBytes();
+}
+
+std::uint64_t AbstractPersist::walRecoveryTruncatedTailCount() const {
+    return wal_.recovery_truncated_tail_count();
+}
+
 std::vector<std::string> AbstractPersist::readLines(const std::string& filename) {
     std::vector<std::string> lines;
     std::ifstream file(filename);

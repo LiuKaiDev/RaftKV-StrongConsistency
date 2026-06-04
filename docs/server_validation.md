@@ -52,7 +52,72 @@ bash scripts/start_cluster.sh
 ./bin/kv_client leader
 ```
 
-## 5. KV 基础功能
+## 5. Admin Status 与核心 Metrics
+
+查询单节点只读状态：
+
+```bash
+./bin/kv_client --servers=127.0.0.1:9001 status
+```
+
+输出为稳定 `key=value` 文本，便于脚本解析。状态查询只读取节点本地内存和 WAL 文件大小，不进入 Raft 日志，不触发复制，不要求当前节点是 leader。节点不可用时 `kv_client status` 返回非零退出码，并在 stderr 输出连接错误。
+
+展示三节点状态：
+
+```bash
+bash scripts/show_cluster_status.sh 127.0.0.1:9001 127.0.0.1:9002 127.0.0.1:9003
+```
+
+单节点不可用时表格中显示 `UNAVAILABLE`，脚本继续查询其他节点。
+
+运行 Admin Status 集成测试：
+
+```bash
+bash scripts/test_admin_status.sh
+```
+
+默认批量测试不运行该慢速集成测试。需要纳入 `test_all` 时显式开启：
+
+```bash
+RUN_ADMIN_STATUS=1 bash scripts/test_all.sh
+```
+
+状态字段含义：
+
+- `node_id`: 配置中的外部节点 id。
+- `role`: 当前 Raft 角色，稳定文本为 `FOLLOWER`、`CANDIDATE` 或 `LEADER`。
+- `current_term`: 当前任期。
+- `leader_id`: 当前已知 leader 的外部节点 id；未知为 `-1`。
+- `commit_index`: 当前已提交的最高日志 index。
+- `last_applied`: 已应用到 KV 状态机的最高日志 index。
+- `last_log_index`: 本地日志中可见的最高日志 index，包括 snapshot index。
+- `snapshot_index`: 本地 snapshot 的 last included index。
+- `snapshot_term`: 本地 snapshot 的 last included term。
+- `log_entry_count`: snapshot 之后仍保留在内存日志中的条目数，不包含占位条目。
+- `wal_bytes`: 当前 Raft WAL 日志文件大小；文件不存在时为 `0`。
+
+Metrics 字段含义：
+
+- `election_count`: 本节点进入 candidate 并启动选举的次数。
+- `leader_change_count`: 本节点成功成为 leader 的次数。
+- `append_entries_sent`: 本节点发出的 AppendEntries RPC 次数。
+- `append_entries_success`: 对端成功接受的 AppendEntries RPC 次数。
+- `append_entries_failed`: RPC 失败或对端拒绝的 AppendEntries 次数。
+- `request_vote_sent`: 本节点发出的 RequestVote RPC 次数。
+- `request_vote_granted`: 收到同意票的 RequestVote 次数。
+- `request_vote_rejected`: RPC 失败或收到拒绝票的 RequestVote 次数。
+- `install_snapshot_sent`: 本节点发出的 InstallSnapshot 元数据 RPC 次数。
+- `install_snapshot_success`: 对端允许继续传输 snapshot 文件的次数。
+- `install_snapshot_failed`: InstallSnapshot RPC 失败或对端不允许传输的次数。
+- `snapshot_created_count`: 本节点本地创建 snapshot 成功次数。
+- `wal_recovery_truncated_tail_count`: 本进程启动期间 WAL 恢复截断损坏尾部的次数。
+- `client_request_total`: TCP KV 客户端 Put/Get/Append/Delete 请求总数。
+- `client_request_success`: TCP KV 客户端请求成功数。
+- `client_request_failed`: TCP KV 客户端请求失败数，包括 NotLeader、BadRequest、Timeout 和业务失败。
+
+Metrics 默认启用但不持久化，节点重启后从 0 重新开始。它们是低成本核心观测信号，不是完整监控系统；后续 benchmark 可以用 `commit_index`、`last_applied`、`wal_bytes` 和客户端请求计数观察吞吐与积压，ReadIndex 阶段可以用 leader/term/commit/apply 指标排查只读路径是否落后或经历选举。
+
+## 6. KV 基础功能
 
 当前 KV API 契约：
 
@@ -72,7 +137,7 @@ bash scripts/start_cluster.sh
 
 期望：`get name` 先返回 `chaos`，append 后返回 `chaos_raft`，delete 后返回 `KEY_NOT_FOUND`。
 
-## 6. Leader 故障
+## 7. Leader 故障
 
 ```bash
 old_leader=$(./bin/kv_client leader | awk '{print $1}')
@@ -88,7 +153,7 @@ bash scripts/check_consistency.sh
 
 期望：旧 leader 被 kill 后集群重新选主，继续写入成功，旧 leader 重启后最终数据一致。
 
-## 7. Follower 掉线恢复
+## 8. Follower 掉线恢复
 
 ```bash
 leader=$(./bin/kv_client leader | awk '{print $1}')
@@ -104,7 +169,7 @@ bash scripts/check_consistency.sh
 
 期望：follower 重启后追上 leader，三个节点 dump 一致。
 
-## 8. 节点重启恢复
+## 9. 节点重启恢复
 
 ```bash
 ./bin/kv_client put restart_key restart_value
@@ -115,7 +180,7 @@ bash scripts/start_cluster.sh
 
 期望：重启后仍返回 `restart_value`。
 
-## 9. 基础 Snapshot 验证
+## 10. 基础 Snapshot 验证
 
 可以临时把 `config/node*.yaml` 中的 `snapshot.max_log_entries` 调小，例如 20，然后写入一批数据：
 
@@ -132,7 +197,7 @@ bash scripts/check_consistency.sh
 
 期望：生成 `snapshot.dat`，重启后数据仍可读取。
 
-## 10. 三节点 Snapshot 集成验证
+## 11. 三节点 Snapshot 集成验证
 
 三节点 Snapshot 集成脚本会使用独立端口、独立数据目录和独立报告目录，验证严重落后的 follower 通过 InstallSnapshot 恢复、继续追日志、重启后通过本地 Snapshot + WAL 恢复，以及重复请求不会被二次执行：
 
@@ -158,7 +223,7 @@ RUN_SNAPSHOT_CLUSTER=1 bash scripts/test_all.sh
 
 测试数据默认保存到 `/tmp/raftkv-test-data/<run_id>/snapshot-cluster`，报告默认保存到 `/tmp/raftkv-test-reports/<run_id>/snapshot-cluster`，节点日志在测试数据目录的 `logs/` 下。失败时优先查看报告目录中的 `last_error.txt`、`failure_context.txt`、`client_attempts.log`，以及数据目录中的 `logs/node*.log`。可以通过 `TEST_DATA_ROOT`、`TEST_REPORT_ROOT` 和 `RUN_ID` 覆盖。
 
-## 11. Seeded chaos 集成验证
+## 12. Seeded chaos 集成验证
 
 seeded chaos 脚本会启动独立三节点集群，用固定 seed 生成随机 KV 请求和节点停止/重启事件，并保存请求历史、故障历史和失败现场。本阶段做基础一致性校验，不声称完成形式化线性一致性证明。
 
@@ -186,7 +251,7 @@ RUN_SEEDED_CHAOS=1 bash scripts/test_all.sh
 
 测试报告默认保存到 `/tmp/raftkv-test-reports/<run_id>/seeded-chaos/`，数据默认保存到 `/tmp/raftkv-test-data/<run_id>/seeded-chaos/`。报告中包含 `summary.txt`、`run_info.txt`、`history.jsonl`、`faults.jsonl`、`client_attempts.log`、`last_error.txt`、`failure_context.txt`、最终节点 dump、生成配置、PID 文件和节点日志。失败时 `summary.txt` 中的 `replay_command` 可直接复制重放同一 seed。
 
-## 12. Concurrent linearizability 集成验证
+## 13. Concurrent linearizability 集成验证
 
 并发线性一致性脚本会启动独立三节点集群和多个后台 worker。每个 worker 使用独立 `client_id`、单调递增 `request_id`，并发随机执行 `put/get/append/delete`。脚本记录每个操作的调用开始和完成时间、最终响应、重试次数，并在 workload 期间依次停止一个 follower、恢复该 follower、停止当前 leader、等待重新选举、恢复 leader，最后检查三个节点 dump 一致并运行独立 checker。
 
@@ -223,7 +288,7 @@ RUN_LINEARIZABILITY=1 bash scripts/test_all.sh
 
 测试报告默认保存到 `/tmp/raftkv-test-reports/<run_id>/linearizability/`，数据默认保存到 `/tmp/raftkv-test-data/<run_id>/linearizability/`。报告中包含 `summary.txt`、`run_info.txt`、`history.jsonl`、`normalized_history.jsonl`、`faults.jsonl`、`checker_output.txt`、`client_attempts.log`、`linearizability_failure.json`、`linearizability_failure.txt`、生成配置、PID 文件、节点日志、worker traceback、失败片段和可复制的 `replay_command`。如果 checker 通过，failure 文件可以不存在。
 
-## 13. 清理运行时文件
+## 14. 清理运行时文件
 
 验证完成后，如需提交 GitHub，请不要提交：
 

@@ -8,6 +8,7 @@
 #include "utils/timer.h"
 #include "startRpcService.h"
 #include "persist/abstractPersist.h"
+#include "raft/raft_status.h"
 
 namespace craft {
 
@@ -49,6 +50,8 @@ namespace craft {
         int getExternalLeaderId();
         std::string getLeaderAddress();
         int getLogCountAfterSnapshot();
+        RaftStatusSnapshot getStatusSnapshot();
+        void recordClientRequestResult(bool success);
 
         //some util function
 
@@ -106,6 +109,7 @@ namespace craft {
         Timer *m_appendEntriesTimer = nullptr;
         std::vector<Timer *> m_appendEntriesTimers_{nullptr};
         co_chan<RETURN_TYPE>* isCompleteSnapFileInstallCh_;
+        RaftMetrics m_metrics_;
 
 
     };

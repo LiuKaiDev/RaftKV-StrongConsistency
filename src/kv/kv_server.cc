@@ -8,6 +8,8 @@
 #include <sstream>
 #include <utility>
 
+#include "raft/raft_status.h"
+
 #ifndef _WIN32
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -139,15 +141,21 @@ void KVServer::serialization() {
 
 KVResponse KVServer::HandleRequest(const ClientRequest& request, int timeout_ms) {
     if (raft_ == nullptr || !raft_->isLeader()) {
-        return {false, KVErrorCode::kNotLeader, ExternalLeaderId(), LeaderClientAddr(), "", "not leader"};
+        KVResponse response{false, KVErrorCode::kNotLeader, ExternalLeaderId(), LeaderClientAddr(), "", "not leader"};
+        if (raft_ != nullptr) {
+            raft_->recordClientRequestResult(false);
+        }
+        return response;
     }
 
     std::string command = SerializeClientRequest(request);
     ServerCallResult submit_result = raft_->submitCommand(command);
     if (!submit_result.isLeader) {
+        raft_->recordClientRequestResult(false);
         return {false, KVErrorCode::kNotLeader, ExternalLeaderId(), LeaderClientAddr(), "", "not leader"};
     }
     if (submit_result.index < 0) {
+        raft_->recordClientRequestResult(false);
         return {false, KVErrorCode::kInternalError, ExternalLeaderId(), LeaderClientAddr(), "",
                 "failed to append raft log"};
     }
@@ -158,21 +166,31 @@ KVResponse KVServer::HandleRequest(const ClientRequest& request, int timeout_ms)
         return applied_results_.find(submit_result.index) != applied_results_.end();
     });
     if (!applied) {
+        raft_->recordClientRequestResult(false);
         return {false, KVErrorCode::kTimeout, ExternalLeaderId(), LeaderClientAddr(), "", "request timeout"};
     }
 
     AppliedEntry entry = applied_results_[submit_result.index];
     applied_results_.erase(submit_result.index);
     if (entry.command != command) {
+        raft_->recordClientRequestResult(false);
         return {false, KVErrorCode::kInternalError, ExternalLeaderId(), LeaderClientAddr(), "",
                 "applied log does not match submitted command"};
     }
+    raft_->recordClientRequestResult(entry.result.success);
     return {entry.result.success, entry.result.error_code, ExternalLeaderId(), LeaderClientAddr(),
             entry.result.value, entry.result.error_msg};
 }
 
 std::string KVServer::DebugDump() const {
     return state_machine_.DumpKVText();
+}
+
+std::string KVServer::StatusText() const {
+    if (raft_ == nullptr) {
+        return "";
+    }
+    return craft::SerializeRaftStatusSnapshot(raft_->getStatusSnapshot());
 }
 
 void KVServer::ApplyLoop() {
@@ -268,11 +286,16 @@ void KVServer::HandleConnection(int client_fd) {
         response = {true, KVErrorCode::kOK, ExternalLeaderId(), LeaderClientAddr(), DebugDump(), ""};
     } else if (line == "LEADER") {
         response = {true, KVErrorCode::kOK, ExternalLeaderId(), LeaderClientAddr(), "", ""};
+    } else if (line == "STATUS") {
+        response = {true, KVErrorCode::kOK, ExternalLeaderId(), LeaderClientAddr(), StatusText(), ""};
     } else {
         ClientRequest request;
         std::string error;
         if (!DeserializeClientRequest(line, &request, &error)) {
             response = {false, KVErrorCode::kBadRequest, ExternalLeaderId(), LeaderClientAddr(), "", error};
+            if (raft_ != nullptr) {
+                raft_->recordClientRequestResult(false);
+            }
         } else {
             response = HandleRequest(request, config_.raft.rpc_timeout_ms * 20);
         }

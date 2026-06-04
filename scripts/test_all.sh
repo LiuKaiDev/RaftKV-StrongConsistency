@@ -26,6 +26,7 @@ cluster_status=0
 snapshot_cluster_status=SKIPPED
 seeded_chaos_status=SKIPPED
 linearizability_status=SKIPPED
+admin_status_status=SKIPPED
 
 echo "running core tests..."
 if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_core.sh" >"${REPORT_DIR}/test_core.log" 2>&1; then
@@ -92,6 +93,21 @@ else
   echo "concurrent linearizability: SKIPPED (set RUN_LINEARIZABILITY=1 to run)"
 fi
 
+if [[ "${RUN_ADMIN_STATUS:-0}" == "1" ]]; then
+  echo "running admin status integration test..."
+  if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_admin_status.sh" >"${REPORT_DIR}/test_admin_status.log" 2>&1; then
+    echo "admin status: PASS"
+    admin_status_status=PASS
+  else
+    admin_status_status=$?
+    echo "admin status: FAIL (${admin_status_status})"
+    echo "log: ${REPORT_DIR}/test_admin_status.log"
+    exit "${admin_status_status}"
+  fi
+else
+  echo "admin status: SKIPPED (set RUN_ADMIN_STATUS=1 to run)"
+fi
+
 cat >"${REPORT_DIR}/summary.txt" <<EOF
 run_id=${RUN_ID}
 core_status=PASS
@@ -99,11 +115,13 @@ cluster_smoke_status=PASS
 snapshot_cluster_status=${snapshot_cluster_status}
 seeded_chaos_status=${seeded_chaos_status}
 linearizability_status=${linearizability_status}
+admin_status_status=${admin_status_status}
 core_log=${REPORT_DIR}/test_core.log
 cluster_smoke_log=${REPORT_DIR}/test_cluster_smoke.log
 snapshot_cluster_log=${REPORT_DIR}/test_snapshot_cluster.log
 seeded_chaos_log=${REPORT_DIR}/test_seeded_chaos.log
 linearizability_log=${REPORT_DIR}/test_concurrent_linearizability.log
+admin_status_log=${REPORT_DIR}/test_admin_status.log
 EOF
 
 echo "ALL TESTS PASSED"

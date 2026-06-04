@@ -29,6 +29,10 @@ namespace craft {
                              const ::AppendEntriesArgs *request,
                              ::AppendEntriesReply *response) override;
 
+        Status GetNodeStatus(::grpc::ServerContext *context,
+                             const ::NodeStatusRequest *request,
+                             ::NodeStatusReply *response) override;
+
         Status submitCommand(::grpc::ServerContext *context,
                              const ::Command *request,
                              ::ResultPackge *response) override;

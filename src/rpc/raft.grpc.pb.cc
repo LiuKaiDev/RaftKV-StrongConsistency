@@ -26,6 +26,7 @@ static const char* RaftRPC_method_names[] = {
   "/RaftRPC/submitCommand",
   "/RaftRPC/requestVoteRPC",
   "/RaftRPC/appendEntries",
+  "/RaftRPC/GetNodeStatus",
 };
 
 std::unique_ptr< RaftRPC::Stub> RaftRPC::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
@@ -40,6 +41,7 @@ RaftRPC::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, c
   , rpcmethod_submitCommand_(RaftRPC_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_requestVoteRPC_(RaftRPC_method_names[3], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_appendEntries_(RaftRPC_method_names[4], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_GetNodeStatus_(RaftRPC_method_names[5], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
 ::grpc::Status RaftRPC::Stub::installSnapshot(::grpc::ClientContext* context, const ::InstallSnapshotArgs& request, ::InstallSnapshotReply* response) {
@@ -150,6 +152,29 @@ void RaftRPC::Stub::async::appendEntries(::grpc::ClientContext* context, const :
   return result;
 }
 
+::grpc::Status RaftRPC::Stub::GetNodeStatus(::grpc::ClientContext* context, const ::NodeStatusRequest& request, ::NodeStatusReply* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::NodeStatusRequest, ::NodeStatusReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_GetNodeStatus_, context, request, response);
+}
+
+void RaftRPC::Stub::async::GetNodeStatus(::grpc::ClientContext* context, const ::NodeStatusRequest* request, ::NodeStatusReply* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::NodeStatusRequest, ::NodeStatusReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetNodeStatus_, context, request, response, std::move(f));
+}
+
+void RaftRPC::Stub::async::GetNodeStatus(::grpc::ClientContext* context, const ::NodeStatusRequest* request, ::NodeStatusReply* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_GetNodeStatus_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::NodeStatusReply>* RaftRPC::Stub::PrepareAsyncGetNodeStatusRaw(::grpc::ClientContext* context, const ::NodeStatusRequest& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::NodeStatusReply, ::NodeStatusRequest, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_GetNodeStatus_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::NodeStatusReply>* RaftRPC::Stub::AsyncGetNodeStatusRaw(::grpc::ClientContext* context, const ::NodeStatusRequest& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncGetNodeStatusRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
 RaftRPC::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       RaftRPC_method_names[0],
@@ -201,6 +226,16 @@ RaftRPC::Service::Service() {
              ::AppendEntriesReply* resp) {
                return service->appendEntries(ctx, req, resp);
              }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      RaftRPC_method_names[5],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< RaftRPC::Service, ::NodeStatusRequest, ::NodeStatusReply, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](RaftRPC::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::NodeStatusRequest* req,
+             ::NodeStatusReply* resp) {
+               return service->GetNodeStatus(ctx, req, resp);
+             }, this)));
 }
 
 RaftRPC::Service::~Service() {
@@ -235,6 +270,13 @@ RaftRPC::Service::~Service() {
 }
 
 ::grpc::Status RaftRPC::Service::appendEntries(::grpc::ServerContext* context, const ::AppendEntriesArgs* request, ::AppendEntriesReply* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status RaftRPC::Service::GetNodeStatus(::grpc::ServerContext* context, const ::NodeStatusRequest* request, ::NodeStatusReply* response) {
   (void) context;
   (void) request;
   (void) response;

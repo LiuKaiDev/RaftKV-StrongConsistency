@@ -41,6 +41,7 @@ namespace craft {
             return;
         }
         rf->changeToState(STATE::CANDIDATE);
+        rf->m_metrics_.IncrementElection();
         int allCount = rf->m_clusterAddress_.size(), grantedCount = 1, resCount = 1;
         spdlog::debug("allCount ={} ",allCount);
         std::shared_ptr<co_chan<bool>> grantedChan(new co_chan<bool>(allCount - 1));
@@ -121,10 +122,17 @@ namespace craft {
                     std::chrono::milliseconds(rf->m_rpcTimeOut_);
             context.set_deadline(deadline);
             Status ok = stubs[serverId]->requestVoteRPC(&context, *request, response.get());
+            rf->m_metrics_.IncrementRequestVoteSent();
             if (!ok.ok()) {
                 spdlog::error("disconnect to id[{}]:{} to try getVote\n", serverId, rf->m_clusterAddress_[serverId]);
+                rf->m_metrics_.IncrementRequestVoteRejected();
                 continue;
             } else {
+                if (response->votegranted()) {
+                    rf->m_metrics_.IncrementRequestVoteGranted();
+                } else {
+                    rf->m_metrics_.IncrementRequestVoteRejected();
+                }
                 spdlog::debug("to {} success call voteRPC\n", serverId);
                 break;
             }

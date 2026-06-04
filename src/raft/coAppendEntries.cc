@@ -110,10 +110,17 @@ namespace craft {
                 std::chrono::milliseconds(rf->m_rpcTimeOut_);
         context.set_deadline(deadline);
         Status ok = stubs[serverId]->appendEntries(&context, *args, reply.get());
+        rf->m_metrics_.IncrementAppendEntriesSent();
         if (ok.ok()) {
+            if (reply->success()) {
+                rf->m_metrics_.IncrementAppendEntriesSuccess();
+            } else {
+                rf->m_metrics_.IncrementAppendEntriesFailed();
+            }
             isCallok = true;
         } else {
             spdlog::error("disconnect to FOLLOWER [{}]:{}", serverId, rf->m_clusterAddress_[serverId]);
+            rf->m_metrics_.IncrementAppendEntriesFailed();
         }
         return isCallok;
     }
@@ -170,7 +177,9 @@ namespace craft {
                 std::chrono::milliseconds(rf->m_rpcTimeOut_);
         context.set_deadline(deadline);
         Status ok = stubs[serverId]->installSnapshot(&context, args, &reply);
+        rf->m_metrics_.IncrementInstallSnapshotSent();
         if (ok.ok() && reply.iscansendsnapfile()) {
+            rf->m_metrics_.IncrementInstallSnapshotSuccess();
             go[rf,serverId]{
                 // Send snapshot files via grpc streaming protocol
                 if(!toTransferSnapShotFiles(rf, serverId)){
@@ -180,6 +189,7 @@ namespace craft {
                 }
             };
         } else {
+            rf->m_metrics_.IncrementInstallSnapshotFailed();
             spdlog::error("Install snapshot metadata RPC timed out");
         }
     }
