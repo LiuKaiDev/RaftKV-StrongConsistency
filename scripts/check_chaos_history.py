@@ -112,6 +112,8 @@ def check_history(history, final_state):
 
         if op == "append":
             if not final_success:
+                if response_status == "KEY_NOT_FOUND":
+                    raise ValueError(f"append for key {key} returned KEY_NOT_FOUND")
                 continue
             previous = append_results.get(dedup_key)
             if previous is not None:

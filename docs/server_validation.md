@@ -54,6 +54,13 @@ bash scripts/start_cluster.sh
 
 ## 5. KV 基础功能
 
+当前 KV API 契约：
+
+- `Put`: 覆盖或创建 key，成功返回 `OK`。
+- `Get`: key 存在时返回当前 value；key 不存在时返回 `KEY_NOT_FOUND`。
+- `Append`: key 存在时追加到当前 value；key 不存在时以空字符串为初始值创建 key；成功返回追加后的新 value。
+- `Delete`: key 存在时删除并返回 `OK`；key 不存在时返回 `KEY_NOT_FOUND`。
+
 ```bash
 ./bin/kv_client put name chaos
 ./bin/kv_client get name
@@ -179,7 +186,44 @@ RUN_SEEDED_CHAOS=1 bash scripts/test_all.sh
 
 测试报告默认保存到 `/tmp/raftkv-test-reports/<run_id>/seeded-chaos/`，数据默认保存到 `/tmp/raftkv-test-data/<run_id>/seeded-chaos/`。报告中包含 `summary.txt`、`run_info.txt`、`history.jsonl`、`faults.jsonl`、`client_attempts.log`、`last_error.txt`、`failure_context.txt`、最终节点 dump、生成配置、PID 文件和节点日志。失败时 `summary.txt` 中的 `replay_command` 可直接复制重放同一 seed。
 
-## 12. 清理运行时文件
+## 12. Concurrent linearizability 集成验证
+
+并发线性一致性脚本会启动独立三节点集群和多个后台 worker。每个 worker 使用独立 `client_id`、单调递增 `request_id`，并发随机执行 `put/get/append/delete`。脚本记录每个操作的调用开始和完成时间、最终响应、重试次数，并在 workload 期间依次停止一个 follower、恢复该 follower、停止当前 leader、等待重新选举、恢复 leader，最后检查三个节点 dump 一致并运行独立 checker。
+
+```bash
+SEED=20260604 CLIENT_COUNT=4 OPERATIONS_PER_CLIENT=40 KEY_COUNT=3 \
+  bash scripts/test_concurrent_linearizability.sh
+```
+
+checker 读取 `history.jsonl`，按 key 分开搜索满足单 key KV API 模型和实时顺序约束的串行顺序。该模型与上文 KV API 契约一致，包括 `Append` 对不存在 key 的创建语义。输出 `LINEARIZABILITY PASSED`、`LINEARIZABILITY FAILED` 或 `LINEARIZABILITY INCONCLUSIVE`。该结果只说明当前测试历史通过了有界搜索检查，不是对所有执行的形式化证明。
+
+可以用 `FAULT_MODE` 分层复现：
+
+```bash
+SEED=20260604 CLIENT_COUNT=4 OPERATIONS_PER_CLIENT=15 KEY_COUNT=2 FAULT_MODE=none \
+  bash scripts/test_concurrent_linearizability.sh
+
+SEED=20260604 CLIENT_COUNT=4 OPERATIONS_PER_CLIENT=15 KEY_COUNT=2 FAULT_MODE=follower_restart \
+  bash scripts/test_concurrent_linearizability.sh
+
+SEED=20260604 CLIENT_COUNT=4 OPERATIONS_PER_CLIENT=15 KEY_COUNT=2 FAULT_MODE=leader_restart \
+  bash scripts/test_concurrent_linearizability.sh
+
+SEED=20260604 CLIENT_COUNT=4 OPERATIONS_PER_CLIENT=15 KEY_COUNT=2 FAULT_MODE=full \
+  bash scripts/test_concurrent_linearizability.sh
+```
+
+`CHECKER_TIMEOUT_SECONDS` 控制 checker 搜索超时。`SAVE_NORMALIZED_HISTORY=1` 时报告目录会额外保存 `normalized_history.jsonl`。
+
+默认 `scripts/test_all.sh` 不运行该慢速集成测试。需要纳入批量测试时显式开启：
+
+```bash
+RUN_LINEARIZABILITY=1 bash scripts/test_all.sh
+```
+
+测试报告默认保存到 `/tmp/raftkv-test-reports/<run_id>/linearizability/`，数据默认保存到 `/tmp/raftkv-test-data/<run_id>/linearizability/`。报告中包含 `summary.txt`、`run_info.txt`、`history.jsonl`、`normalized_history.jsonl`、`faults.jsonl`、`checker_output.txt`、`client_attempts.log`、`linearizability_failure.json`、`linearizability_failure.txt`、生成配置、PID 文件、节点日志、worker traceback、失败片段和可复制的 `replay_command`。如果 checker 通过，failure 文件可以不存在。
+
+## 13. 清理运行时文件
 
 验证完成后，如需提交 GitHub，请不要提交：
 
