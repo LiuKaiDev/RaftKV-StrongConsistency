@@ -34,8 +34,8 @@ AbstractPersist::AbstractPersist(std::string absPersistPath, std::string snapsho
 
     craftkv::storage::SnapshotMeta snapshot_meta;
     error.clear();
-    if (!snapshotManager_.LoadMeta(&snapshot_meta, &error) && !error.empty()) {
-        spdlog::warn("load snapshot meta failed: {}", error);
+    if (!snapshotManager_.LoadMeta(&snapshot_meta, &error)) {
+        throw std::runtime_error("load snapshot meta failed: " + error);
     }
     lastSnapshotIndex_ = snapshot_meta.last_included_index;
     lastSnapshotTerm_ = snapshot_meta.last_included_term;

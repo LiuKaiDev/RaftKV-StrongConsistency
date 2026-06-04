@@ -4,6 +4,7 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
+#include <stdexcept>
 #include <sstream>
 #include <utility>
 
@@ -115,15 +116,13 @@ void KVServer::deserialization(const char* filename) {
     craftkv::storage::SnapshotData snapshot;
     std::string error;
     if (!snapshotManager_.Load(&snapshot, &error)) {
-        spdlog::warn("load KV snapshot failed: {}", error);
-        return;
+        throw std::runtime_error("load KV snapshot failed: " + error);
     }
     if (!snapshot.exists) {
         return;
     }
     if (!state_machine_.LoadSnapshot(snapshot.payload, &error)) {
-        spdlog::warn("restore KV state machine failed: {}", error);
-        return;
+        throw std::runtime_error("restore KV state machine failed: " + error);
     }
     setSnapshotMeta(snapshot.meta.last_included_index, snapshot.meta.last_included_term);
     spdlog::info("restore KV snapshot index={}, term={}, keys={}",

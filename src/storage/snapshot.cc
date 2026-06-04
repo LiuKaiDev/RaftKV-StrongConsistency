@@ -1,6 +1,8 @@
 #include "storage/snapshot.h"
 
 #include <cstring>
+#include <limits>
+#include <system_error>
 #include <utility>
 
 #include "storage/file_util.h"
@@ -9,6 +11,7 @@ namespace craftkv::storage {
 namespace {
 
 constexpr char kSnapshotMagic[] = "CRS1";
+constexpr std::size_t kMaxSnapshotPayloadBytes = 256 * 1024 * 1024;
 
 std::string EncodeFrame(const std::string& payload) {
     std::string frame;
@@ -20,9 +23,6 @@ std::string EncodeFrame(const std::string& payload) {
 }
 
 bool DecodeFrame(const std::string& data, std::string* payload) {
-    if (data.empty()) {
-        return false;
-    }
     if (data.size() < 12 || std::memcmp(data.data(), kSnapshotMagic, 4) != 0) {
         return false;
     }
@@ -30,7 +30,8 @@ bool DecodeFrame(const std::string& data, std::string* payload) {
     uint32_t size = 0;
     uint32_t checksum = 0;
     if (!ReadFixed32(data, &offset, &size) || !ReadFixed32(data, &offset, &checksum) ||
-        offset + size > data.size()) {
+        size > kMaxSnapshotPayloadBytes || offset + size > data.size() ||
+        offset + size != data.size()) {
         return false;
     }
     payload->assign(data.data() + offset, size);
@@ -42,17 +43,32 @@ bool DecodeFrame(const std::string& data, std::string* payload) {
 SnapshotManager::SnapshotManager(std::filesystem::path snapshot_path) : snapshot_path_(std::move(snapshot_path)) {}
 
 bool SnapshotManager::Save(const SnapshotMeta& meta, const std::string& payload, std::string* error_msg) const {
+    if (meta.last_included_index < 0 || meta.last_included_term < 0 ||
+        payload.size() > kMaxSnapshotPayloadBytes) {
+        if (error_msg != nullptr) {
+            *error_msg = "invalid snapshot metadata or payload size";
+        }
+        return false;
+    }
     return AtomicWriteStringToFile(snapshot_path_, EncodeFrame(EncodeSnapshotPayload(meta, payload)), error_msg);
 }
 
 bool SnapshotManager::Load(SnapshotData* snapshot, std::string* error_msg) const {
     *snapshot = SnapshotData{};
+    std::error_code ec;
+    bool snapshot_exists = std::filesystem::exists(snapshot_path_, ec);
+    if (ec) {
+        if (error_msg != nullptr) {
+            *error_msg = "failed to inspect snapshot file: " + ec.message();
+        }
+        return false;
+    }
+    if (!snapshot_exists) {
+        return true;
+    }
     std::string data;
     if (!ReadFileToString(snapshot_path_, &data, error_msg)) {
         return false;
-    }
-    if (data.empty()) {
-        return true;
     }
     std::string encoded_payload;
     if (!DecodeFrame(data, &encoded_payload) ||
@@ -94,7 +110,10 @@ bool DecodeSnapshotPayload(const std::string& encoded, SnapshotMeta* meta, std::
         !ReadFixed64(encoded, &offset, &payload_size)) {
         return false;
     }
-    if (offset + payload_size > encoded.size()) {
+    if (index > static_cast<uint64_t>(std::numeric_limits<int>::max()) ||
+        term > static_cast<uint64_t>(std::numeric_limits<int>::max()) ||
+        payload_size > kMaxSnapshotPayloadBytes ||
+        payload_size > static_cast<uint64_t>(encoded.size() - offset)) {
         return false;
     }
     meta->last_included_index = static_cast<int>(index);
