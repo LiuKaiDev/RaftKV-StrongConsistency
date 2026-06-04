@@ -55,6 +55,19 @@ std::string MakeMetaPayload(int current_term, int voted_for, int commit_index, i
     return payload;
 }
 
+std::string MakeLogPayload(int index, int term, const std::string& command) {
+    std::string payload;
+    craftkv::storage::AppendFixed64(&payload, static_cast<uint64_t>(index));
+    craftkv::storage::AppendFixed64(&payload, static_cast<uint64_t>(term));
+    craftkv::storage::AppendFixed64(&payload, static_cast<uint64_t>(command.size()));
+    payload.append(command);
+    return payload;
+}
+
+std::string MakeLogFrame(int index, int term, const std::string& command) {
+    return MakeFrame("CRL1", MakeLogPayload(index, term, command));
+}
+
 std::vector<craftkv::storage::RaftLogRecord> LoadLogs(craftkv::storage::WAL* wal) {
     std::vector<craftkv::storage::RaftLogRecord> logs;
     bool loaded = wal->LoadLogs(&logs);
@@ -164,6 +177,74 @@ void TestValidWalUnchanged() {
     AssertTwoLogs(logs);
     Require(FileSize(wal) == valid_size);
     std::filesystem::remove_all(dir);
+}
+
+void TestValidSnapshotSuffixWal() {
+    auto dir = CaseDir("valid_snapshot_suffix");
+    craftkv::storage::WAL wal(dir);
+    Require(wal.AppendLog({5, 3, "cmd-5"}));
+    Require(wal.AppendLog({6, 3, "cmd-6"}));
+    auto valid_size = FileSize(wal);
+
+    std::vector<craftkv::storage::RaftLogRecord> logs;
+    Require(wal.LoadLogs(&logs));
+    Require(logs.size() == 2);
+    Require(logs[0].index == 5);
+    Require(logs[1].index == 6);
+    Require(FileSize(wal) == valid_size);
+    std::filesystem::remove_all(dir);
+}
+
+void ExpectLoadLogsFailsWithoutTruncation(const std::string& name, const std::string& data) {
+    auto dir = CaseDir(name);
+    craftkv::storage::WAL wal(dir);
+    Require(craftkv::storage::EnsureDirectory(dir));
+    WriteFile(wal.LogPath(), data);
+    auto original_size = FileSize(wal);
+
+    std::vector<craftkv::storage::RaftLogRecord> logs;
+    std::string error;
+    Require(!wal.LoadLogs(&logs, &error));
+    Require(!error.empty());
+    Require(FileSize(wal) == original_size);
+    std::filesystem::remove_all(dir);
+}
+
+void TestMiddleChecksumMismatchFailsClosed() {
+    std::string first = MakeLogFrame(1, 1, "cmd-1");
+    std::string second = MakeLogFrame(2, 1, "cmd-2");
+    std::string third = MakeLogFrame(3, 1, "cmd-3");
+    second[12] ^= 0x01;
+    ExpectLoadLogsFailsWithoutTruncation("middle_checksum_mismatch", first + second + third);
+}
+
+void TestDuplicateIndexFailsClosed() {
+    ExpectLoadLogsFailsWithoutTruncation("duplicate_index",
+                                         MakeLogFrame(1, 1, "cmd-1") + MakeLogFrame(1, 1, "cmd-dup"));
+}
+
+void TestOutOfOrderIndexFailsClosed() {
+    ExpectLoadLogsFailsWithoutTruncation("out_of_order_index",
+                                         MakeLogFrame(2, 1, "cmd-2") + MakeLogFrame(1, 1, "cmd-1"));
+}
+
+void TestIndexGapFailsClosed() {
+    ExpectLoadLogsFailsWithoutTruncation("index_gap",
+                                         MakeLogFrame(5, 1, "cmd-5") + MakeLogFrame(7, 1, "cmd-7"));
+}
+
+void TestInvalidIndexOrTermFailsClosed() {
+    ExpectLoadLogsFailsWithoutTruncation("invalid_zero_index", MakeLogFrame(0, 1, "cmd-0"));
+    ExpectLoadLogsFailsWithoutTruncation("invalid_negative_term", MakeLogFrame(1, -1, "cmd-1"));
+}
+
+void TestInvalidCommandSizeFailsClosed() {
+    std::string payload;
+    craftkv::storage::AppendFixed64(&payload, 1);
+    craftkv::storage::AppendFixed64(&payload, 1);
+    craftkv::storage::AppendFixed64(&payload, 32);
+    payload.append("short");
+    ExpectLoadLogsFailsWithoutTruncation("invalid_command_size", MakeFrame("CRL1", payload));
 }
 
 void TestMissingMetaUsesDefaults() {
@@ -308,6 +389,13 @@ int main() {
     TestChecksumMismatchTail();
     TestAppendAfterTailRepair();
     TestValidWalUnchanged();
+    TestValidSnapshotSuffixWal();
+    TestMiddleChecksumMismatchFailsClosed();
+    TestDuplicateIndexFailsClosed();
+    TestOutOfOrderIndexFailsClosed();
+    TestIndexGapFailsClosed();
+    TestInvalidIndexOrTermFailsClosed();
+    TestInvalidCommandSizeFailsClosed();
     TestMissingMetaUsesDefaults();
     TestValidMetaRestoresFields();
     TestCorruptMetaFailsClosed();

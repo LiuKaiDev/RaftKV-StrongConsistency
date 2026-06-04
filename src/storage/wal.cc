@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstring>
 #include <fstream>
+#include <limits>
 #include <system_error>
 #include <utility>
 
@@ -13,6 +14,7 @@ namespace {
 
 constexpr char kMetaMagic[] = "CRM1";
 constexpr char kLogMagic[] = "CRL1";
+constexpr std::size_t kMaxFramePayloadBytes = 64 * 1024 * 1024;
 
 enum class DecodeFrameStatus {
     kOk,
@@ -96,6 +98,11 @@ bool DecodeOneFrame(const std::string& data,
         *offset = data.size();
         return false;
     }
+    if (size > kMaxFramePayloadBytes) {
+        set_status(DecodeFrameStatus::kPartialPayload);
+        *offset = data.size();
+        return false;
+    }
     payload->assign(data.data() + *offset, size);
     *offset += size;
     if (Checksum32(*payload) != checksum) {
@@ -128,6 +135,46 @@ bool RepairCorruptedTail(const std::filesystem::path& log_path,
         return false;
     }
     return FsyncFile(log_path, error_msg);
+}
+
+bool IsValidLogRecord(const RaftLogRecord& record) {
+    return record.index > 0 && record.term >= 0;
+}
+
+bool ValidateNextLogRecord(const std::vector<RaftLogRecord>& logs,
+                           const RaftLogRecord& record,
+                           std::string* error_msg) {
+    if (!IsValidLogRecord(record)) {
+        if (error_msg != nullptr) {
+            *error_msg = "raft log record has invalid index or term";
+        }
+        return false;
+    }
+    if (!logs.empty() && record.index != logs.back().index + 1) {
+        if (error_msg != nullptr) {
+            *error_msg = "raft log index sequence is not contiguous";
+        }
+        return false;
+    }
+    return true;
+}
+
+bool ValidateLogSequence(const std::vector<RaftLogRecord>& logs, std::string* error_msg) {
+    for (std::size_t i = 0; i < logs.size(); ++i) {
+        if (!IsValidLogRecord(logs[i])) {
+            if (error_msg != nullptr) {
+                *error_msg = "raft log record has invalid index or term";
+            }
+            return false;
+        }
+        if (i > 0 && logs[i].index != logs[i - 1].index + 1) {
+            if (error_msg != nullptr) {
+                *error_msg = "raft log index sequence is not contiguous";
+            }
+            return false;
+        }
+    }
+    return true;
 }
 
 }  // namespace
@@ -222,17 +269,33 @@ bool WAL::LoadLogs(std::vector<RaftLogRecord>* logs, std::string* error_msg) con
             }
             return false;
         }
+        if (!ValidateNextLogRecord(*logs, record, error_msg)) {
+            return false;
+        }
         logs->push_back(std::move(record));
         last_valid_offset = offset;
     }
-    std::sort(logs->begin(), logs->end(), [](const auto& left, const auto& right) {
-        return left.index < right.index;
-    });
     return true;
 }
 
 bool WAL::AppendLog(const RaftLogRecord& log, std::string* error_msg) const {
     if (!EnsureDirectory(data_dir_, error_msg)) {
+        return false;
+    }
+    if (!IsValidLogRecord(log)) {
+        if (error_msg != nullptr) {
+            *error_msg = "raft log record has invalid index or term";
+        }
+        return false;
+    }
+    std::vector<RaftLogRecord> existing_logs;
+    if (!LoadLogs(&existing_logs, error_msg)) {
+        return false;
+    }
+    if (!existing_logs.empty() && log.index != existing_logs.back().index + 1) {
+        if (error_msg != nullptr) {
+            *error_msg = "raft log append would break index sequence";
+        }
         return false;
     }
     std::string frame = EncodeFrame(kLogMagic, EncodeLogRecordPayload(log));
@@ -241,6 +304,9 @@ bool WAL::AppendLog(const RaftLogRecord& log, std::string* error_msg) const {
 
 bool WAL::RewriteLogs(const std::vector<RaftLogRecord>& logs, std::string* error_msg) const {
     if (!EnsureDirectory(data_dir_, error_msg)) {
+        return false;
+    }
+    if (!ValidateLogSequence(logs, error_msg)) {
         return false;
     }
     std::string data;
@@ -280,7 +346,15 @@ bool DecodeLogRecordPayload(const std::string& payload, RaftLogRecord* log) {
         !ReadFixed64(payload, &offset, &command_size)) {
         return false;
     }
-    if (offset + command_size > payload.size()) {
+    if (command_size > static_cast<uint64_t>(payload.size() - offset)) {
+        return false;
+    }
+    if (command_size > kMaxFramePayloadBytes ||
+        command_size > static_cast<uint64_t>(payload.size() - offset)) {
+        return false;
+    }
+    if (index > static_cast<uint64_t>(std::numeric_limits<int>::max()) ||
+        term > static_cast<uint64_t>(std::numeric_limits<int>::max())) {
         return false;
     }
     log->index = static_cast<int>(index);
