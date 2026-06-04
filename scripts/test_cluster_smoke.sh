@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TEST_DATA_ROOT="/root/raftkv-test-data"
-TEST_REPORT_ROOT="/root/raftkv-test-reports"
+TEST_DATA_ROOT="${TEST_DATA_ROOT:-/tmp/raftkv-test-data}"
+TEST_REPORT_ROOT="${TEST_REPORT_ROOT:-/tmp/raftkv-test-reports}"
 RUN_ID="${RUN_ID:-cluster-$(date +%Y%m%d-%H%M%S)-$$}"
 RUN_DIR="${TEST_DATA_ROOT}/${RUN_ID}"
 CLUSTER_DATA_DIR="${RUN_DIR}/cluster"

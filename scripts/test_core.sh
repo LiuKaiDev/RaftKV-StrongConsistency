@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TEST_DATA_ROOT="/root/raftkv-test-data"
+TEST_DATA_ROOT="${TEST_DATA_ROOT:-/tmp/raftkv-test-data}"
 RUN_ID="${RUN_ID:-core-$(date +%Y%m%d-%H%M%S)-$$}"
 CORE_DATA_DIR="${TEST_DATA_ROOT}/${RUN_ID}/core"
 BUILD_DIR="${ROOT_DIR}/build/core"

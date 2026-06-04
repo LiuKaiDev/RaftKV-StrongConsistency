@@ -2,7 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TEST_REPORT_ROOT="/root/raftkv-test-reports"
+export TEST_DATA_ROOT="${TEST_DATA_ROOT:-/tmp/raftkv-test-data}"
+export TEST_REPORT_ROOT="${TEST_REPORT_ROOT:-/tmp/raftkv-test-reports}"
 RUN_ID="${RUN_ID:-all-$(date +%Y%m%d-%H%M%S)-$$}"
 REPORT_DIR="${TEST_REPORT_ROOT}/${RUN_ID}"
 
