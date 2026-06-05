@@ -1,17 +1,60 @@
 #include "craft/public.h"
 #include "craft/startRpcService.h"
+#include "raft/raft_correctness.h"
+
+#include <chrono>
+#include <cerrno>
+#include <cstdlib>
+#include <limits>
+#include <thread>
 
 namespace craft {
+namespace {
+
+int TestInstallSnapshotDelayMs() {
+    static const int delay_ms = []() {
+        const char* raw = std::getenv("CRAFTKV_TEST_INSTALL_SNAPSHOT_DELAY_MS");
+        if (raw == nullptr || raw[0] == '\0') {
+            return 0;
+        }
+        errno = 0;
+        char* end = nullptr;
+        long parsed = std::strtol(raw, &end, 10);
+        if (errno != 0 || end == raw || *end != '\0' || parsed < 0 ||
+            parsed > std::numeric_limits<int>::max()) {
+            spdlog::warn("invalid CRAFTKV_TEST_INSTALL_SNAPSHOT_DELAY_MS='{}'; using 0", raw);
+            return 0;
+        }
+        return static_cast<int>(parsed);
+    }();
+    return delay_ms;
+}
+
+void ApplyTestInstallSnapshotDelay() {
+    int delay_ms = TestInstallSnapshotDelayMs();
+    if (delay_ms > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
+}
+
+}  // namespace
 
     // return is can isntall snapshot file ?
     Status RpcServiceImpl::installSnapshot(::grpc::ServerContext *context,
                                            const ::InstallSnapshotArgs *request,
                                            ::InstallSnapshotReply *response) {
+        ApplyTestInstallSnapshotDelay();
         m_rf_->co_mtx_.lock();
 
         response->set_term(m_rf_->m_current_term_);
+        response->set_iscansendsnapfile(false);
+        if (!raft_correctness::IsValidPeerIndex(request->leaderid(),
+                                                static_cast<int>(m_rf_->m_clusterAddress_.size()))) {
+            spdlog::error("reject InstallSnapshot from invalid leader id [{}]", request->leaderid());
+            m_rf_->co_mtx_.unlock();
+            return Status::OK;
+        }
         if (m_rf_->m_current_term_ > request->term()) {
-            response->set_iscansendsnapfile(false);
             m_rf_->co_mtx_.unlock();
             return Status::OK;
         }
@@ -23,6 +66,7 @@ namespace craft {
             m_rf_->m_electionTimer->reset(getElectionTimeOut(m_rf_->m_leaderEelectionTimeOut_));
             m_rf_->persist();
         }
+        m_rf_->m_lastLeaderContact_ = std::chrono::steady_clock::now();
         if (m_rf_->m_snapShotIndex >= request->lastincludeindex()) {
             response->set_iscansendsnapfile(false);
             m_rf_->co_mtx_.unlock();

@@ -1,11 +1,14 @@
 #include "craft/raft.h"
 #include "craft/public.h"
 #include <algorithm>
+#include <cstddef>
 #include <cstdlib>
 #include "filesystem"
 #include <utility>
 #include "craft/utils/commonUtil.h"
 #include "common/config.h"
+#include "raft/raft_correctness.h"
+#include "raft/raft_log_entry.h"
 
 namespace craft {
     namespace {
@@ -61,6 +64,10 @@ namespace craft {
             m_leaderElectionTimeOutMax_ = static_cast<uint>(nodeConfig.raft.election_timeout_ms_max);
             m_heatBeatInterVal = static_cast<uint>(nodeConfig.raft.heartbeat_interval_ms);
             m_rpcTimeOut_ = static_cast<uint>(nodeConfig.raft.rpc_timeout_ms);
+            m_preVoteEnabled_ = nodeConfig.raft.pre_vote;
+            m_checkQuorumEnabled_ = nodeConfig.raft.check_quorum;
+            m_maxAppendEntriesPerRpc_ = nodeConfig.raft.max_append_entries_per_rpc;
+            m_maxInflightAppendEntriesPerPeer_ = nodeConfig.raft.max_inflight_append_entries_per_peer;
             spdlog::info("load yaml config [{}], local raft index = [{}]", filename, m_me_);
             return;
         }
@@ -165,17 +172,34 @@ namespace craft {
             m_appendEntriesTimer->stop();
         } else if (toState == STATE::LEADER) {
             int lastLogIndex = getLastLogIndex();
-            for (int i = 0; i < m_peers_->numPeers(); i++) {
-                m_nextIndex_[i] = lastLogIndex + 1;
-                m_matchIndex_[i] = lastLogIndex;
+            if (!raft_correctness::PrepareLeaderTransition(
+                    m_peers_->numPeers(), m_me_, lastLogIndex, &m_leaderId_, &m_nextIndex_, &m_matchIndex_)) {
+                spdlog::critical("failed to initialize leader replication state; abort leader transition");
+                return;
             }
-            m_leaderId_ = m_me_;
+            m_state_ = toState;
+            m_lastPeerContact_.assign(static_cast<std::size_t>(m_peers_->numPeers()),
+                                      std::chrono::steady_clock::now());
             m_electionTimer->stop();
-            m_appendEntriesTimer->reset(m_heatBeatInterVal);
+            ServerCallResult noop = appendLeaderNoop();
+            if (!noop.isLeader) {
+                spdlog::critical("failed to append leader no-op; abort leader transition");
+                m_state_ = STATE::FOLLOWER;
+                m_leaderId_ = -1;
+                m_appendEntriesTimer->stop();
+                m_electionTimer->reset(getElectionTimeOut(m_leaderEelectionTimeOut_));
+                return;
+            }
+            m_appendEntriesTimer->reset(0);
         } else {
             spdlog::critical("change to unkown toState");
         }
-        m_state_ = toState;
+        if (m_state_ != toState) {
+            m_state_ = toState;
+        }
+        if (fromState != STATE::LEADER && toState == STATE::LEADER) {
+            m_metrics_.IncrementLeaderChange();
+        }
 
         spdlog::info("[{}]:{} from {} change to {},term = [{}]", m_me_, m_clusterAddress_[m_me_],
                      stringState(fromState),
@@ -211,6 +235,7 @@ namespace craft {
         spdlog::info("[{}]:{} saveSnapShot success,index = [{}],snapshotIndex = [{}]", m_me_, m_clusterAddress_[m_me_],
                      index,
                      snapshotIndex);
+        m_metrics_.IncrementSnapshotCreated();
         return true;
     }
 
@@ -237,6 +262,7 @@ namespace craft {
         LogEntry logEntry;
         logEntry.set_term(term);
         logEntry.set_command(command);
+        logEntry.set_type(LogEntry::NORMAL);
         if (!m_persister_->appendLogEntry(index, term, command)) {
             return {-1, term, false};
         }
@@ -246,6 +272,30 @@ namespace craft {
         isLeader = true;
         m_persister_->saveRaftMeta(m_current_term_, m_votedFor_, m_commitIndex_, m_lastApplied_);
         return {index,term,isLeader};
+    }
+
+    ServerCallResult Raft::appendLeaderNoop() {
+        int index = -1;
+        int term = -1;
+        if (m_state_ != STATE::LEADER) {
+            return {index, term, false};
+        }
+        term = m_current_term_;
+        index = getLastLogIndex() + 1;
+        std::string command = MakeInternalNoopCommand();
+        LogEntry logEntry;
+        logEntry.set_term(term);
+        logEntry.set_command(command);
+        logEntry.set_type(LogEntry::NO_OP);
+        if (!m_persister_->appendLogEntry(index, term, command)) {
+            return {-1, term, false};
+        }
+        m_logs_.push_back(logEntry);
+        m_matchIndex_[m_me_] = index;
+        m_nextIndex_[m_me_] = index + 1;
+        m_metrics_.IncrementLeaderNoopAppended();
+        m_persister_->saveRaftMeta(m_current_term_, m_votedFor_, m_commitIndex_, m_lastApplied_);
+        return {index, term, true};
     }
 
     std::string Raft::stringState(STATE state) {
@@ -299,6 +349,9 @@ namespace craft {
             LogEntry log;
             log.set_term(logEntrie.first);
             log.set_command(logEntrie.second);
+            if (IsInternalNoopCommand(logEntrie.second)) {
+                log.set_type(LogEntry::NO_OP);
+            }
             m_logs_.push_back(log);
         }
         if (m_commitIndex_ < m_snapShotIndex) {
@@ -372,6 +425,10 @@ namespace craft {
                 m_logs_[storeIndex].term() == m_current_term_) {
                 m_commitIndex_ = i;
                 hasCommit = true;
+                if (m_logs_[storeIndex].type() == LogEntry::NO_OP ||
+                    IsInternalNoopCommand(m_logs_[storeIndex].command())) {
+                    m_metrics_.IncrementLeaderNoopCommitted();
+                }
                 spdlog::info("[{}]:{},success commit log index = [{}]", m_me_, m_clusterAddress_[m_me_], i);
             }
         }
@@ -388,8 +445,11 @@ namespace craft {
         if (nextIndex <= m_snapShotIndex || nextIndex > lastLogIndex) {
             return {lastLogIndex, lastLogTerm, logEntries};
         }
-        logEntries.resize(lastLogIndex - nextIndex + 1);
-        std::copy(this->m_logs_.begin() + (nextIndex - m_snapShotIndex), this->m_logs_.end(), logEntries.begin());
+        std::size_t batchSize = raft_correctness::BoundedAppendEntriesCount(
+            nextIndex, lastLogIndex, m_maxAppendEntriesPerRpc_);
+        logEntries.resize(batchSize);
+        auto begin = this->m_logs_.begin() + (nextIndex - m_snapShotIndex);
+        std::copy(begin, begin + static_cast<std::ptrdiff_t>(batchSize), logEntries.begin());
         int prevLogIndex = nextIndex - 1;
         int prevLogTerm;
         if (prevLogIndex == m_snapShotIndex) {
@@ -499,6 +559,64 @@ namespace craft {
         co_mtx_.lock();
         co_defer[this] { co_mtx_.unlock(); };
         return static_cast<int>(m_logs_.size()) - 1;
+    }
+
+    RaftStatusSnapshot Raft::getStatusSnapshot() {
+        RaftStatusSnapshot snapshot;
+        co_mtx_.lock();
+        snapshot.node_id = (m_me_ >= 0 && m_me_ < static_cast<int>(m_peerIds_.size())) ? m_peerIds_[m_me_] : m_me_;
+        snapshot.role = RaftRoleCodeToString(static_cast<int>(m_state_));
+        snapshot.current_term = m_current_term_;
+        snapshot.leader_id =
+            (m_leaderId_ >= 0 && m_leaderId_ < static_cast<int>(m_peerIds_.size())) ? m_peerIds_[m_leaderId_] : -1;
+        snapshot.commit_index = m_commitIndex_;
+        snapshot.last_applied = m_lastApplied_;
+        snapshot.last_log_index = getLastLogIndex();
+        snapshot.snapshot_index = m_snapShotIndex;
+        snapshot.snapshot_term = m_snapShotTerm;
+        snapshot.log_entry_count = m_logs_.empty() ? 0 : m_logs_.size() - 1;
+        snapshot.metrics = m_metrics_.Snapshot();
+        co_mtx_.unlock();
+        if (m_persister_ != nullptr) {
+            snapshot.wal_bytes = m_persister_->walBytes();
+            snapshot.metrics.wal_recovery_truncated_tail_count =
+                m_persister_->walRecoveryTruncatedTailCount();
+        }
+        return snapshot;
+    }
+
+    void Raft::recordClientRequestResult(bool success) {
+        m_metrics_.IncrementClientRequestTotal();
+        if (success) {
+            m_metrics_.IncrementClientRequestSuccess();
+        } else {
+            m_metrics_.IncrementClientRequestFailed();
+        }
+    }
+
+    bool Raft::recentlyContactedQuorum(std::chrono::steady_clock::time_point now) {
+        std::vector<bool> recent;
+        recent.resize(static_cast<std::size_t>(m_peers_->numPeers()), false);
+        for (int i = 0; i < m_peers_->numPeers(); ++i) {
+            if (i == m_me_) {
+                recent[static_cast<std::size_t>(i)] = true;
+                continue;
+            }
+            if (i < static_cast<int>(m_lastPeerContact_.size())) {
+                auto age = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    now - m_lastPeerContact_[static_cast<std::size_t>(i)]);
+                recent[static_cast<std::size_t>(i)] =
+                    age.count() <= static_cast<long long>(m_leaderEelectionTimeOut_);
+            }
+        }
+        return raft_correctness::HasRecentQuorum(recent, m_me_);
+    }
+
+    void Raft::recordPeerContact(int peerId, std::chrono::steady_clock::time_point now) {
+        if (!raft_correctness::IsValidPeerIndex(peerId, static_cast<int>(m_lastPeerContact_.size()))) {
+            return;
+        }
+        m_lastPeerContact_[static_cast<std::size_t>(peerId)] = now;
     }
 
 

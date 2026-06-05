@@ -1,6 +1,7 @@
 #pragma once
 
 #include <condition_variable>
+#include <chrono>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -30,6 +31,7 @@ public:
 
     KVResponse HandleRequest(const ClientRequest& request, int timeout_ms);
     std::string DebugDump() const;
+    std::string StatusText() const;
 
 private:
     struct AppliedEntry {
@@ -38,6 +40,10 @@ private:
     };
 
     void ApplyLoop();
+    KVResponse HandleReadIndexGet(const ClientRequest& request, int timeout_ms);
+    bool WaitForStateMachineApplied(int index,
+                                    std::chrono::steady_clock::time_point deadline,
+                                    int* applied_index);
     void ClientListenLoop();
     void HandleConnection(int client_fd);
 
@@ -53,6 +59,7 @@ private:
     mutable std::mutex pending_mutex_;
     std::condition_variable pending_cv_;
     std::map<int, AppliedEntry> applied_results_;
+    int state_machine_applied_index_ = 0;
 
     std::thread apply_thread_;
     std::thread client_thread_;

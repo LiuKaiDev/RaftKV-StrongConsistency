@@ -1,0 +1,33 @@
+name: fast-ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "hardening/**"
+
+jobs:
+  fast:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install core build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ make
+
+      - name: Whitespace check
+        run: git diff --check
+
+      - name: Core tests
+        run: bash scripts/test_core.sh
+
+      # The full Raft server targets need the project's gRPC, Protobuf, libgo,
+      # spdlog, and absl environment. Do not fake this on a GitHub-hosted runner.
+      # Run this command in the documented Linux/SSH environment instead:
+      #
+      #   cmake --build build/raft -j1 --target kv_server kv_client kv_bench

@@ -50,6 +50,14 @@ struct ServerCallResult{
     int term{};
     bool isLeader{};
 };
+
+struct ReadIndexResult {
+    bool ok = false;
+    bool not_leader = false;
+    bool timeout = false;
+    int read_index = 0;
+    std::string message;
+};
 static uint getElectionTimeOut(uint timeout) {
     std::random_device rd;
     std::mt19937 gen(rd());

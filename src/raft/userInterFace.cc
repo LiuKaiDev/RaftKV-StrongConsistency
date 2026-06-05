@@ -26,6 +26,7 @@ namespace craft {
         LogEntry logEntry;
         logEntry.set_term(term);
         logEntry.set_command(request->content());
+        logEntry.set_type(LogEntry::NORMAL);
         if (!m_rf_->m_persister_->appendLogEntry(index, term, request->content())) {
             response->set_isleader(false);
             response->set_term(term);

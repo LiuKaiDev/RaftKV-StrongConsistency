@@ -4,8 +4,12 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
+#include <stdexcept>
 #include <sstream>
 #include <utility>
+
+#include "raft/raft_status.h"
+#include "raft/raft_log_entry.h"
 
 #ifndef _WIN32
 #include <arpa/inet.h>
@@ -115,17 +119,19 @@ void KVServer::deserialization(const char* filename) {
     craftkv::storage::SnapshotData snapshot;
     std::string error;
     if (!snapshotManager_.Load(&snapshot, &error)) {
-        spdlog::warn("load KV snapshot failed: {}", error);
-        return;
+        throw std::runtime_error("load KV snapshot failed: " + error);
     }
     if (!snapshot.exists) {
         return;
     }
     if (!state_machine_.LoadSnapshot(snapshot.payload, &error)) {
-        spdlog::warn("restore KV state machine failed: {}", error);
-        return;
+        throw std::runtime_error("restore KV state machine failed: " + error);
     }
     setSnapshotMeta(snapshot.meta.last_included_index, snapshot.meta.last_included_term);
+    {
+        std::lock_guard<std::mutex> lock(pending_mutex_);
+        state_machine_applied_index_ = snapshot.meta.last_included_index;
+    }
     spdlog::info("restore KV snapshot index={}, term={}, keys={}",
                  snapshot.meta.last_included_index, snapshot.meta.last_included_term, state_machine_.Size());
 }
@@ -139,16 +145,29 @@ void KVServer::serialization() {
 }
 
 KVResponse KVServer::HandleRequest(const ClientRequest& request, int timeout_ms) {
+    if (request.op_type == KVOpType::kGet && config_.read.mode == "read_index") {
+        return HandleReadIndexGet(request, timeout_ms);
+    }
+    if (raft_ != nullptr && request.op_type == KVOpType::kGet) {
+        raft_->recordLogRead();
+    }
+
     if (raft_ == nullptr || !raft_->isLeader()) {
-        return {false, KVErrorCode::kNotLeader, ExternalLeaderId(), LeaderClientAddr(), "", "not leader"};
+        KVResponse response{false, KVErrorCode::kNotLeader, ExternalLeaderId(), LeaderClientAddr(), "", "not leader"};
+        if (raft_ != nullptr) {
+            raft_->recordClientRequestResult(false);
+        }
+        return response;
     }
 
     std::string command = SerializeClientRequest(request);
     ServerCallResult submit_result = raft_->submitCommand(command);
     if (!submit_result.isLeader) {
+        raft_->recordClientRequestResult(false);
         return {false, KVErrorCode::kNotLeader, ExternalLeaderId(), LeaderClientAddr(), "", "not leader"};
     }
     if (submit_result.index < 0) {
+        raft_->recordClientRequestResult(false);
         return {false, KVErrorCode::kInternalError, ExternalLeaderId(), LeaderClientAddr(), "",
                 "failed to append raft log"};
     }
@@ -159,15 +178,18 @@ KVResponse KVServer::HandleRequest(const ClientRequest& request, int timeout_ms)
         return applied_results_.find(submit_result.index) != applied_results_.end();
     });
     if (!applied) {
+        raft_->recordClientRequestResult(false);
         return {false, KVErrorCode::kTimeout, ExternalLeaderId(), LeaderClientAddr(), "", "request timeout"};
     }
 
     AppliedEntry entry = applied_results_[submit_result.index];
     applied_results_.erase(submit_result.index);
     if (entry.command != command) {
+        raft_->recordClientRequestResult(false);
         return {false, KVErrorCode::kInternalError, ExternalLeaderId(), LeaderClientAddr(), "",
                 "applied log does not match submitted command"};
     }
+    raft_->recordClientRequestResult(entry.result.success);
     return {entry.result.success, entry.result.error_code, ExternalLeaderId(), LeaderClientAddr(),
             entry.result.value, entry.result.error_msg};
 }
@@ -176,11 +198,29 @@ std::string KVServer::DebugDump() const {
     return state_machine_.DumpKVText();
 }
 
+std::string KVServer::StatusText() const {
+    if (raft_ == nullptr) {
+        return "";
+    }
+    return craft::SerializeRaftStatusSnapshot(raft_->getStatusSnapshot());
+}
+
 void KVServer::ApplyLoop() {
     while (!stopped_) {
         ApplyMsg msg;
         *apply_ch_ >> msg;
         if (!msg.commandValid) {
+            continue;
+        }
+
+        if (craft::IsInternalNoopCommand(msg.command.content)) {
+            {
+                std::lock_guard<std::mutex> lock(pending_mutex_);
+                if (msg.commandIndex > state_machine_applied_index_) {
+                    state_machine_applied_index_ = msg.commandIndex;
+                }
+            }
+            pending_cv_.notify_all();
             continue;
         }
 
@@ -196,6 +236,9 @@ void KVServer::ApplyLoop() {
         {
             std::lock_guard<std::mutex> lock(pending_mutex_);
             applied_results_[msg.commandIndex] = AppliedEntry{msg.command.content, result};
+            if (msg.commandIndex > state_machine_applied_index_) {
+                state_machine_applied_index_ = msg.commandIndex;
+            }
         }
         pending_cv_.notify_all();
 
@@ -204,6 +247,53 @@ void KVServer::ApplyLoop() {
             raft_->saveSnapShot(msg.commandIndex);
         }
     }
+}
+
+KVResponse KVServer::HandleReadIndexGet(const ClientRequest& request, int timeout_ms) {
+    if (raft_ == nullptr) {
+        return {false, KVErrorCode::kNotLeader, -1, "", "", "not leader"};
+    }
+
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+    ReadIndexResult read_index = raft_->confirmReadIndex(timeout_ms);
+    if (!read_index.ok) {
+        raft_->recordClientRequestResult(false);
+        KVErrorCode code = read_index.timeout ? KVErrorCode::kTimeout : KVErrorCode::kNotLeader;
+        return {false, code, ExternalLeaderId(), LeaderClientAddr(), "",
+                read_index.message.empty() ? "ReadIndex failed" : read_index.message};
+    }
+
+    int applied_index = 0;
+    if (!WaitForStateMachineApplied(read_index.read_index, deadline, &applied_index)) {
+        raft_->recordReadIndexTimeoutFailure();
+        raft_->recordClientRequestResult(false);
+        return {false, KVErrorCode::kTimeout, ExternalLeaderId(), LeaderClientAddr(), "",
+                "ReadIndex wait for local apply timeout"};
+    }
+
+    std::string value;
+    if (!state_machine_.GetLocal(request.key, &value)) {
+        raft_->recordReadIndexFailure();
+        raft_->recordClientRequestResult(false);
+        return {false, KVErrorCode::kKeyNotFound, ExternalLeaderId(), LeaderClientAddr(), "",
+                "key not found"};
+    }
+    raft_->recordReadIndexSuccess();
+    raft_->recordClientRequestResult(true);
+    return {true, KVErrorCode::kOK, ExternalLeaderId(), LeaderClientAddr(), value, ""};
+}
+
+bool KVServer::WaitForStateMachineApplied(int index,
+                                          std::chrono::steady_clock::time_point deadline,
+                                          int* applied_index) {
+    std::unique_lock<std::mutex> lock(pending_mutex_);
+    bool applied = pending_cv_.wait_until(lock, deadline, [this, index] {
+        return state_machine_applied_index_ >= index;
+    });
+    if (applied_index != nullptr) {
+        *applied_index = state_machine_applied_index_;
+    }
+    return applied;
 }
 
 void KVServer::ClientListenLoop() {
@@ -269,11 +359,16 @@ void KVServer::HandleConnection(int client_fd) {
         response = {true, KVErrorCode::kOK, ExternalLeaderId(), LeaderClientAddr(), DebugDump(), ""};
     } else if (line == "LEADER") {
         response = {true, KVErrorCode::kOK, ExternalLeaderId(), LeaderClientAddr(), "", ""};
+    } else if (line == "STATUS") {
+        response = {true, KVErrorCode::kOK, ExternalLeaderId(), LeaderClientAddr(), StatusText(), ""};
     } else {
         ClientRequest request;
         std::string error;
         if (!DeserializeClientRequest(line, &request, &error)) {
             response = {false, KVErrorCode::kBadRequest, ExternalLeaderId(), LeaderClientAddr(), "", error};
+            if (raft_ != nullptr) {
+                raft_->recordClientRequestResult(false);
+            }
         } else {
             response = HandleRequest(request, config_.raft.rpc_timeout_ms * 20);
         }

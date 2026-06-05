@@ -30,6 +30,8 @@ set(STORAGE_SRC
 set(KV_CORE_SRC
   src/kv/kv_command.cc
   src/kv/kv_state_machine.cc
+  src/raft/raft_log_entry.cc
+  src/raft/raft_status.cc
 )
 
 add_library(craft_core STATIC
@@ -39,8 +41,17 @@ add_library(craft_core STATIC
 )
 target_link_libraries(craft_core PUBLIC Threads::Threads)
 
+add_library(kv_bench_core STATIC
+  client/kv_bench_lib.cc
+)
+target_include_directories(kv_bench_core PUBLIC ${PROJECT_SOURCE_DIR}/client)
+target_link_libraries(kv_bench_core PUBLIC Threads::Threads)
+
 add_executable(kv_client client/kv_client.cc)
 target_link_libraries(kv_client PRIVATE craft_core)
+
+add_executable(kv_bench client/kv_bench.cc)
+target_link_libraries(kv_bench PRIVATE craft_core kv_bench_core)
 
 if(CRAFTKV_BUILD_RAFT)
   include(common.cmake)
@@ -69,6 +80,7 @@ if(CRAFTKV_BUILD_RAFT)
   endforeach()
 
   file(GLOB RAFT_SRC "${PROJECT_SOURCE_DIR}/src/raft/*.cc")
+  list(REMOVE_ITEM RAFT_SRC "${PROJECT_SOURCE_DIR}/src/raft/raft_status.cc")
 
   find_library(LIBGO_LIBRARY
     NAMES libgo go
@@ -118,8 +130,15 @@ foreach(test_name
     test_wal
     test_snapshot
     test_raft_log
-    test_restart_replay)
+    test_restart_replay
+    test_admin_status
+    test_read_mode_config)
   add_executable(${test_name} tests/${test_name}.cc)
   target_link_libraries(${test_name} PRIVATE craft_core)
+  target_compile_definitions(${test_name} PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
   add_test(NAME ${test_name} COMMAND ${test_name})
 endforeach()
+
+add_executable(test_kv_bench_lib tests/test_kv_bench_lib.cc)
+target_link_libraries(test_kv_bench_lib PRIVATE kv_bench_core)
+add_test(NAME test_kv_bench_lib COMMAND test_kv_bench_lib)

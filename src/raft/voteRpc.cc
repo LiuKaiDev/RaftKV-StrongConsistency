@@ -1,9 +1,13 @@
 #include "libgo/defer/defer.h"
 #include "craft/public.h"
 #include "craft/startRpcService.h"
+#include "raft/raft_correctness.h"
+
+#include <chrono>
 
 namespace craft {
     bool checkLog(Raft *rf, const ::RequestVoteArgs *request);
+    bool hasRecentLeaderContact(Raft *rf);
 
     Status RpcServiceImpl::requestVoteRPC(::grpc::ServerContext *context,
                                           const ::RequestVoteArgs *request,
@@ -13,6 +17,12 @@ namespace craft {
         response->set_votegranted(false);
         response->set_term(m_rf_->m_current_term_);
         auto peerTerm = request->term();
+        if (!raft_correctness::IsValidPeerIndex(request->candidateid(),
+                                                static_cast<int>(m_rf_->m_clusterAddress_.size()))) {
+            spdlog::error("reject RequestVote from invalid candidate id [{}]", request->candidateid());
+            m_rf_->co_mtx_.unlock();
+            return Status::OK;
+        }
         do {
             if (peerTerm < m_rf_->m_current_term_) {
                 break;
@@ -30,13 +40,13 @@ namespace craft {
                     m_rf_->m_electionTimer->reset(getElectionTimeOut(m_rf_->m_leaderEelectionTimeOut_));
                     m_rf_->persist();
                     spdlog::debug("[{}]:{} to [{}]:{} vote success", m_rf_->m_me_, m_rf_->m_clusterAddress_[m_rf_->m_me_],
-                                  request->candidateid(),m_rf_->m_clusterAddress_[request->candidateid()]);
+                                  request->candidateid(),
+                                  raft_correctness::PeerAddressForLog(request->candidateid(), m_rf_->m_clusterAddress_));
                 } else {
                     break;
                 }
             } else { // peerTerm > m_rf_->m_current_term_
-                m_rf_->m_current_term_ = peerTerm;
-                m_rf_->m_votedFor_ = -1;
+                raft_correctness::ApplyRequestVoteTerm(peerTerm, &m_rf_->m_current_term_, &m_rf_->m_votedFor_);
                 m_rf_->changeToState(STATE::FOLLOWER);
                 if (!checkLog(m_rf_, request)) {
                     m_rf_->m_votedFor_ = request->candidateid();
@@ -44,15 +54,18 @@ namespace craft {
                     m_rf_->m_electionTimer->reset(getElectionTimeOut(m_rf_->m_leaderEelectionTimeOut_));
                     m_rf_->persist();
                     spdlog::debug("[{}]:{} to [{}]:{} vote success", m_rf_->m_me_, m_rf_->m_clusterAddress_[m_rf_->m_me_],
-                                  request->candidateid(),m_rf_->m_clusterAddress_[request->candidateid()]);
+                                  request->candidateid(),
+                                  raft_correctness::PeerAddressForLog(request->candidateid(), m_rf_->m_clusterAddress_));
                 } else {
                     m_rf_->persist();
-                    spdlog::error("[{}] to [{}] vote faild,Log check failed", m_rf_->m_me_, m_rf_->m_clusterAddress_[m_rf_->m_me_],
-                                  request->candidateid(),m_rf_->m_clusterAddress_[request->candidateid()]);
+                    spdlog::error("[{}]:{} to [{}]:{} vote faild,Log check failed", m_rf_->m_me_, m_rf_->m_clusterAddress_[m_rf_->m_me_],
+                                  request->candidateid(),
+                                  raft_correctness::PeerAddressForLog(request->candidateid(), m_rf_->m_clusterAddress_));
                 }
             }
 
         } while (false);
+        response->set_term(m_rf_->m_current_term_);
         m_rf_->co_mtx_.unlock();
         return Status::OK;
     }
@@ -60,9 +73,44 @@ namespace craft {
     bool checkLog(Raft *rf, const ::RequestVoteArgs *request) {
         int lastLogIndex = rf->getLastLogIndex();
         int lastLogTerm = rf->getLastLogTerm();
-        return (lastLogTerm > request->lastlogterm() ||
-                (lastLogTerm == request->lastlogterm() && lastLogIndex > request->lastlogindex()));
+        return !raft_correctness::IsCandidateLogAtLeastUpToDate(
+            lastLogTerm, lastLogIndex, request->lastlogterm(), request->lastlogindex());
 
+    }
+
+    bool hasRecentLeaderContact(Raft *rf) {
+        auto now = std::chrono::steady_clock::now();
+        auto age = std::chrono::duration_cast<std::chrono::milliseconds>(now - rf->m_lastLeaderContact_);
+        return age.count() >= 0 && age.count() <= static_cast<long long>(rf->m_leaderEelectionTimeOut_);
+    }
+
+    Status RpcServiceImpl::preVoteRPC(::grpc::ServerContext *context,
+                                      const ::RequestVoteArgs *request,
+                                      ::RequestVoteReply *response) {
+        (void)context;
+        m_rf_->co_mtx_.lock();
+        response->set_votegranted(false);
+        response->set_term(m_rf_->m_current_term_);
+        if (!raft_correctness::IsValidPeerIndex(request->candidateid(),
+                                                static_cast<int>(m_rf_->m_clusterAddress_.size()))) {
+            spdlog::error("reject PreVote from invalid candidate id [{}]", request->candidateid());
+            m_rf_->co_mtx_.unlock();
+            return Status::OK;
+        }
+
+        bool grant = raft_correctness::ShouldGrantPreVote(
+            m_rf_->m_current_term_,
+            m_rf_->m_state_ == STATE::LEADER,
+            hasRecentLeaderContact(m_rf_),
+            m_rf_->getLastLogTerm(),
+            m_rf_->getLastLogIndex(),
+            request->term(),
+            request->lastlogterm(),
+            request->lastlogindex());
+        response->set_votegranted(grant);
+        response->set_term(m_rf_->m_current_term_);
+        m_rf_->co_mtx_.unlock();
+        return Status::OK;
     }
 
 

@@ -26,6 +26,7 @@
 #include "google/protobuf/io/coded_stream.h"
 #include "google/protobuf/arena.h"
 #include "google/protobuf/arenastring.h"
+#include "google/protobuf/generated_message_bases.h"
 #include "google/protobuf/generated_message_tctable_decl.h"
 #include "google/protobuf/generated_message_util.h"
 #include "google/protobuf/metadata_lite.h"
@@ -33,6 +34,7 @@
 #include "google/protobuf/message.h"
 #include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
+#include "google/protobuf/generated_enum_reflection.h"
 #include "google/protobuf/unknown_field_set.h"
 // @@protoc_insertion_point(includes)
 
@@ -73,6 +75,15 @@ extern InstallSnapshotReplyDefaultTypeInternal _InstallSnapshotReply_default_ins
 class LogEntry;
 struct LogEntryDefaultTypeInternal;
 extern LogEntryDefaultTypeInternal _LogEntry_default_instance_;
+class MetricsStatus;
+struct MetricsStatusDefaultTypeInternal;
+extern MetricsStatusDefaultTypeInternal _MetricsStatus_default_instance_;
+class NodeStatusReply;
+struct NodeStatusReplyDefaultTypeInternal;
+extern NodeStatusReplyDefaultTypeInternal _NodeStatusReply_default_instance_;
+class NodeStatusRequest;
+struct NodeStatusRequestDefaultTypeInternal;
+extern NodeStatusRequestDefaultTypeInternal _NodeStatusRequest_default_instance_;
 class RequestVoteArgs;
 struct RequestVoteArgsDefaultTypeInternal;
 extern RequestVoteArgsDefaultTypeInternal _RequestVoteArgs_default_instance_;
@@ -93,6 +104,39 @@ namespace protobuf {
 }  // namespace protobuf
 }  // namespace google
 
+enum LogEntry_EntryType : int {
+  LogEntry_EntryType_NORMAL = 0,
+  LogEntry_EntryType_NO_OP = 1,
+  LogEntry_EntryType_LogEntry_EntryType_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      std::numeric_limits<::int32_t>::min(),
+  LogEntry_EntryType_LogEntry_EntryType_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      std::numeric_limits<::int32_t>::max(),
+};
+
+bool LogEntry_EntryType_IsValid(int value);
+extern const uint32_t LogEntry_EntryType_internal_data_[];
+constexpr LogEntry_EntryType LogEntry_EntryType_EntryType_MIN = static_cast<LogEntry_EntryType>(0);
+constexpr LogEntry_EntryType LogEntry_EntryType_EntryType_MAX = static_cast<LogEntry_EntryType>(1);
+constexpr int LogEntry_EntryType_EntryType_ARRAYSIZE = 1 + 1;
+const ::google::protobuf::EnumDescriptor*
+LogEntry_EntryType_descriptor();
+template <typename T>
+const std::string& LogEntry_EntryType_Name(T value) {
+  static_assert(std::is_same<T, LogEntry_EntryType>::value ||
+                    std::is_integral<T>::value,
+                "Incorrect type passed to EntryType_Name().");
+  return LogEntry_EntryType_Name(static_cast<LogEntry_EntryType>(value));
+}
+template <>
+inline const std::string& LogEntry_EntryType_Name(LogEntry_EntryType value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<LogEntry_EntryType_descriptor,
+                                                 0, 1>(
+      static_cast<int>(value));
+}
+inline bool LogEntry_EntryType_Parse(absl::string_view name, LogEntry_EntryType* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<LogEntry_EntryType>(
+      LogEntry_EntryType_descriptor(), name, value);
+}
 
 // ===================================================================
 
@@ -1052,6 +1096,773 @@ class RequestVoteArgs final :
   friend struct ::TableStruct_raft_2eproto;
 };// -------------------------------------------------------------------
 
+class NodeStatusRequest final :
+    public ::google::protobuf::internal::ZeroFieldsBase /* @@protoc_insertion_point(class_definition:NodeStatusRequest) */ {
+ public:
+  inline NodeStatusRequest() : NodeStatusRequest(nullptr) {}
+  template<typename = void>
+  explicit PROTOBUF_CONSTEXPR NodeStatusRequest(::google::protobuf::internal::ConstantInitialized);
+
+  inline NodeStatusRequest(const NodeStatusRequest& from)
+      : NodeStatusRequest(nullptr, from) {}
+  NodeStatusRequest(NodeStatusRequest&& from) noexcept
+    : NodeStatusRequest() {
+    *this = ::std::move(from);
+  }
+
+  inline NodeStatusRequest& operator=(const NodeStatusRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline NodeStatusRequest& operator=(NodeStatusRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetArena() == from.GetArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const NodeStatusRequest& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const NodeStatusRequest* internal_default_instance() {
+    return reinterpret_cast<const NodeStatusRequest*>(
+               &_NodeStatusRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    11;
+
+  friend void swap(NodeStatusRequest& a, NodeStatusRequest& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(NodeStatusRequest* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetArena() != nullptr &&
+        GetArena() == other->GetArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetArena() == other->GetArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(NodeStatusRequest* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  NodeStatusRequest* New(::google::protobuf::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<NodeStatusRequest>(arena);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const NodeStatusRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::google::protobuf::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const NodeStatusRequest& from) {
+    ::google::protobuf::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+  public:
+
+  private:
+  friend class ::google::protobuf::internal::AnyMetadata;
+  static ::absl::string_view FullMessageName() {
+    return "NodeStatusRequest";
+  }
+  protected:
+  explicit NodeStatusRequest(::google::protobuf::Arena* arena);
+  NodeStatusRequest(::google::protobuf::Arena* arena, const NodeStatusRequest& from);
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // @@protoc_insertion_point(class_scope:NodeStatusRequest)
+ private:
+  class _Internal;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+
+        inline explicit constexpr Impl_(
+            ::google::protobuf::internal::ConstantInitialized) noexcept;
+        inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                              ::google::protobuf::Arena* arena);
+        inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                              ::google::protobuf::Arena* arena, const Impl_& from);
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  friend struct ::TableStruct_raft_2eproto;
+};// -------------------------------------------------------------------
+
+class MetricsStatus final :
+    public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:MetricsStatus) */ {
+ public:
+  inline MetricsStatus() : MetricsStatus(nullptr) {}
+  ~MetricsStatus() override;
+  template<typename = void>
+  explicit PROTOBUF_CONSTEXPR MetricsStatus(::google::protobuf::internal::ConstantInitialized);
+
+  inline MetricsStatus(const MetricsStatus& from)
+      : MetricsStatus(nullptr, from) {}
+  MetricsStatus(MetricsStatus&& from) noexcept
+    : MetricsStatus() {
+    *this = ::std::move(from);
+  }
+
+  inline MetricsStatus& operator=(const MetricsStatus& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline MetricsStatus& operator=(MetricsStatus&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetArena() == from.GetArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const MetricsStatus& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const MetricsStatus* internal_default_instance() {
+    return reinterpret_cast<const MetricsStatus*>(
+               &_MetricsStatus_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    12;
+
+  friend void swap(MetricsStatus& a, MetricsStatus& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(MetricsStatus* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetArena() != nullptr &&
+        GetArena() == other->GetArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetArena() == other->GetArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(MetricsStatus* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  MetricsStatus* New(::google::protobuf::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<MetricsStatus>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const MetricsStatus& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom( const MetricsStatus& from) {
+    MetricsStatus::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  ::size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::google::protobuf::internal::ParseContext* ctx) final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  ::google::protobuf::internal::CachedSize* AccessCachedSize() const final;
+  void SharedCtor(::google::protobuf::Arena* arena);
+  void SharedDtor();
+  void InternalSwap(MetricsStatus* other);
+
+  private:
+  friend class ::google::protobuf::internal::AnyMetadata;
+  static ::absl::string_view FullMessageName() {
+    return "MetricsStatus";
+  }
+  protected:
+  explicit MetricsStatus(::google::protobuf::Arena* arena);
+  MetricsStatus(::google::protobuf::Arena* arena, const MetricsStatus& from);
+  public:
+
+  static const ClassData _class_data_;
+  const ::google::protobuf::Message::ClassData*GetClassData() const final;
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kElectionCountFieldNumber = 1,
+    kLeaderChangeCountFieldNumber = 2,
+    kAppendEntriesSentFieldNumber = 3,
+    kAppendEntriesSuccessFieldNumber = 4,
+    kAppendEntriesFailedFieldNumber = 5,
+    kRequestVoteSentFieldNumber = 6,
+    kRequestVoteGrantedFieldNumber = 7,
+    kRequestVoteRejectedFieldNumber = 8,
+    kInstallSnapshotSentFieldNumber = 9,
+    kInstallSnapshotSuccessFieldNumber = 10,
+    kInstallSnapshotFailedFieldNumber = 11,
+    kSnapshotCreatedCountFieldNumber = 12,
+    kWalRecoveryTruncatedTailCountFieldNumber = 13,
+    kClientRequestTotalFieldNumber = 14,
+    kClientRequestSuccessFieldNumber = 15,
+    kClientRequestFailedFieldNumber = 16,
+    kReadLogTotalFieldNumber = 17,
+    kReadIndexTotalFieldNumber = 18,
+    kReadIndexSuccessFieldNumber = 19,
+    kReadIndexFailedFieldNumber = 20,
+    kReadIndexTimeoutFieldNumber = 21,
+    kReadIndexQuorumConfirmRoundsFieldNumber = 22,
+    kLeaderNoopAppendedFieldNumber = 23,
+    kLeaderNoopCommittedFieldNumber = 24,
+    kPreVoteSentFieldNumber = 25,
+    kPreVoteGrantedFieldNumber = 26,
+    kPreVoteRejectedFieldNumber = 27,
+    kCheckQuorumStepdownCountFieldNumber = 28,
+    kCheckQuorumRoundsFieldNumber = 29,
+    kCheckQuorumSuccessFieldNumber = 30,
+    kCheckQuorumFailedFieldNumber = 31,
+    kAppendEntriesBatchRpcCountFieldNumber = 32,
+    kAppendEntriesEntriesSentFieldNumber = 33,
+    kAppendEntriesEmptyHeartbeatCountFieldNumber = 34,
+    kAppendEntriesMaxBatchObservedFieldNumber = 35,
+    kFollowerCatchupAttemptsFieldNumber = 36,
+    kFollowerCatchupSuccessFieldNumber = 37,
+    kAppendEntriesStaleResponseIgnoredFieldNumber = 38,
+    kAppendEntriesInflightRejectedFieldNumber = 39,
+  };
+  // uint64 election_count = 1;
+  void clear_election_count() ;
+  ::uint64_t election_count() const;
+  void set_election_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_election_count() const;
+  void _internal_set_election_count(::uint64_t value);
+
+  public:
+  // uint64 leader_change_count = 2;
+  void clear_leader_change_count() ;
+  ::uint64_t leader_change_count() const;
+  void set_leader_change_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_leader_change_count() const;
+  void _internal_set_leader_change_count(::uint64_t value);
+
+  public:
+  // uint64 append_entries_sent = 3;
+  void clear_append_entries_sent() ;
+  ::uint64_t append_entries_sent() const;
+  void set_append_entries_sent(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_sent() const;
+  void _internal_set_append_entries_sent(::uint64_t value);
+
+  public:
+  // uint64 append_entries_success = 4;
+  void clear_append_entries_success() ;
+  ::uint64_t append_entries_success() const;
+  void set_append_entries_success(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_success() const;
+  void _internal_set_append_entries_success(::uint64_t value);
+
+  public:
+  // uint64 append_entries_failed = 5;
+  void clear_append_entries_failed() ;
+  ::uint64_t append_entries_failed() const;
+  void set_append_entries_failed(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_failed() const;
+  void _internal_set_append_entries_failed(::uint64_t value);
+
+  public:
+  // uint64 request_vote_sent = 6;
+  void clear_request_vote_sent() ;
+  ::uint64_t request_vote_sent() const;
+  void set_request_vote_sent(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_request_vote_sent() const;
+  void _internal_set_request_vote_sent(::uint64_t value);
+
+  public:
+  // uint64 request_vote_granted = 7;
+  void clear_request_vote_granted() ;
+  ::uint64_t request_vote_granted() const;
+  void set_request_vote_granted(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_request_vote_granted() const;
+  void _internal_set_request_vote_granted(::uint64_t value);
+
+  public:
+  // uint64 request_vote_rejected = 8;
+  void clear_request_vote_rejected() ;
+  ::uint64_t request_vote_rejected() const;
+  void set_request_vote_rejected(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_request_vote_rejected() const;
+  void _internal_set_request_vote_rejected(::uint64_t value);
+
+  public:
+  // uint64 install_snapshot_sent = 9;
+  void clear_install_snapshot_sent() ;
+  ::uint64_t install_snapshot_sent() const;
+  void set_install_snapshot_sent(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_install_snapshot_sent() const;
+  void _internal_set_install_snapshot_sent(::uint64_t value);
+
+  public:
+  // uint64 install_snapshot_success = 10;
+  void clear_install_snapshot_success() ;
+  ::uint64_t install_snapshot_success() const;
+  void set_install_snapshot_success(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_install_snapshot_success() const;
+  void _internal_set_install_snapshot_success(::uint64_t value);
+
+  public:
+  // uint64 install_snapshot_failed = 11;
+  void clear_install_snapshot_failed() ;
+  ::uint64_t install_snapshot_failed() const;
+  void set_install_snapshot_failed(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_install_snapshot_failed() const;
+  void _internal_set_install_snapshot_failed(::uint64_t value);
+
+  public:
+  // uint64 snapshot_created_count = 12;
+  void clear_snapshot_created_count() ;
+  ::uint64_t snapshot_created_count() const;
+  void set_snapshot_created_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_snapshot_created_count() const;
+  void _internal_set_snapshot_created_count(::uint64_t value);
+
+  public:
+  // uint64 wal_recovery_truncated_tail_count = 13;
+  void clear_wal_recovery_truncated_tail_count() ;
+  ::uint64_t wal_recovery_truncated_tail_count() const;
+  void set_wal_recovery_truncated_tail_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_wal_recovery_truncated_tail_count() const;
+  void _internal_set_wal_recovery_truncated_tail_count(::uint64_t value);
+
+  public:
+  // uint64 client_request_total = 14;
+  void clear_client_request_total() ;
+  ::uint64_t client_request_total() const;
+  void set_client_request_total(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_client_request_total() const;
+  void _internal_set_client_request_total(::uint64_t value);
+
+  public:
+  // uint64 client_request_success = 15;
+  void clear_client_request_success() ;
+  ::uint64_t client_request_success() const;
+  void set_client_request_success(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_client_request_success() const;
+  void _internal_set_client_request_success(::uint64_t value);
+
+  public:
+  // uint64 client_request_failed = 16;
+  void clear_client_request_failed() ;
+  ::uint64_t client_request_failed() const;
+  void set_client_request_failed(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_client_request_failed() const;
+  void _internal_set_client_request_failed(::uint64_t value);
+
+  public:
+  // uint64 read_log_total = 17;
+  void clear_read_log_total() ;
+  ::uint64_t read_log_total() const;
+  void set_read_log_total(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_log_total() const;
+  void _internal_set_read_log_total(::uint64_t value);
+
+  public:
+  // uint64 read_index_total = 18;
+  void clear_read_index_total() ;
+  ::uint64_t read_index_total() const;
+  void set_read_index_total(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_index_total() const;
+  void _internal_set_read_index_total(::uint64_t value);
+
+  public:
+  // uint64 read_index_success = 19;
+  void clear_read_index_success() ;
+  ::uint64_t read_index_success() const;
+  void set_read_index_success(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_index_success() const;
+  void _internal_set_read_index_success(::uint64_t value);
+
+  public:
+  // uint64 read_index_failed = 20;
+  void clear_read_index_failed() ;
+  ::uint64_t read_index_failed() const;
+  void set_read_index_failed(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_index_failed() const;
+  void _internal_set_read_index_failed(::uint64_t value);
+
+  public:
+  // uint64 read_index_timeout = 21;
+  void clear_read_index_timeout() ;
+  ::uint64_t read_index_timeout() const;
+  void set_read_index_timeout(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_index_timeout() const;
+  void _internal_set_read_index_timeout(::uint64_t value);
+
+  public:
+  // uint64 read_index_quorum_confirm_rounds = 22;
+  void clear_read_index_quorum_confirm_rounds() ;
+  ::uint64_t read_index_quorum_confirm_rounds() const;
+  void set_read_index_quorum_confirm_rounds(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_read_index_quorum_confirm_rounds() const;
+  void _internal_set_read_index_quorum_confirm_rounds(::uint64_t value);
+
+  public:
+  // uint64 leader_noop_appended = 23;
+  void clear_leader_noop_appended() ;
+  ::uint64_t leader_noop_appended() const;
+  void set_leader_noop_appended(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_leader_noop_appended() const;
+  void _internal_set_leader_noop_appended(::uint64_t value);
+
+  public:
+  // uint64 leader_noop_committed = 24;
+  void clear_leader_noop_committed() ;
+  ::uint64_t leader_noop_committed() const;
+  void set_leader_noop_committed(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_leader_noop_committed() const;
+  void _internal_set_leader_noop_committed(::uint64_t value);
+
+  public:
+  // uint64 pre_vote_sent = 25;
+  void clear_pre_vote_sent() ;
+  ::uint64_t pre_vote_sent() const;
+  void set_pre_vote_sent(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_pre_vote_sent() const;
+  void _internal_set_pre_vote_sent(::uint64_t value);
+
+  public:
+  // uint64 pre_vote_granted = 26;
+  void clear_pre_vote_granted() ;
+  ::uint64_t pre_vote_granted() const;
+  void set_pre_vote_granted(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_pre_vote_granted() const;
+  void _internal_set_pre_vote_granted(::uint64_t value);
+
+  public:
+  // uint64 pre_vote_rejected = 27;
+  void clear_pre_vote_rejected() ;
+  ::uint64_t pre_vote_rejected() const;
+  void set_pre_vote_rejected(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_pre_vote_rejected() const;
+  void _internal_set_pre_vote_rejected(::uint64_t value);
+
+  public:
+  // uint64 check_quorum_stepdown_count = 28;
+  void clear_check_quorum_stepdown_count() ;
+  ::uint64_t check_quorum_stepdown_count() const;
+  void set_check_quorum_stepdown_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_check_quorum_stepdown_count() const;
+  void _internal_set_check_quorum_stepdown_count(::uint64_t value);
+
+  public:
+  // uint64 check_quorum_rounds = 29;
+  void clear_check_quorum_rounds() ;
+  ::uint64_t check_quorum_rounds() const;
+  void set_check_quorum_rounds(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_check_quorum_rounds() const;
+  void _internal_set_check_quorum_rounds(::uint64_t value);
+
+  public:
+  // uint64 check_quorum_success = 30;
+  void clear_check_quorum_success() ;
+  ::uint64_t check_quorum_success() const;
+  void set_check_quorum_success(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_check_quorum_success() const;
+  void _internal_set_check_quorum_success(::uint64_t value);
+
+  public:
+  // uint64 check_quorum_failed = 31;
+  void clear_check_quorum_failed() ;
+  ::uint64_t check_quorum_failed() const;
+  void set_check_quorum_failed(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_check_quorum_failed() const;
+  void _internal_set_check_quorum_failed(::uint64_t value);
+
+  public:
+  // uint64 append_entries_batch_rpc_count = 32;
+  void clear_append_entries_batch_rpc_count() ;
+  ::uint64_t append_entries_batch_rpc_count() const;
+  void set_append_entries_batch_rpc_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_batch_rpc_count() const;
+  void _internal_set_append_entries_batch_rpc_count(::uint64_t value);
+
+  public:
+  // uint64 append_entries_entries_sent = 33;
+  void clear_append_entries_entries_sent() ;
+  ::uint64_t append_entries_entries_sent() const;
+  void set_append_entries_entries_sent(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_entries_sent() const;
+  void _internal_set_append_entries_entries_sent(::uint64_t value);
+
+  public:
+  // uint64 append_entries_empty_heartbeat_count = 34;
+  void clear_append_entries_empty_heartbeat_count() ;
+  ::uint64_t append_entries_empty_heartbeat_count() const;
+  void set_append_entries_empty_heartbeat_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_empty_heartbeat_count() const;
+  void _internal_set_append_entries_empty_heartbeat_count(::uint64_t value);
+
+  public:
+  // uint64 append_entries_max_batch_observed = 35;
+  void clear_append_entries_max_batch_observed() ;
+  ::uint64_t append_entries_max_batch_observed() const;
+  void set_append_entries_max_batch_observed(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_max_batch_observed() const;
+  void _internal_set_append_entries_max_batch_observed(::uint64_t value);
+
+  public:
+  // uint64 follower_catchup_attempts = 36;
+  void clear_follower_catchup_attempts() ;
+  ::uint64_t follower_catchup_attempts() const;
+  void set_follower_catchup_attempts(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_follower_catchup_attempts() const;
+  void _internal_set_follower_catchup_attempts(::uint64_t value);
+
+  public:
+  // uint64 follower_catchup_success = 37;
+  void clear_follower_catchup_success() ;
+  ::uint64_t follower_catchup_success() const;
+  void set_follower_catchup_success(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_follower_catchup_success() const;
+  void _internal_set_follower_catchup_success(::uint64_t value);
+
+  public:
+  // uint64 append_entries_stale_response_ignored = 38;
+  void clear_append_entries_stale_response_ignored() ;
+  ::uint64_t append_entries_stale_response_ignored() const;
+  void set_append_entries_stale_response_ignored(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_stale_response_ignored() const;
+  void _internal_set_append_entries_stale_response_ignored(::uint64_t value);
+
+  public:
+  // uint64 append_entries_inflight_rejected = 39;
+  void clear_append_entries_inflight_rejected() ;
+  ::uint64_t append_entries_inflight_rejected() const;
+  void set_append_entries_inflight_rejected(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_inflight_rejected() const;
+  void _internal_set_append_entries_inflight_rejected(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:MetricsStatus)
+ private:
+  class _Internal;
+
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      5, 39, 0,
+      0, 7>
+      _table_;
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+
+        inline explicit constexpr Impl_(
+            ::google::protobuf::internal::ConstantInitialized) noexcept;
+        inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                              ::google::protobuf::Arena* arena);
+        inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                              ::google::protobuf::Arena* arena, const Impl_& from);
+    ::uint64_t election_count_;
+    ::uint64_t leader_change_count_;
+    ::uint64_t append_entries_sent_;
+    ::uint64_t append_entries_success_;
+    ::uint64_t append_entries_failed_;
+    ::uint64_t request_vote_sent_;
+    ::uint64_t request_vote_granted_;
+    ::uint64_t request_vote_rejected_;
+    ::uint64_t install_snapshot_sent_;
+    ::uint64_t install_snapshot_success_;
+    ::uint64_t install_snapshot_failed_;
+    ::uint64_t snapshot_created_count_;
+    ::uint64_t wal_recovery_truncated_tail_count_;
+    ::uint64_t client_request_total_;
+    ::uint64_t client_request_success_;
+    ::uint64_t client_request_failed_;
+    ::uint64_t read_log_total_;
+    ::uint64_t read_index_total_;
+    ::uint64_t read_index_success_;
+    ::uint64_t read_index_failed_;
+    ::uint64_t read_index_timeout_;
+    ::uint64_t read_index_quorum_confirm_rounds_;
+    ::uint64_t leader_noop_appended_;
+    ::uint64_t leader_noop_committed_;
+    ::uint64_t pre_vote_sent_;
+    ::uint64_t pre_vote_granted_;
+    ::uint64_t pre_vote_rejected_;
+    ::uint64_t check_quorum_stepdown_count_;
+    ::uint64_t check_quorum_rounds_;
+    ::uint64_t check_quorum_success_;
+    ::uint64_t check_quorum_failed_;
+    ::uint64_t append_entries_batch_rpc_count_;
+    ::uint64_t append_entries_entries_sent_;
+    ::uint64_t append_entries_empty_heartbeat_count_;
+    ::uint64_t append_entries_max_batch_observed_;
+    ::uint64_t follower_catchup_attempts_;
+    ::uint64_t follower_catchup_success_;
+    ::uint64_t append_entries_stale_response_ignored_;
+    ::uint64_t append_entries_inflight_rejected_;
+    mutable ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_raft_2eproto;
+};// -------------------------------------------------------------------
+
 class LogEntry final :
     public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:LogEntry) */ {
  public:
@@ -1181,11 +1992,32 @@ class LogEntry final :
 
   // nested types ----------------------------------------------------
 
+  using EntryType = LogEntry_EntryType;
+  static constexpr EntryType NORMAL = LogEntry_EntryType_NORMAL;
+  static constexpr EntryType NO_OP = LogEntry_EntryType_NO_OP;
+  static inline bool EntryType_IsValid(int value) {
+    return LogEntry_EntryType_IsValid(value);
+  }
+  static constexpr EntryType EntryType_MIN = LogEntry_EntryType_EntryType_MIN;
+  static constexpr EntryType EntryType_MAX = LogEntry_EntryType_EntryType_MAX;
+  static constexpr int EntryType_ARRAYSIZE = LogEntry_EntryType_EntryType_ARRAYSIZE;
+  static inline const ::google::protobuf::EnumDescriptor* EntryType_descriptor() {
+    return LogEntry_EntryType_descriptor();
+  }
+  template <typename T>
+  static inline const std::string& EntryType_Name(T value) {
+    return LogEntry_EntryType_Name(value);
+  }
+  static inline bool EntryType_Parse(absl::string_view name, EntryType* value) {
+    return LogEntry_EntryType_Parse(name, value);
+  }
+
   // accessors -------------------------------------------------------
 
   enum : int {
     kCommandFieldNumber = 2,
     kTermFieldNumber = 1,
+    kTypeFieldNumber = 3,
   };
   // string command = 2;
   void clear_command() ;
@@ -1213,13 +2045,23 @@ class LogEntry final :
   void _internal_set_term(::int32_t value);
 
   public:
+  // .LogEntry.EntryType type = 3;
+  void clear_type() ;
+  ::LogEntry_EntryType type() const;
+  void set_type(::LogEntry_EntryType value);
+
+  private:
+  ::LogEntry_EntryType _internal_type() const;
+  void _internal_set_type(::LogEntry_EntryType value);
+
+  public:
   // @@protoc_insertion_point(class_scope:LogEntry)
  private:
   class _Internal;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<
-      1, 2, 0,
+      2, 3, 0,
       24, 2>
       _table_;
   friend class ::google::protobuf::MessageLite;
@@ -1238,6 +2080,7 @@ class LogEntry final :
                               ::google::protobuf::Arena* arena, const Impl_& from);
     ::google::protobuf::internal::ArenaStringPtr command_;
     ::int32_t term_;
+    int type_;
     mutable ::google::protobuf::internal::CachedSize _cached_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -2035,6 +2878,325 @@ class AppendEntriesReply final :
   friend struct ::TableStruct_raft_2eproto;
 };// -------------------------------------------------------------------
 
+class NodeStatusReply final :
+    public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:NodeStatusReply) */ {
+ public:
+  inline NodeStatusReply() : NodeStatusReply(nullptr) {}
+  ~NodeStatusReply() override;
+  template<typename = void>
+  explicit PROTOBUF_CONSTEXPR NodeStatusReply(::google::protobuf::internal::ConstantInitialized);
+
+  inline NodeStatusReply(const NodeStatusReply& from)
+      : NodeStatusReply(nullptr, from) {}
+  NodeStatusReply(NodeStatusReply&& from) noexcept
+    : NodeStatusReply() {
+    *this = ::std::move(from);
+  }
+
+  inline NodeStatusReply& operator=(const NodeStatusReply& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline NodeStatusReply& operator=(NodeStatusReply&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetArena() == from.GetArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const NodeStatusReply& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const NodeStatusReply* internal_default_instance() {
+    return reinterpret_cast<const NodeStatusReply*>(
+               &_NodeStatusReply_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    13;
+
+  friend void swap(NodeStatusReply& a, NodeStatusReply& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(NodeStatusReply* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetArena() != nullptr &&
+        GetArena() == other->GetArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetArena() == other->GetArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(NodeStatusReply* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  NodeStatusReply* New(::google::protobuf::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<NodeStatusReply>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const NodeStatusReply& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom( const NodeStatusReply& from) {
+    NodeStatusReply::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  ::size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::google::protobuf::internal::ParseContext* ctx) final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  ::google::protobuf::internal::CachedSize* AccessCachedSize() const final;
+  void SharedCtor(::google::protobuf::Arena* arena);
+  void SharedDtor();
+  void InternalSwap(NodeStatusReply* other);
+
+  private:
+  friend class ::google::protobuf::internal::AnyMetadata;
+  static ::absl::string_view FullMessageName() {
+    return "NodeStatusReply";
+  }
+  protected:
+  explicit NodeStatusReply(::google::protobuf::Arena* arena);
+  NodeStatusReply(::google::protobuf::Arena* arena, const NodeStatusReply& from);
+  public:
+
+  static const ClassData _class_data_;
+  const ::google::protobuf::Message::ClassData*GetClassData() const final;
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kRoleFieldNumber = 2,
+    kMetricsFieldNumber = 12,
+    kNodeIdFieldNumber = 1,
+    kCurrentTermFieldNumber = 3,
+    kLeaderIdFieldNumber = 4,
+    kCommitIndexFieldNumber = 5,
+    kLastAppliedFieldNumber = 6,
+    kLastLogIndexFieldNumber = 7,
+    kSnapshotIndexFieldNumber = 8,
+    kSnapshotTermFieldNumber = 9,
+    kLogEntryCountFieldNumber = 10,
+    kWalBytesFieldNumber = 11,
+  };
+  // string role = 2;
+  void clear_role() ;
+  const std::string& role() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_role(Arg_&& arg, Args_... args);
+  std::string* mutable_role();
+  PROTOBUF_NODISCARD std::string* release_role();
+  void set_allocated_role(std::string* value);
+
+  private:
+  const std::string& _internal_role() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_role(
+      const std::string& value);
+  std::string* _internal_mutable_role();
+
+  public:
+  // .MetricsStatus metrics = 12;
+  bool has_metrics() const;
+  void clear_metrics() ;
+  const ::MetricsStatus& metrics() const;
+  PROTOBUF_NODISCARD ::MetricsStatus* release_metrics();
+  ::MetricsStatus* mutable_metrics();
+  void set_allocated_metrics(::MetricsStatus* value);
+  void unsafe_arena_set_allocated_metrics(::MetricsStatus* value);
+  ::MetricsStatus* unsafe_arena_release_metrics();
+
+  private:
+  const ::MetricsStatus& _internal_metrics() const;
+  ::MetricsStatus* _internal_mutable_metrics();
+
+  public:
+  // int32 node_id = 1;
+  void clear_node_id() ;
+  ::int32_t node_id() const;
+  void set_node_id(::int32_t value);
+
+  private:
+  ::int32_t _internal_node_id() const;
+  void _internal_set_node_id(::int32_t value);
+
+  public:
+  // int32 current_term = 3;
+  void clear_current_term() ;
+  ::int32_t current_term() const;
+  void set_current_term(::int32_t value);
+
+  private:
+  ::int32_t _internal_current_term() const;
+  void _internal_set_current_term(::int32_t value);
+
+  public:
+  // int32 leader_id = 4;
+  void clear_leader_id() ;
+  ::int32_t leader_id() const;
+  void set_leader_id(::int32_t value);
+
+  private:
+  ::int32_t _internal_leader_id() const;
+  void _internal_set_leader_id(::int32_t value);
+
+  public:
+  // int32 commit_index = 5;
+  void clear_commit_index() ;
+  ::int32_t commit_index() const;
+  void set_commit_index(::int32_t value);
+
+  private:
+  ::int32_t _internal_commit_index() const;
+  void _internal_set_commit_index(::int32_t value);
+
+  public:
+  // int32 last_applied = 6;
+  void clear_last_applied() ;
+  ::int32_t last_applied() const;
+  void set_last_applied(::int32_t value);
+
+  private:
+  ::int32_t _internal_last_applied() const;
+  void _internal_set_last_applied(::int32_t value);
+
+  public:
+  // int32 last_log_index = 7;
+  void clear_last_log_index() ;
+  ::int32_t last_log_index() const;
+  void set_last_log_index(::int32_t value);
+
+  private:
+  ::int32_t _internal_last_log_index() const;
+  void _internal_set_last_log_index(::int32_t value);
+
+  public:
+  // int32 snapshot_index = 8;
+  void clear_snapshot_index() ;
+  ::int32_t snapshot_index() const;
+  void set_snapshot_index(::int32_t value);
+
+  private:
+  ::int32_t _internal_snapshot_index() const;
+  void _internal_set_snapshot_index(::int32_t value);
+
+  public:
+  // int32 snapshot_term = 9;
+  void clear_snapshot_term() ;
+  ::int32_t snapshot_term() const;
+  void set_snapshot_term(::int32_t value);
+
+  private:
+  ::int32_t _internal_snapshot_term() const;
+  void _internal_set_snapshot_term(::int32_t value);
+
+  public:
+  // uint64 log_entry_count = 10;
+  void clear_log_entry_count() ;
+  ::uint64_t log_entry_count() const;
+  void set_log_entry_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_log_entry_count() const;
+  void _internal_set_log_entry_count(::uint64_t value);
+
+  public:
+  // uint64 wal_bytes = 11;
+  void clear_wal_bytes() ;
+  ::uint64_t wal_bytes() const;
+  void set_wal_bytes(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_wal_bytes() const;
+  void _internal_set_wal_bytes(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:NodeStatusReply)
+ private:
+  class _Internal;
+
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      4, 12, 1,
+      36, 2>
+      _table_;
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+
+        inline explicit constexpr Impl_(
+            ::google::protobuf::internal::ConstantInitialized) noexcept;
+        inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                              ::google::protobuf::Arena* arena);
+        inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                              ::google::protobuf::Arena* arena, const Impl_& from);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    mutable ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr role_;
+    ::MetricsStatus* metrics_;
+    ::int32_t node_id_;
+    ::int32_t current_term_;
+    ::int32_t leader_id_;
+    ::int32_t commit_index_;
+    ::int32_t last_applied_;
+    ::int32_t last_log_index_;
+    ::int32_t snapshot_index_;
+    ::int32_t snapshot_term_;
+    ::uint64_t log_entry_count_;
+    ::uint64_t wal_bytes_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_raft_2eproto;
+};// -------------------------------------------------------------------
+
 class AppendEntriesArgs final :
     public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:AppendEntriesArgs) */ {
  public:
@@ -2746,6 +3908,29 @@ inline void LogEntry::set_allocated_command(std::string* value) {
   // @@protoc_insertion_point(field_set_allocated:LogEntry.command)
 }
 
+// .LogEntry.EntryType type = 3;
+inline void LogEntry::clear_type() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.type_ = 0;
+}
+inline ::LogEntry_EntryType LogEntry::type() const {
+  // @@protoc_insertion_point(field_get:LogEntry.type)
+  return _internal_type();
+}
+inline void LogEntry::set_type(::LogEntry_EntryType value) {
+  _internal_set_type(value);
+  // @@protoc_insertion_point(field_set:LogEntry.type)
+}
+inline ::LogEntry_EntryType LogEntry::_internal_type() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return static_cast<::LogEntry_EntryType>(_impl_.type_);
+}
+inline void LogEntry::_internal_set_type(::LogEntry_EntryType value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.type_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // AppendEntriesArgs
@@ -3140,12 +4325,1313 @@ inline void Command::set_allocated_content(std::string* value) {
   // @@protoc_insertion_point(field_set_allocated:Command.content)
 }
 
+// -------------------------------------------------------------------
+
+// NodeStatusRequest
+
+// -------------------------------------------------------------------
+
+// MetricsStatus
+
+// uint64 election_count = 1;
+inline void MetricsStatus::clear_election_count() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.election_count_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::election_count() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.election_count)
+  return _internal_election_count();
+}
+inline void MetricsStatus::set_election_count(::uint64_t value) {
+  _internal_set_election_count(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.election_count)
+}
+inline ::uint64_t MetricsStatus::_internal_election_count() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.election_count_;
+}
+inline void MetricsStatus::_internal_set_election_count(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.election_count_ = value;
+}
+
+// uint64 leader_change_count = 2;
+inline void MetricsStatus::clear_leader_change_count() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.leader_change_count_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::leader_change_count() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.leader_change_count)
+  return _internal_leader_change_count();
+}
+inline void MetricsStatus::set_leader_change_count(::uint64_t value) {
+  _internal_set_leader_change_count(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.leader_change_count)
+}
+inline ::uint64_t MetricsStatus::_internal_leader_change_count() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.leader_change_count_;
+}
+inline void MetricsStatus::_internal_set_leader_change_count(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.leader_change_count_ = value;
+}
+
+// uint64 append_entries_sent = 3;
+inline void MetricsStatus::clear_append_entries_sent() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_sent_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_sent() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_sent)
+  return _internal_append_entries_sent();
+}
+inline void MetricsStatus::set_append_entries_sent(::uint64_t value) {
+  _internal_set_append_entries_sent(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_sent)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_sent() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_sent_;
+}
+inline void MetricsStatus::_internal_set_append_entries_sent(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_sent_ = value;
+}
+
+// uint64 append_entries_success = 4;
+inline void MetricsStatus::clear_append_entries_success() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_success_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_success() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_success)
+  return _internal_append_entries_success();
+}
+inline void MetricsStatus::set_append_entries_success(::uint64_t value) {
+  _internal_set_append_entries_success(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_success)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_success() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_success_;
+}
+inline void MetricsStatus::_internal_set_append_entries_success(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_success_ = value;
+}
+
+// uint64 append_entries_failed = 5;
+inline void MetricsStatus::clear_append_entries_failed() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_failed_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_failed() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_failed)
+  return _internal_append_entries_failed();
+}
+inline void MetricsStatus::set_append_entries_failed(::uint64_t value) {
+  _internal_set_append_entries_failed(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_failed)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_failed() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_failed_;
+}
+inline void MetricsStatus::_internal_set_append_entries_failed(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_failed_ = value;
+}
+
+// uint64 request_vote_sent = 6;
+inline void MetricsStatus::clear_request_vote_sent() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.request_vote_sent_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::request_vote_sent() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.request_vote_sent)
+  return _internal_request_vote_sent();
+}
+inline void MetricsStatus::set_request_vote_sent(::uint64_t value) {
+  _internal_set_request_vote_sent(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.request_vote_sent)
+}
+inline ::uint64_t MetricsStatus::_internal_request_vote_sent() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.request_vote_sent_;
+}
+inline void MetricsStatus::_internal_set_request_vote_sent(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.request_vote_sent_ = value;
+}
+
+// uint64 request_vote_granted = 7;
+inline void MetricsStatus::clear_request_vote_granted() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.request_vote_granted_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::request_vote_granted() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.request_vote_granted)
+  return _internal_request_vote_granted();
+}
+inline void MetricsStatus::set_request_vote_granted(::uint64_t value) {
+  _internal_set_request_vote_granted(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.request_vote_granted)
+}
+inline ::uint64_t MetricsStatus::_internal_request_vote_granted() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.request_vote_granted_;
+}
+inline void MetricsStatus::_internal_set_request_vote_granted(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.request_vote_granted_ = value;
+}
+
+// uint64 request_vote_rejected = 8;
+inline void MetricsStatus::clear_request_vote_rejected() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.request_vote_rejected_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::request_vote_rejected() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.request_vote_rejected)
+  return _internal_request_vote_rejected();
+}
+inline void MetricsStatus::set_request_vote_rejected(::uint64_t value) {
+  _internal_set_request_vote_rejected(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.request_vote_rejected)
+}
+inline ::uint64_t MetricsStatus::_internal_request_vote_rejected() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.request_vote_rejected_;
+}
+inline void MetricsStatus::_internal_set_request_vote_rejected(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.request_vote_rejected_ = value;
+}
+
+// uint64 install_snapshot_sent = 9;
+inline void MetricsStatus::clear_install_snapshot_sent() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.install_snapshot_sent_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::install_snapshot_sent() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.install_snapshot_sent)
+  return _internal_install_snapshot_sent();
+}
+inline void MetricsStatus::set_install_snapshot_sent(::uint64_t value) {
+  _internal_set_install_snapshot_sent(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.install_snapshot_sent)
+}
+inline ::uint64_t MetricsStatus::_internal_install_snapshot_sent() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.install_snapshot_sent_;
+}
+inline void MetricsStatus::_internal_set_install_snapshot_sent(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.install_snapshot_sent_ = value;
+}
+
+// uint64 install_snapshot_success = 10;
+inline void MetricsStatus::clear_install_snapshot_success() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.install_snapshot_success_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::install_snapshot_success() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.install_snapshot_success)
+  return _internal_install_snapshot_success();
+}
+inline void MetricsStatus::set_install_snapshot_success(::uint64_t value) {
+  _internal_set_install_snapshot_success(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.install_snapshot_success)
+}
+inline ::uint64_t MetricsStatus::_internal_install_snapshot_success() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.install_snapshot_success_;
+}
+inline void MetricsStatus::_internal_set_install_snapshot_success(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.install_snapshot_success_ = value;
+}
+
+// uint64 install_snapshot_failed = 11;
+inline void MetricsStatus::clear_install_snapshot_failed() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.install_snapshot_failed_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::install_snapshot_failed() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.install_snapshot_failed)
+  return _internal_install_snapshot_failed();
+}
+inline void MetricsStatus::set_install_snapshot_failed(::uint64_t value) {
+  _internal_set_install_snapshot_failed(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.install_snapshot_failed)
+}
+inline ::uint64_t MetricsStatus::_internal_install_snapshot_failed() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.install_snapshot_failed_;
+}
+inline void MetricsStatus::_internal_set_install_snapshot_failed(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.install_snapshot_failed_ = value;
+}
+
+// uint64 snapshot_created_count = 12;
+inline void MetricsStatus::clear_snapshot_created_count() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.snapshot_created_count_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::snapshot_created_count() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.snapshot_created_count)
+  return _internal_snapshot_created_count();
+}
+inline void MetricsStatus::set_snapshot_created_count(::uint64_t value) {
+  _internal_set_snapshot_created_count(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.snapshot_created_count)
+}
+inline ::uint64_t MetricsStatus::_internal_snapshot_created_count() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.snapshot_created_count_;
+}
+inline void MetricsStatus::_internal_set_snapshot_created_count(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.snapshot_created_count_ = value;
+}
+
+// uint64 wal_recovery_truncated_tail_count = 13;
+inline void MetricsStatus::clear_wal_recovery_truncated_tail_count() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.wal_recovery_truncated_tail_count_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::wal_recovery_truncated_tail_count() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.wal_recovery_truncated_tail_count)
+  return _internal_wal_recovery_truncated_tail_count();
+}
+inline void MetricsStatus::set_wal_recovery_truncated_tail_count(::uint64_t value) {
+  _internal_set_wal_recovery_truncated_tail_count(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.wal_recovery_truncated_tail_count)
+}
+inline ::uint64_t MetricsStatus::_internal_wal_recovery_truncated_tail_count() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.wal_recovery_truncated_tail_count_;
+}
+inline void MetricsStatus::_internal_set_wal_recovery_truncated_tail_count(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.wal_recovery_truncated_tail_count_ = value;
+}
+
+// uint64 client_request_total = 14;
+inline void MetricsStatus::clear_client_request_total() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.client_request_total_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::client_request_total() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.client_request_total)
+  return _internal_client_request_total();
+}
+inline void MetricsStatus::set_client_request_total(::uint64_t value) {
+  _internal_set_client_request_total(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.client_request_total)
+}
+inline ::uint64_t MetricsStatus::_internal_client_request_total() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.client_request_total_;
+}
+inline void MetricsStatus::_internal_set_client_request_total(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.client_request_total_ = value;
+}
+
+// uint64 client_request_success = 15;
+inline void MetricsStatus::clear_client_request_success() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.client_request_success_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::client_request_success() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.client_request_success)
+  return _internal_client_request_success();
+}
+inline void MetricsStatus::set_client_request_success(::uint64_t value) {
+  _internal_set_client_request_success(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.client_request_success)
+}
+inline ::uint64_t MetricsStatus::_internal_client_request_success() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.client_request_success_;
+}
+inline void MetricsStatus::_internal_set_client_request_success(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.client_request_success_ = value;
+}
+
+// uint64 client_request_failed = 16;
+inline void MetricsStatus::clear_client_request_failed() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.client_request_failed_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::client_request_failed() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.client_request_failed)
+  return _internal_client_request_failed();
+}
+inline void MetricsStatus::set_client_request_failed(::uint64_t value) {
+  _internal_set_client_request_failed(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.client_request_failed)
+}
+inline ::uint64_t MetricsStatus::_internal_client_request_failed() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.client_request_failed_;
+}
+inline void MetricsStatus::_internal_set_client_request_failed(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.client_request_failed_ = value;
+}
+
+// uint64 read_log_total = 17;
+inline void MetricsStatus::clear_read_log_total() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_log_total_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_log_total() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_log_total)
+  return _internal_read_log_total();
+}
+inline void MetricsStatus::set_read_log_total(::uint64_t value) {
+  _internal_set_read_log_total(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_log_total)
+}
+inline ::uint64_t MetricsStatus::_internal_read_log_total() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_log_total_;
+}
+inline void MetricsStatus::_internal_set_read_log_total(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_log_total_ = value;
+}
+
+// uint64 read_index_total = 18;
+inline void MetricsStatus::clear_read_index_total() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_index_total_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_index_total() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_index_total)
+  return _internal_read_index_total();
+}
+inline void MetricsStatus::set_read_index_total(::uint64_t value) {
+  _internal_set_read_index_total(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_index_total)
+}
+inline ::uint64_t MetricsStatus::_internal_read_index_total() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_index_total_;
+}
+inline void MetricsStatus::_internal_set_read_index_total(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_index_total_ = value;
+}
+
+// uint64 read_index_success = 19;
+inline void MetricsStatus::clear_read_index_success() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_index_success_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_index_success() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_index_success)
+  return _internal_read_index_success();
+}
+inline void MetricsStatus::set_read_index_success(::uint64_t value) {
+  _internal_set_read_index_success(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_index_success)
+}
+inline ::uint64_t MetricsStatus::_internal_read_index_success() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_index_success_;
+}
+inline void MetricsStatus::_internal_set_read_index_success(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_index_success_ = value;
+}
+
+// uint64 read_index_failed = 20;
+inline void MetricsStatus::clear_read_index_failed() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_index_failed_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_index_failed() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_index_failed)
+  return _internal_read_index_failed();
+}
+inline void MetricsStatus::set_read_index_failed(::uint64_t value) {
+  _internal_set_read_index_failed(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_index_failed)
+}
+inline ::uint64_t MetricsStatus::_internal_read_index_failed() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_index_failed_;
+}
+inline void MetricsStatus::_internal_set_read_index_failed(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_index_failed_ = value;
+}
+
+// uint64 read_index_timeout = 21;
+inline void MetricsStatus::clear_read_index_timeout() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_index_timeout_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_index_timeout() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_index_timeout)
+  return _internal_read_index_timeout();
+}
+inline void MetricsStatus::set_read_index_timeout(::uint64_t value) {
+  _internal_set_read_index_timeout(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_index_timeout)
+}
+inline ::uint64_t MetricsStatus::_internal_read_index_timeout() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_index_timeout_;
+}
+inline void MetricsStatus::_internal_set_read_index_timeout(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_index_timeout_ = value;
+}
+
+// uint64 read_index_quorum_confirm_rounds = 22;
+inline void MetricsStatus::clear_read_index_quorum_confirm_rounds() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.read_index_quorum_confirm_rounds_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::read_index_quorum_confirm_rounds() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.read_index_quorum_confirm_rounds)
+  return _internal_read_index_quorum_confirm_rounds();
+}
+inline void MetricsStatus::set_read_index_quorum_confirm_rounds(::uint64_t value) {
+  _internal_set_read_index_quorum_confirm_rounds(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.read_index_quorum_confirm_rounds)
+}
+inline ::uint64_t MetricsStatus::_internal_read_index_quorum_confirm_rounds() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.read_index_quorum_confirm_rounds_;
+}
+inline void MetricsStatus::_internal_set_read_index_quorum_confirm_rounds(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.read_index_quorum_confirm_rounds_ = value;
+}
+
+// uint64 leader_noop_appended = 23;
+inline void MetricsStatus::clear_leader_noop_appended() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.leader_noop_appended_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::leader_noop_appended() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.leader_noop_appended)
+  return _internal_leader_noop_appended();
+}
+inline void MetricsStatus::set_leader_noop_appended(::uint64_t value) {
+  _internal_set_leader_noop_appended(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.leader_noop_appended)
+}
+inline ::uint64_t MetricsStatus::_internal_leader_noop_appended() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.leader_noop_appended_;
+}
+inline void MetricsStatus::_internal_set_leader_noop_appended(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.leader_noop_appended_ = value;
+}
+
+// uint64 leader_noop_committed = 24;
+inline void MetricsStatus::clear_leader_noop_committed() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.leader_noop_committed_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::leader_noop_committed() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.leader_noop_committed)
+  return _internal_leader_noop_committed();
+}
+inline void MetricsStatus::set_leader_noop_committed(::uint64_t value) {
+  _internal_set_leader_noop_committed(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.leader_noop_committed)
+}
+inline ::uint64_t MetricsStatus::_internal_leader_noop_committed() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.leader_noop_committed_;
+}
+inline void MetricsStatus::_internal_set_leader_noop_committed(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.leader_noop_committed_ = value;
+}
+
+// uint64 pre_vote_sent = 25;
+inline void MetricsStatus::clear_pre_vote_sent() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.pre_vote_sent_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::pre_vote_sent() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.pre_vote_sent)
+  return _internal_pre_vote_sent();
+}
+inline void MetricsStatus::set_pre_vote_sent(::uint64_t value) {
+  _internal_set_pre_vote_sent(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.pre_vote_sent)
+}
+inline ::uint64_t MetricsStatus::_internal_pre_vote_sent() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.pre_vote_sent_;
+}
+inline void MetricsStatus::_internal_set_pre_vote_sent(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.pre_vote_sent_ = value;
+}
+
+// uint64 pre_vote_granted = 26;
+inline void MetricsStatus::clear_pre_vote_granted() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.pre_vote_granted_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::pre_vote_granted() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.pre_vote_granted)
+  return _internal_pre_vote_granted();
+}
+inline void MetricsStatus::set_pre_vote_granted(::uint64_t value) {
+  _internal_set_pre_vote_granted(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.pre_vote_granted)
+}
+inline ::uint64_t MetricsStatus::_internal_pre_vote_granted() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.pre_vote_granted_;
+}
+inline void MetricsStatus::_internal_set_pre_vote_granted(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.pre_vote_granted_ = value;
+}
+
+// uint64 pre_vote_rejected = 27;
+inline void MetricsStatus::clear_pre_vote_rejected() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.pre_vote_rejected_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::pre_vote_rejected() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.pre_vote_rejected)
+  return _internal_pre_vote_rejected();
+}
+inline void MetricsStatus::set_pre_vote_rejected(::uint64_t value) {
+  _internal_set_pre_vote_rejected(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.pre_vote_rejected)
+}
+inline ::uint64_t MetricsStatus::_internal_pre_vote_rejected() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.pre_vote_rejected_;
+}
+inline void MetricsStatus::_internal_set_pre_vote_rejected(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.pre_vote_rejected_ = value;
+}
+
+// uint64 check_quorum_stepdown_count = 28;
+inline void MetricsStatus::clear_check_quorum_stepdown_count() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.check_quorum_stepdown_count_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::check_quorum_stepdown_count() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.check_quorum_stepdown_count)
+  return _internal_check_quorum_stepdown_count();
+}
+inline void MetricsStatus::set_check_quorum_stepdown_count(::uint64_t value) {
+  _internal_set_check_quorum_stepdown_count(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.check_quorum_stepdown_count)
+}
+inline ::uint64_t MetricsStatus::_internal_check_quorum_stepdown_count() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.check_quorum_stepdown_count_;
+}
+inline void MetricsStatus::_internal_set_check_quorum_stepdown_count(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.check_quorum_stepdown_count_ = value;
+}
+
+// uint64 check_quorum_rounds = 29;
+inline void MetricsStatus::clear_check_quorum_rounds() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.check_quorum_rounds_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::check_quorum_rounds() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.check_quorum_rounds)
+  return _internal_check_quorum_rounds();
+}
+inline void MetricsStatus::set_check_quorum_rounds(::uint64_t value) {
+  _internal_set_check_quorum_rounds(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.check_quorum_rounds)
+}
+inline ::uint64_t MetricsStatus::_internal_check_quorum_rounds() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.check_quorum_rounds_;
+}
+inline void MetricsStatus::_internal_set_check_quorum_rounds(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.check_quorum_rounds_ = value;
+}
+
+// uint64 check_quorum_success = 30;
+inline void MetricsStatus::clear_check_quorum_success() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.check_quorum_success_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::check_quorum_success() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.check_quorum_success)
+  return _internal_check_quorum_success();
+}
+inline void MetricsStatus::set_check_quorum_success(::uint64_t value) {
+  _internal_set_check_quorum_success(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.check_quorum_success)
+}
+inline ::uint64_t MetricsStatus::_internal_check_quorum_success() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.check_quorum_success_;
+}
+inline void MetricsStatus::_internal_set_check_quorum_success(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.check_quorum_success_ = value;
+}
+
+// uint64 check_quorum_failed = 31;
+inline void MetricsStatus::clear_check_quorum_failed() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.check_quorum_failed_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::check_quorum_failed() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.check_quorum_failed)
+  return _internal_check_quorum_failed();
+}
+inline void MetricsStatus::set_check_quorum_failed(::uint64_t value) {
+  _internal_set_check_quorum_failed(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.check_quorum_failed)
+}
+inline ::uint64_t MetricsStatus::_internal_check_quorum_failed() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.check_quorum_failed_;
+}
+inline void MetricsStatus::_internal_set_check_quorum_failed(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.check_quorum_failed_ = value;
+}
+
+// uint64 append_entries_batch_rpc_count = 32;
+inline void MetricsStatus::clear_append_entries_batch_rpc_count() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_batch_rpc_count_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_batch_rpc_count() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_batch_rpc_count)
+  return _internal_append_entries_batch_rpc_count();
+}
+inline void MetricsStatus::set_append_entries_batch_rpc_count(::uint64_t value) {
+  _internal_set_append_entries_batch_rpc_count(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_batch_rpc_count)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_batch_rpc_count() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_batch_rpc_count_;
+}
+inline void MetricsStatus::_internal_set_append_entries_batch_rpc_count(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_batch_rpc_count_ = value;
+}
+
+// uint64 append_entries_entries_sent = 33;
+inline void MetricsStatus::clear_append_entries_entries_sent() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_entries_sent_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_entries_sent() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_entries_sent)
+  return _internal_append_entries_entries_sent();
+}
+inline void MetricsStatus::set_append_entries_entries_sent(::uint64_t value) {
+  _internal_set_append_entries_entries_sent(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_entries_sent)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_entries_sent() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_entries_sent_;
+}
+inline void MetricsStatus::_internal_set_append_entries_entries_sent(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_entries_sent_ = value;
+}
+
+// uint64 append_entries_empty_heartbeat_count = 34;
+inline void MetricsStatus::clear_append_entries_empty_heartbeat_count() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_empty_heartbeat_count_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_empty_heartbeat_count() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_empty_heartbeat_count)
+  return _internal_append_entries_empty_heartbeat_count();
+}
+inline void MetricsStatus::set_append_entries_empty_heartbeat_count(::uint64_t value) {
+  _internal_set_append_entries_empty_heartbeat_count(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_empty_heartbeat_count)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_empty_heartbeat_count() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_empty_heartbeat_count_;
+}
+inline void MetricsStatus::_internal_set_append_entries_empty_heartbeat_count(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_empty_heartbeat_count_ = value;
+}
+
+// uint64 append_entries_max_batch_observed = 35;
+inline void MetricsStatus::clear_append_entries_max_batch_observed() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_max_batch_observed_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_max_batch_observed() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_max_batch_observed)
+  return _internal_append_entries_max_batch_observed();
+}
+inline void MetricsStatus::set_append_entries_max_batch_observed(::uint64_t value) {
+  _internal_set_append_entries_max_batch_observed(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_max_batch_observed)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_max_batch_observed() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_max_batch_observed_;
+}
+inline void MetricsStatus::_internal_set_append_entries_max_batch_observed(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_max_batch_observed_ = value;
+}
+
+// uint64 follower_catchup_attempts = 36;
+inline void MetricsStatus::clear_follower_catchup_attempts() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.follower_catchup_attempts_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::follower_catchup_attempts() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.follower_catchup_attempts)
+  return _internal_follower_catchup_attempts();
+}
+inline void MetricsStatus::set_follower_catchup_attempts(::uint64_t value) {
+  _internal_set_follower_catchup_attempts(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.follower_catchup_attempts)
+}
+inline ::uint64_t MetricsStatus::_internal_follower_catchup_attempts() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.follower_catchup_attempts_;
+}
+inline void MetricsStatus::_internal_set_follower_catchup_attempts(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.follower_catchup_attempts_ = value;
+}
+
+// uint64 follower_catchup_success = 37;
+inline void MetricsStatus::clear_follower_catchup_success() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.follower_catchup_success_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::follower_catchup_success() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.follower_catchup_success)
+  return _internal_follower_catchup_success();
+}
+inline void MetricsStatus::set_follower_catchup_success(::uint64_t value) {
+  _internal_set_follower_catchup_success(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.follower_catchup_success)
+}
+inline ::uint64_t MetricsStatus::_internal_follower_catchup_success() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.follower_catchup_success_;
+}
+inline void MetricsStatus::_internal_set_follower_catchup_success(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.follower_catchup_success_ = value;
+}
+
+// uint64 append_entries_stale_response_ignored = 38;
+inline void MetricsStatus::clear_append_entries_stale_response_ignored() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_stale_response_ignored_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_stale_response_ignored() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_stale_response_ignored)
+  return _internal_append_entries_stale_response_ignored();
+}
+inline void MetricsStatus::set_append_entries_stale_response_ignored(::uint64_t value) {
+  _internal_set_append_entries_stale_response_ignored(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_stale_response_ignored)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_stale_response_ignored() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_stale_response_ignored_;
+}
+inline void MetricsStatus::_internal_set_append_entries_stale_response_ignored(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_stale_response_ignored_ = value;
+}
+
+// uint64 append_entries_inflight_rejected = 39;
+inline void MetricsStatus::clear_append_entries_inflight_rejected() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_inflight_rejected_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_inflight_rejected() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_inflight_rejected)
+  return _internal_append_entries_inflight_rejected();
+}
+inline void MetricsStatus::set_append_entries_inflight_rejected(::uint64_t value) {
+  _internal_set_append_entries_inflight_rejected(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_inflight_rejected)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_inflight_rejected() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_inflight_rejected_;
+}
+inline void MetricsStatus::_internal_set_append_entries_inflight_rejected(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_inflight_rejected_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// NodeStatusReply
+
+// int32 node_id = 1;
+inline void NodeStatusReply::clear_node_id() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.node_id_ = 0;
+}
+inline ::int32_t NodeStatusReply::node_id() const {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.node_id)
+  return _internal_node_id();
+}
+inline void NodeStatusReply::set_node_id(::int32_t value) {
+  _internal_set_node_id(value);
+  // @@protoc_insertion_point(field_set:NodeStatusReply.node_id)
+}
+inline ::int32_t NodeStatusReply::_internal_node_id() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.node_id_;
+}
+inline void NodeStatusReply::_internal_set_node_id(::int32_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.node_id_ = value;
+}
+
+// string role = 2;
+inline void NodeStatusReply::clear_role() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.role_.ClearToEmpty();
+}
+inline const std::string& NodeStatusReply::role() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.role)
+  return _internal_role();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void NodeStatusReply::set_role(Arg_&& arg,
+                                                     Args_... args) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.role_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:NodeStatusReply.role)
+}
+inline std::string* NodeStatusReply::mutable_role() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_role();
+  // @@protoc_insertion_point(field_mutable:NodeStatusReply.role)
+  return _s;
+}
+inline const std::string& NodeStatusReply::_internal_role() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.role_.Get();
+}
+inline void NodeStatusReply::_internal_set_role(const std::string& value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.role_.Set(value, GetArena());
+}
+inline std::string* NodeStatusReply::_internal_mutable_role() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  return _impl_.role_.Mutable( GetArena());
+}
+inline std::string* NodeStatusReply::release_role() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  // @@protoc_insertion_point(field_release:NodeStatusReply.role)
+  return _impl_.role_.Release();
+}
+inline void NodeStatusReply::set_allocated_role(std::string* value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.role_.SetAllocated(value, GetArena());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+        if (_impl_.role_.IsDefault()) {
+          _impl_.role_.Set("", GetArena());
+        }
+  #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:NodeStatusReply.role)
+}
+
+// int32 current_term = 3;
+inline void NodeStatusReply::clear_current_term() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.current_term_ = 0;
+}
+inline ::int32_t NodeStatusReply::current_term() const {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.current_term)
+  return _internal_current_term();
+}
+inline void NodeStatusReply::set_current_term(::int32_t value) {
+  _internal_set_current_term(value);
+  // @@protoc_insertion_point(field_set:NodeStatusReply.current_term)
+}
+inline ::int32_t NodeStatusReply::_internal_current_term() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.current_term_;
+}
+inline void NodeStatusReply::_internal_set_current_term(::int32_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.current_term_ = value;
+}
+
+// int32 leader_id = 4;
+inline void NodeStatusReply::clear_leader_id() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.leader_id_ = 0;
+}
+inline ::int32_t NodeStatusReply::leader_id() const {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.leader_id)
+  return _internal_leader_id();
+}
+inline void NodeStatusReply::set_leader_id(::int32_t value) {
+  _internal_set_leader_id(value);
+  // @@protoc_insertion_point(field_set:NodeStatusReply.leader_id)
+}
+inline ::int32_t NodeStatusReply::_internal_leader_id() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.leader_id_;
+}
+inline void NodeStatusReply::_internal_set_leader_id(::int32_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.leader_id_ = value;
+}
+
+// int32 commit_index = 5;
+inline void NodeStatusReply::clear_commit_index() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.commit_index_ = 0;
+}
+inline ::int32_t NodeStatusReply::commit_index() const {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.commit_index)
+  return _internal_commit_index();
+}
+inline void NodeStatusReply::set_commit_index(::int32_t value) {
+  _internal_set_commit_index(value);
+  // @@protoc_insertion_point(field_set:NodeStatusReply.commit_index)
+}
+inline ::int32_t NodeStatusReply::_internal_commit_index() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.commit_index_;
+}
+inline void NodeStatusReply::_internal_set_commit_index(::int32_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.commit_index_ = value;
+}
+
+// int32 last_applied = 6;
+inline void NodeStatusReply::clear_last_applied() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.last_applied_ = 0;
+}
+inline ::int32_t NodeStatusReply::last_applied() const {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.last_applied)
+  return _internal_last_applied();
+}
+inline void NodeStatusReply::set_last_applied(::int32_t value) {
+  _internal_set_last_applied(value);
+  // @@protoc_insertion_point(field_set:NodeStatusReply.last_applied)
+}
+inline ::int32_t NodeStatusReply::_internal_last_applied() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.last_applied_;
+}
+inline void NodeStatusReply::_internal_set_last_applied(::int32_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.last_applied_ = value;
+}
+
+// int32 last_log_index = 7;
+inline void NodeStatusReply::clear_last_log_index() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.last_log_index_ = 0;
+}
+inline ::int32_t NodeStatusReply::last_log_index() const {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.last_log_index)
+  return _internal_last_log_index();
+}
+inline void NodeStatusReply::set_last_log_index(::int32_t value) {
+  _internal_set_last_log_index(value);
+  // @@protoc_insertion_point(field_set:NodeStatusReply.last_log_index)
+}
+inline ::int32_t NodeStatusReply::_internal_last_log_index() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.last_log_index_;
+}
+inline void NodeStatusReply::_internal_set_last_log_index(::int32_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.last_log_index_ = value;
+}
+
+// int32 snapshot_index = 8;
+inline void NodeStatusReply::clear_snapshot_index() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.snapshot_index_ = 0;
+}
+inline ::int32_t NodeStatusReply::snapshot_index() const {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.snapshot_index)
+  return _internal_snapshot_index();
+}
+inline void NodeStatusReply::set_snapshot_index(::int32_t value) {
+  _internal_set_snapshot_index(value);
+  // @@protoc_insertion_point(field_set:NodeStatusReply.snapshot_index)
+}
+inline ::int32_t NodeStatusReply::_internal_snapshot_index() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.snapshot_index_;
+}
+inline void NodeStatusReply::_internal_set_snapshot_index(::int32_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.snapshot_index_ = value;
+}
+
+// int32 snapshot_term = 9;
+inline void NodeStatusReply::clear_snapshot_term() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.snapshot_term_ = 0;
+}
+inline ::int32_t NodeStatusReply::snapshot_term() const {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.snapshot_term)
+  return _internal_snapshot_term();
+}
+inline void NodeStatusReply::set_snapshot_term(::int32_t value) {
+  _internal_set_snapshot_term(value);
+  // @@protoc_insertion_point(field_set:NodeStatusReply.snapshot_term)
+}
+inline ::int32_t NodeStatusReply::_internal_snapshot_term() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.snapshot_term_;
+}
+inline void NodeStatusReply::_internal_set_snapshot_term(::int32_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.snapshot_term_ = value;
+}
+
+// uint64 log_entry_count = 10;
+inline void NodeStatusReply::clear_log_entry_count() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.log_entry_count_ = ::uint64_t{0u};
+}
+inline ::uint64_t NodeStatusReply::log_entry_count() const {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.log_entry_count)
+  return _internal_log_entry_count();
+}
+inline void NodeStatusReply::set_log_entry_count(::uint64_t value) {
+  _internal_set_log_entry_count(value);
+  // @@protoc_insertion_point(field_set:NodeStatusReply.log_entry_count)
+}
+inline ::uint64_t NodeStatusReply::_internal_log_entry_count() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.log_entry_count_;
+}
+inline void NodeStatusReply::_internal_set_log_entry_count(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.log_entry_count_ = value;
+}
+
+// uint64 wal_bytes = 11;
+inline void NodeStatusReply::clear_wal_bytes() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.wal_bytes_ = ::uint64_t{0u};
+}
+inline ::uint64_t NodeStatusReply::wal_bytes() const {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.wal_bytes)
+  return _internal_wal_bytes();
+}
+inline void NodeStatusReply::set_wal_bytes(::uint64_t value) {
+  _internal_set_wal_bytes(value);
+  // @@protoc_insertion_point(field_set:NodeStatusReply.wal_bytes)
+}
+inline ::uint64_t NodeStatusReply::_internal_wal_bytes() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.wal_bytes_;
+}
+inline void NodeStatusReply::_internal_set_wal_bytes(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.wal_bytes_ = value;
+}
+
+// .MetricsStatus metrics = 12;
+inline bool NodeStatusReply::has_metrics() const {
+  bool value = (_impl_._has_bits_[0] & 0x00000001u) != 0;
+  PROTOBUF_ASSUME(!value || _impl_.metrics_ != nullptr);
+  return value;
+}
+inline void NodeStatusReply::clear_metrics() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  if (_impl_.metrics_ != nullptr) _impl_.metrics_->Clear();
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline const ::MetricsStatus& NodeStatusReply::_internal_metrics() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  const ::MetricsStatus* p = _impl_.metrics_;
+  return p != nullptr ? *p : reinterpret_cast<const ::MetricsStatus&>(::_MetricsStatus_default_instance_);
+}
+inline const ::MetricsStatus& NodeStatusReply::metrics() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:NodeStatusReply.metrics)
+  return _internal_metrics();
+}
+inline void NodeStatusReply::unsafe_arena_set_allocated_metrics(::MetricsStatus* value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.metrics_);
+  }
+  _impl_.metrics_ = reinterpret_cast<::MetricsStatus*>(value);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:NodeStatusReply.metrics)
+}
+inline ::MetricsStatus* NodeStatusReply::release_metrics() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  ::MetricsStatus* released = _impl_.metrics_;
+  _impl_.metrics_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+  released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+  if (GetArena() == nullptr) {
+    delete old;
+  }
+#else   // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArena() != nullptr) {
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return released;
+}
+inline ::MetricsStatus* NodeStatusReply::unsafe_arena_release_metrics() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  // @@protoc_insertion_point(field_release:NodeStatusReply.metrics)
+
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  ::MetricsStatus* temp = _impl_.metrics_;
+  _impl_.metrics_ = nullptr;
+  return temp;
+}
+inline ::MetricsStatus* NodeStatusReply::_internal_mutable_metrics() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_._has_bits_[0] |= 0x00000001u;
+  if (_impl_.metrics_ == nullptr) {
+    auto* p = CreateMaybeMessage<::MetricsStatus>(GetArena());
+    _impl_.metrics_ = reinterpret_cast<::MetricsStatus*>(p);
+  }
+  return _impl_.metrics_;
+}
+inline ::MetricsStatus* NodeStatusReply::mutable_metrics() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::MetricsStatus* _msg = _internal_mutable_metrics();
+  // @@protoc_insertion_point(field_mutable:NodeStatusReply.metrics)
+  return _msg;
+}
+inline void NodeStatusReply::set_allocated_metrics(::MetricsStatus* value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  if (message_arena == nullptr) {
+    delete reinterpret_cast<::MetricsStatus*>(_impl_.metrics_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = reinterpret_cast<::MetricsStatus*>(value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+
+  _impl_.metrics_ = reinterpret_cast<::MetricsStatus*>(value);
+  // @@protoc_insertion_point(field_set_allocated:NodeStatusReply.metrics)
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
 
 // @@protoc_insertion_point(namespace_scope)
 
+
+namespace google {
+namespace protobuf {
+
+template <>
+struct is_proto_enum<::LogEntry_EntryType> : std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor<::LogEntry_EntryType>() {
+  return ::LogEntry_EntryType_descriptor();
+}
+
+}  // namespace protobuf
+}  // namespace google
 
 // @@protoc_insertion_point(global_scope)
 

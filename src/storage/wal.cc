@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstring>
 #include <fstream>
+#include <limits>
+#include <system_error>
 #include <utility>
 
 #include "storage/file_util.h"
@@ -12,6 +14,16 @@ namespace {
 
 constexpr char kMetaMagic[] = "CRM1";
 constexpr char kLogMagic[] = "CRL1";
+constexpr std::size_t kMaxFramePayloadBytes = 64 * 1024 * 1024;
+
+enum class DecodeFrameStatus {
+    kOk,
+    kEndOfFile,
+    kPartialHeader,
+    kBadMagic,
+    kPartialPayload,
+    kChecksumMismatch,
+};
 
 std::string EncodeMetaPayload(const RaftMeta& meta) {
     std::string payload;
@@ -49,15 +61,27 @@ std::string EncodeFrame(const char* magic, const std::string& payload) {
     return frame;
 }
 
-bool DecodeOneFrame(const std::string& data, std::size_t* offset, const char* magic, std::string* payload) {
+bool DecodeOneFrame(const std::string& data,
+                    std::size_t* offset,
+                    const char* magic,
+                    std::string* payload,
+                    DecodeFrameStatus* status = nullptr) {
+    auto set_status = [status](DecodeFrameStatus value) {
+        if (status != nullptr) {
+            *status = value;
+        }
+    };
     if (*offset == data.size()) {
+        set_status(DecodeFrameStatus::kEndOfFile);
         return false;
     }
     if (*offset + 12 > data.size()) {
+        set_status(DecodeFrameStatus::kPartialHeader);
         *offset = data.size();
         return false;
     }
     if (std::memcmp(data.data() + *offset, magic, 4) != 0) {
+        set_status(DecodeFrameStatus::kBadMagic);
         *offset = data.size();
         return false;
     }
@@ -65,18 +89,90 @@ bool DecodeOneFrame(const std::string& data, std::size_t* offset, const char* ma
     uint32_t size = 0;
     uint32_t checksum = 0;
     if (!ReadFixed32(data, offset, &size) || !ReadFixed32(data, offset, &checksum)) {
+        set_status(DecodeFrameStatus::kPartialHeader);
         *offset = data.size();
         return false;
     }
     if (*offset + size > data.size()) {
+        set_status(DecodeFrameStatus::kPartialPayload);
+        *offset = data.size();
+        return false;
+    }
+    if (size > kMaxFramePayloadBytes) {
+        set_status(DecodeFrameStatus::kPartialPayload);
         *offset = data.size();
         return false;
     }
     payload->assign(data.data() + *offset, size);
     *offset += size;
     if (Checksum32(*payload) != checksum) {
+        set_status(DecodeFrameStatus::kChecksumMismatch);
         *offset = data.size();
         return false;
+    }
+    set_status(DecodeFrameStatus::kOk);
+    return true;
+}
+
+bool ContainsFrameMagicAfter(const std::string& data, std::size_t offset, const char* magic) {
+    for (std::size_t i = offset; i + 4 <= data.size(); ++i) {
+        if (std::memcmp(data.data() + i, magic, 4) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool RepairCorruptedTail(const std::filesystem::path& log_path,
+                         std::size_t valid_size,
+                         std::string* error_msg) {
+    std::error_code ec;
+    std::filesystem::resize_file(log_path, valid_size, ec);
+    if (ec) {
+        if (error_msg != nullptr) {
+            *error_msg = "failed to truncate corrupted raft log tail: " + ec.message();
+        }
+        return false;
+    }
+    return FsyncFile(log_path, error_msg);
+}
+
+bool IsValidLogRecord(const RaftLogRecord& record) {
+    return record.index > 0 && record.term >= 0;
+}
+
+bool ValidateNextLogRecord(const std::vector<RaftLogRecord>& logs,
+                           const RaftLogRecord& record,
+                           std::string* error_msg) {
+    if (!IsValidLogRecord(record)) {
+        if (error_msg != nullptr) {
+            *error_msg = "raft log record has invalid index or term";
+        }
+        return false;
+    }
+    if (!logs.empty() && record.index != logs.back().index + 1) {
+        if (error_msg != nullptr) {
+            *error_msg = "raft log index sequence is not contiguous";
+        }
+        return false;
+    }
+    return true;
+}
+
+bool ValidateLogSequence(const std::vector<RaftLogRecord>& logs, std::string* error_msg) {
+    for (std::size_t i = 0; i < logs.size(); ++i) {
+        if (!IsValidLogRecord(logs[i])) {
+            if (error_msg != nullptr) {
+                *error_msg = "raft log record has invalid index or term";
+            }
+            return false;
+        }
+        if (i > 0 && logs[i].index != logs[i - 1].index + 1) {
+            if (error_msg != nullptr) {
+                *error_msg = "raft log index sequence is not contiguous";
+            }
+            return false;
+        }
     }
     return true;
 }
@@ -95,21 +191,37 @@ std::filesystem::path WAL::LogPath() const {
 
 bool WAL::LoadMeta(RaftMeta* meta, std::string* error_msg) const {
     *meta = RaftMeta{};
+    std::error_code ec;
+    bool meta_exists = std::filesystem::exists(MetaPath(), ec);
+    if (ec) {
+        if (error_msg != nullptr) {
+            *error_msg = "failed to inspect raft meta: " + ec.message();
+        }
+        return false;
+    }
+    if (!meta_exists) {
+        return true;
+    }
     std::string data;
     if (!ReadFileToString(MetaPath(), &data, error_msg)) {
         return false;
     }
-    if (data.empty()) {
-        return true;
-    }
     std::size_t offset = 0;
     std::string payload;
-    if (!DecodeOneFrame(data, &offset, kMetaMagic, &payload) || !DecodeMetaPayload(payload, meta)) {
+    DecodeFrameStatus status = DecodeFrameStatus::kOk;
+    if (!DecodeOneFrame(data, &offset, kMetaMagic, &payload, &status) || !DecodeMetaPayload(payload, meta)) {
         if (error_msg != nullptr) {
-            *error_msg = "invalid raft meta, using defaults";
+            *error_msg = "invalid raft meta";
         }
         *meta = RaftMeta{};
-        return true;
+        return false;
+    }
+    if (offset != data.size()) {
+        if (error_msg != nullptr) {
+            *error_msg = "invalid raft meta: trailing bytes";
+        }
+        *meta = RaftMeta{};
+        return false;
     }
     return true;
 }
@@ -128,32 +240,63 @@ bool WAL::LoadLogs(std::vector<RaftLogRecord>* logs, std::string* error_msg) con
         return false;
     }
     std::size_t offset = 0;
+    std::size_t last_valid_offset = 0;
     while (offset < data.size()) {
         std::string payload;
         std::size_t before = offset;
-        if (!DecodeOneFrame(data, &offset, kLogMagic, &payload)) {
-            if (before != data.size() && error_msg != nullptr) {
-                *error_msg = "raft log contains a partial or corrupted tail; valid prefix loaded";
+        DecodeFrameStatus status = DecodeFrameStatus::kOk;
+        if (!DecodeOneFrame(data, &offset, kLogMagic, &payload, &status)) {
+            if (before != data.size()) {
+                if (ContainsFrameMagicAfter(data, before + 1, kLogMagic)) {
+                    if (error_msg != nullptr) {
+                        *error_msg = "raft log corruption is not limited to the tail";
+                    }
+                    return false;
+                }
+                if (!RepairCorruptedTail(LogPath(), last_valid_offset, error_msg)) {
+                    return false;
+                }
+                recovery_truncated_tail_count_.fetch_add(1, std::memory_order_relaxed);
+                if (error_msg != nullptr) {
+                    *error_msg = "raft log contains a partial or corrupted tail; valid prefix loaded and tail truncated";
+                }
             }
             break;
         }
         RaftLogRecord record;
         if (!DecodeLogRecordPayload(payload, &record)) {
             if (error_msg != nullptr) {
-                *error_msg = "raft log record payload is invalid; valid prefix loaded";
+                *error_msg = "raft log record payload is invalid";
             }
-            break;
+            return false;
+        }
+        if (!ValidateNextLogRecord(*logs, record, error_msg)) {
+            return false;
         }
         logs->push_back(std::move(record));
+        last_valid_offset = offset;
     }
-    std::sort(logs->begin(), logs->end(), [](const auto& left, const auto& right) {
-        return left.index < right.index;
-    });
     return true;
 }
 
 bool WAL::AppendLog(const RaftLogRecord& log, std::string* error_msg) const {
     if (!EnsureDirectory(data_dir_, error_msg)) {
+        return false;
+    }
+    if (!IsValidLogRecord(log)) {
+        if (error_msg != nullptr) {
+            *error_msg = "raft log record has invalid index or term";
+        }
+        return false;
+    }
+    std::vector<RaftLogRecord> existing_logs;
+    if (!LoadLogs(&existing_logs, error_msg)) {
+        return false;
+    }
+    if (!existing_logs.empty() && log.index != existing_logs.back().index + 1) {
+        if (error_msg != nullptr) {
+            *error_msg = "raft log append would break index sequence";
+        }
         return false;
     }
     std::string frame = EncodeFrame(kLogMagic, EncodeLogRecordPayload(log));
@@ -162,6 +305,9 @@ bool WAL::AppendLog(const RaftLogRecord& log, std::string* error_msg) const {
 
 bool WAL::RewriteLogs(const std::vector<RaftLogRecord>& logs, std::string* error_msg) const {
     if (!EnsureDirectory(data_dir_, error_msg)) {
+        return false;
+    }
+    if (!ValidateLogSequence(logs, error_msg)) {
         return false;
     }
     std::string data;
@@ -183,6 +329,15 @@ bool WAL::TruncatePrefix(int last_included_index, std::string* error_msg) const 
     return RewriteLogs(logs, error_msg);
 }
 
+std::uint64_t WAL::LogBytes() const {
+    std::error_code ec;
+    auto size = std::filesystem::file_size(LogPath(), ec);
+    if (ec) {
+        return 0;
+    }
+    return static_cast<std::uint64_t>(size);
+}
+
 std::string EncodeLogRecordPayload(const RaftLogRecord& log) {
     std::string payload;
     AppendFixed64(&payload, static_cast<uint64_t>(log.index));
@@ -201,7 +356,15 @@ bool DecodeLogRecordPayload(const std::string& payload, RaftLogRecord* log) {
         !ReadFixed64(payload, &offset, &command_size)) {
         return false;
     }
-    if (offset + command_size > payload.size()) {
+    if (command_size > static_cast<uint64_t>(payload.size() - offset)) {
+        return false;
+    }
+    if (command_size > kMaxFramePayloadBytes ||
+        command_size > static_cast<uint64_t>(payload.size() - offset)) {
+        return false;
+    }
+    if (index > static_cast<uint64_t>(std::numeric_limits<int>::max()) ||
+        term > static_cast<uint64_t>(std::numeric_limits<int>::max())) {
         return false;
     }
     log->index = static_cast<int>(index);

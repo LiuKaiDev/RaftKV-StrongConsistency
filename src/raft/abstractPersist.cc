@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <stdexcept>
 
 namespace craft {
 namespace {
@@ -24,7 +25,7 @@ AbstractPersist::AbstractPersist(std::string absPersistPath, std::string snapsho
     std::string error;
     craftkv::storage::RaftMeta meta;
     if (!wal_.LoadMeta(&meta, &error)) {
-        spdlog::warn("load raft meta failed: {}", error);
+        throw std::runtime_error("load raft meta failed: " + error);
     }
     currentTerm_ = meta.current_term;
     votedFor_ = meta.voted_for;
@@ -33,8 +34,8 @@ AbstractPersist::AbstractPersist(std::string absPersistPath, std::string snapsho
 
     craftkv::storage::SnapshotMeta snapshot_meta;
     error.clear();
-    if (!snapshotManager_.LoadMeta(&snapshot_meta, &error) && !error.empty()) {
-        spdlog::warn("load snapshot meta failed: {}", error);
+    if (!snapshotManager_.LoadMeta(&snapshot_meta, &error)) {
+        throw std::runtime_error("load snapshot meta failed: " + error);
     }
     lastSnapshotIndex_ = snapshot_meta.last_included_index;
     lastSnapshotTerm_ = snapshot_meta.last_included_term;
@@ -145,6 +146,14 @@ void AbstractPersist::setSnapshotMeta(int lastIncludedIndex, int lastIncludedTer
 
 std::string AbstractPersist::snapshotPath() const {
     return ResolveSnapshotPath(absPersistPath_, snapshotFileName_).string();
+}
+
+std::uint64_t AbstractPersist::walBytes() const {
+    return wal_.LogBytes();
+}
+
+std::uint64_t AbstractPersist::walRecoveryTruncatedTailCount() const {
+    return wal_.recovery_truncated_tail_count();
 }
 
 std::vector<std::string> AbstractPersist::readLines(const std::string& filename) {

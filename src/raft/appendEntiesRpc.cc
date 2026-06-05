@@ -1,22 +1,89 @@
 #include "craft/public.h"
 #include "craft/startRpcService.h"
+#include "raft/raft_correctness.h"
 #include <algorithm>
+#include <chrono>
+#include <cerrno>
+#include <cstdlib>
+#include <limits>
+#include <thread>
 
 namespace craft {
+namespace {
+
+int TestAppendEntriesDelayMs() {
+    static const int delay_ms = []() {
+        const char* raw = std::getenv("CRAFTKV_TEST_APPEND_ENTRIES_DELAY_MS");
+        if (raw == nullptr || raw[0] == '\0') {
+            return 0;
+        }
+        errno = 0;
+        char* end = nullptr;
+        long parsed = std::strtol(raw, &end, 10);
+        if (errno != 0 || end == raw || *end != '\0' || parsed < 0 ||
+            parsed > std::numeric_limits<int>::max()) {
+            spdlog::warn("invalid CRAFTKV_TEST_APPEND_ENTRIES_DELAY_MS='{}'; using 0", raw);
+            return 0;
+        }
+        return static_cast<int>(parsed);
+    }();
+    return delay_ms;
+}
+
+void ApplyTestAppendEntriesDelay() {
+    int delay_ms = TestAppendEntriesDelayMs();
+    if (delay_ms > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
+}
+
+}  // namespace
 
 
     Status RpcServiceImpl::appendEntries(::grpc::ServerContext *context,
                                          const ::AppendEntriesArgs *request,
                                          ::AppendEntriesReply *response) {
+        ApplyTestAppendEntriesDelay();
         m_rf_->co_mtx_.lock();
         response->set_term(m_rf_->m_current_term_);
         response->set_success(false);
+        if (!raft_correctness::IsValidPeerIndex(request->leaderid(),
+                                                static_cast<int>(m_rf_->m_clusterAddress_.size()))) {
+            spdlog::error("reject AppendEntries from invalid leader id [{}]", request->leaderid());
+            m_rf_->co_mtx_.unlock();
+            return Status::OK;
+        }
         auto rewriteLogs = [this]() {
             std::vector<std::pair<int, std::string>> entries;
             for (int i = 1; i < static_cast<int>(m_rf_->m_logs_.size()); ++i) {
                 entries.emplace_back(m_rf_->m_logs_[i].term(), m_rf_->m_logs_[i].command());
             }
             return m_rf_->m_persister_->rewriteLogEntries(m_rf_->m_snapShotIndex + 1, entries);
+        };
+        auto mergeEntries = [this, request, &rewriteLogs]() {
+            bool changed = false;
+            int logIndex = request->prevlogindex() + 1;
+            for (const auto &entry: request->entries()) {
+                int storeIndex = m_rf_->getStoreIndexByLogIndex(logIndex);
+                if (storeIndex < 0) {
+                    return false;
+                }
+                if (storeIndex < static_cast<int>(m_rf_->m_logs_.size())) {
+                    const auto& existing = m_rf_->m_logs_[storeIndex];
+                    if (existing.term() != entry.term() ||
+                        existing.command() != entry.command() ||
+                        existing.type() != entry.type()) {
+                        m_rf_->m_logs_.resize(static_cast<std::size_t>(storeIndex));
+                        m_rf_->m_logs_.push_back(entry);
+                        changed = true;
+                    }
+                } else {
+                    m_rf_->m_logs_.push_back(entry);
+                    changed = true;
+                }
+                ++logIndex;
+            }
+            return !changed || rewriteLogs();
         };
 
         do {
@@ -36,6 +103,7 @@ namespace craft {
             }
 
             m_rf_->m_leaderId_ = request->leaderid();
+            m_rf_->m_lastLeaderContact_ = std::chrono::steady_clock::now();
             m_rf_->m_electionTimer->reset(getElectionTimeOut(m_rf_->m_leaderEelectionTimeOut_));
             response->set_term(m_rf_->m_current_term_);
 
@@ -45,32 +113,15 @@ namespace craft {
             } else if (request->prevlogindex() > lastLogIndex) {
                 response->set_nextlogindex(lastLogIndex + 1);
             } else if (request->prevlogindex() == m_rf_->m_snapShotIndex) {
-                if (m_rf_->isOutOfArgsAppendEntries(request)) {
-                    response->set_nextlogindex(0);
-                } else {
-                    m_rf_->m_logs_.resize(1);
-                    for (const auto &log: request->entries()) {
-                        m_rf_->m_logs_.push_back(log);
-                    }
-                    if (rewriteLogs()) {
-                        response->set_success(true);
-                        response->set_nextlogindex(m_rf_->getLastLogIndex() + 1);
-                    }
+                if (mergeEntries()) {
+                    response->set_success(true);
+                    response->set_nextlogindex(m_rf_->getLastLogIndex() + 1);
                 }
             } else if (request->prevlogterm() ==
                        m_rf_->m_logs_[m_rf_->getStoreIndexByLogIndex(request->prevlogindex())].term()) {
-                if (m_rf_->isOutOfArgsAppendEntries(request)) {
-                    response->set_nextlogindex(0);
-                } else {
-                    int storeIndex = m_rf_->getStoreIndexByLogIndex(request->prevlogindex());
-                    m_rf_->m_logs_.resize(storeIndex + 1);
-                    for (const auto &log: request->entries()) {
-                        m_rf_->m_logs_.push_back(log);
-                    }
-                    if (rewriteLogs()) {
-                        response->set_success(true);
-                        response->set_nextlogindex(m_rf_->getLastLogIndex() + 1);
-                    }
+                if (mergeEntries()) {
+                    response->set_success(true);
+                    response->set_nextlogindex(m_rf_->getLastLogIndex() + 1);
                 }
             } else {
                 int term = m_rf_->m_logs_[m_rf_->getStoreIndexByLogIndex(request->prevlogindex())].term();

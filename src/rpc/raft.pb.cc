@@ -123,6 +123,75 @@ struct RequestVoteArgsDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RequestVoteArgsDefaultTypeInternal _RequestVoteArgs_default_instance_;
+      template <typename>
+PROTOBUF_CONSTEXPR NodeStatusRequest::NodeStatusRequest(::_pbi::ConstantInitialized) {}
+struct NodeStatusRequestDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR NodeStatusRequestDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~NodeStatusRequestDefaultTypeInternal() {}
+  union {
+    NodeStatusRequest _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 NodeStatusRequestDefaultTypeInternal _NodeStatusRequest_default_instance_;
+
+inline constexpr MetricsStatus::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : election_count_{::uint64_t{0u}},
+        leader_change_count_{::uint64_t{0u}},
+        append_entries_sent_{::uint64_t{0u}},
+        append_entries_success_{::uint64_t{0u}},
+        append_entries_failed_{::uint64_t{0u}},
+        request_vote_sent_{::uint64_t{0u}},
+        request_vote_granted_{::uint64_t{0u}},
+        request_vote_rejected_{::uint64_t{0u}},
+        install_snapshot_sent_{::uint64_t{0u}},
+        install_snapshot_success_{::uint64_t{0u}},
+        install_snapshot_failed_{::uint64_t{0u}},
+        snapshot_created_count_{::uint64_t{0u}},
+        wal_recovery_truncated_tail_count_{::uint64_t{0u}},
+        client_request_total_{::uint64_t{0u}},
+        client_request_success_{::uint64_t{0u}},
+        client_request_failed_{::uint64_t{0u}},
+        read_log_total_{::uint64_t{0u}},
+        read_index_total_{::uint64_t{0u}},
+        read_index_success_{::uint64_t{0u}},
+        read_index_failed_{::uint64_t{0u}},
+        read_index_timeout_{::uint64_t{0u}},
+        read_index_quorum_confirm_rounds_{::uint64_t{0u}},
+        leader_noop_appended_{::uint64_t{0u}},
+        leader_noop_committed_{::uint64_t{0u}},
+        pre_vote_sent_{::uint64_t{0u}},
+        pre_vote_granted_{::uint64_t{0u}},
+        pre_vote_rejected_{::uint64_t{0u}},
+        check_quorum_stepdown_count_{::uint64_t{0u}},
+        check_quorum_rounds_{::uint64_t{0u}},
+        check_quorum_success_{::uint64_t{0u}},
+        check_quorum_failed_{::uint64_t{0u}},
+        append_entries_batch_rpc_count_{::uint64_t{0u}},
+        append_entries_entries_sent_{::uint64_t{0u}},
+        append_entries_empty_heartbeat_count_{::uint64_t{0u}},
+        append_entries_max_batch_observed_{::uint64_t{0u}},
+        follower_catchup_attempts_{::uint64_t{0u}},
+        follower_catchup_success_{::uint64_t{0u}},
+        append_entries_stale_response_ignored_{::uint64_t{0u}},
+        append_entries_inflight_rejected_{::uint64_t{0u}},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR MetricsStatus::MetricsStatus(::_pbi::ConstantInitialized)
+    : _impl_(::_pbi::ConstantInitialized()) {}
+struct MetricsStatusDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR MetricsStatusDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~MetricsStatusDefaultTypeInternal() {}
+  union {
+    MetricsStatus _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MetricsStatusDefaultTypeInternal _MetricsStatus_default_instance_;
 
 inline constexpr LogEntry::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -130,6 +199,7 @@ inline constexpr LogEntry::Impl_::Impl_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
         term_{0},
+        type_{static_cast< ::LogEntry_EntryType >(0)},
         _cached_size_{0} {}
 
 template <typename>
@@ -231,6 +301,38 @@ struct AppendEntriesReplyDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AppendEntriesReplyDefaultTypeInternal _AppendEntriesReply_default_instance_;
 
+inline constexpr NodeStatusReply::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        role_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        metrics_{nullptr},
+        node_id_{0},
+        current_term_{0},
+        leader_id_{0},
+        commit_index_{0},
+        last_applied_{0},
+        last_log_index_{0},
+        snapshot_index_{0},
+        snapshot_term_{0},
+        log_entry_count_{::uint64_t{0u}},
+        wal_bytes_{::uint64_t{0u}} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR NodeStatusReply::NodeStatusReply(::_pbi::ConstantInitialized)
+    : _impl_(::_pbi::ConstantInitialized()) {}
+struct NodeStatusReplyDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR NodeStatusReplyDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~NodeStatusReplyDefaultTypeInternal() {}
+  union {
+    NodeStatusReply _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 NodeStatusReplyDefaultTypeInternal _NodeStatusReply_default_instance_;
+
 inline constexpr AppendEntriesArgs::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : entries_{},
@@ -254,9 +356,8 @@ struct AppendEntriesArgsDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 AppendEntriesArgsDefaultTypeInternal _AppendEntriesArgs_default_instance_;
-static ::_pb::Metadata file_level_metadata_raft_2eproto[11];
-static constexpr const ::_pb::EnumDescriptor**
-    file_level_enum_descriptors_raft_2eproto = nullptr;
+static ::_pb::Metadata file_level_metadata_raft_2eproto[14];
+static const ::_pb::EnumDescriptor* file_level_enum_descriptors_raft_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor**
     file_level_service_descriptors_raft_2eproto = nullptr;
 const ::uint32_t TableStruct_raft_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(
@@ -333,6 +434,7 @@ const ::uint32_t TableStruct_raft_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(
     ~0u,  // no sizeof(Split)
     PROTOBUF_FIELD_OFFSET(::LogEntry, _impl_.term_),
     PROTOBUF_FIELD_OFFSET(::LogEntry, _impl_.command_),
+    PROTOBUF_FIELD_OFFSET(::LogEntry, _impl_.type_),
     ~0u,  // no _has_bits_
     PROTOBUF_FIELD_OFFSET(::AppendEntriesArgs, _internal_metadata_),
     ~0u,  // no _extensions_
@@ -379,6 +481,93 @@ const ::uint32_t TableStruct_raft_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(
     ~0u,  // no _split_
     ~0u,  // no sizeof(Split)
     PROTOBUF_FIELD_OFFSET(::Command, _impl_.content_),
+    ~0u,  // no _has_bits_
+    PROTOBUF_FIELD_OFFSET(::NodeStatusRequest, _internal_metadata_),
+    ~0u,  // no _extensions_
+    ~0u,  // no _oneof_case_
+    ~0u,  // no _weak_field_map_
+    ~0u,  // no _inlined_string_donated_
+    ~0u,  // no _split_
+    ~0u,  // no sizeof(Split)
+    ~0u,  // no _has_bits_
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _internal_metadata_),
+    ~0u,  // no _extensions_
+    ~0u,  // no _oneof_case_
+    ~0u,  // no _weak_field_map_
+    ~0u,  // no _inlined_string_donated_
+    ~0u,  // no _split_
+    ~0u,  // no sizeof(Split)
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.election_count_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.leader_change_count_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_sent_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_success_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_failed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.request_vote_sent_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.request_vote_granted_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.request_vote_rejected_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.install_snapshot_sent_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.install_snapshot_success_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.install_snapshot_failed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.snapshot_created_count_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.wal_recovery_truncated_tail_count_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.client_request_total_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.client_request_success_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.client_request_failed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_log_total_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_index_total_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_index_success_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_index_failed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_index_timeout_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.read_index_quorum_confirm_rounds_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.leader_noop_appended_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.leader_noop_committed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.pre_vote_sent_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.pre_vote_granted_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.pre_vote_rejected_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.check_quorum_stepdown_count_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.check_quorum_rounds_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.check_quorum_success_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.check_quorum_failed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_batch_rpc_count_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_entries_sent_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_empty_heartbeat_count_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_max_batch_observed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.follower_catchup_attempts_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.follower_catchup_success_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_stale_response_ignored_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_inflight_rejected_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_._has_bits_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _internal_metadata_),
+    ~0u,  // no _extensions_
+    ~0u,  // no _oneof_case_
+    ~0u,  // no _weak_field_map_
+    ~0u,  // no _inlined_string_donated_
+    ~0u,  // no _split_
+    ~0u,  // no sizeof(Split)
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.node_id_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.role_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.current_term_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.leader_id_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.commit_index_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.last_applied_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.last_log_index_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.snapshot_index_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.snapshot_term_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.log_entry_count_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.wal_bytes_),
+    PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_.metrics_),
+    ~0u,
+    ~0u,
+    ~0u,
+    ~0u,
+    ~0u,
+    ~0u,
+    ~0u,
+    ~0u,
+    ~0u,
+    ~0u,
+    ~0u,
+    0,
 };
 
 static const ::_pbi::MigrationSchema
@@ -390,10 +579,13 @@ static const ::_pbi::MigrationSchema
         {40, -1, -1, sizeof(::RequestVoteArgs)},
         {52, -1, -1, sizeof(::RequestVoteReply)},
         {62, -1, -1, sizeof(::LogEntry)},
-        {72, -1, -1, sizeof(::AppendEntriesArgs)},
-        {86, -1, -1, sizeof(::AppendEntriesReply)},
-        {98, -1, -1, sizeof(::ResultPackge)},
-        {109, -1, -1, sizeof(::Command)},
+        {73, -1, -1, sizeof(::AppendEntriesArgs)},
+        {87, -1, -1, sizeof(::AppendEntriesReply)},
+        {99, -1, -1, sizeof(::ResultPackge)},
+        {110, -1, -1, sizeof(::Command)},
+        {119, -1, -1, sizeof(::NodeStatusRequest)},
+        {127, -1, -1, sizeof(::MetricsStatus)},
+        {174, 194, -1, sizeof(::NodeStatusReply)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -408,6 +600,9 @@ static const ::_pb::Message* const file_default_instances[] = {
     &::_AppendEntriesReply_default_instance_._instance,
     &::_ResultPackge_default_instance_._instance,
     &::_Command_default_instance_._instance,
+    &::_NodeStatusRequest_default_instance_._instance,
+    &::_MetricsStatus_default_instance_._instance,
+    &::_NodeStatusReply_default_instance_._instance,
 };
 const char descriptor_table_protodef_raft_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
     "\n\nraft.proto\"h\n\023InstallSnapshotArgs\022\014\n\004t"
@@ -420,37 +615,81 @@ const char descriptor_table_protodef_raft_2eproto[] PROTOBUF_SECTION_VARIABLE(pr
     "\010\"_\n\017RequestVoteArgs\022\014\n\004term\030\001 \001(\005\022\023\n\013ca"
     "ndidateId\030\002 \001(\005\022\024\n\014lastLogIndex\030\003 \001(\005\022\023\n"
     "\013lastLogTerm\030\004 \001(\005\"5\n\020RequestVoteReply\022\014"
-    "\n\004term\030\001 \001(\005\022\023\n\013voteGranted\030\002 \001(\010\")\n\010Log"
-    "Entry\022\014\n\004term\030\001 \001(\005\022\017\n\007command\030\002 \001(\t\"\220\001\n"
-    "\021AppendEntriesArgs\022\014\n\004term\030\001 \001(\005\022\020\n\010lead"
-    "erId\030\002 \001(\005\022\024\n\014prevLogIndex\030\003 \001(\005\022\023\n\013prev"
-    "LogTerm\030\004 \001(\005\022\032\n\007entries\030\005 \003(\0132\t.LogEntr"
-    "y\022\024\n\014leaderCommit\030\006 \001(\005\"^\n\022AppendEntries"
-    "Reply\022\014\n\004term\030\001 \001(\005\022\017\n\007success\030\002 \001(\010\022\023\n\013"
-    "nextLogTerm\030\003 \001(\005\022\024\n\014nextLogIndex\030\004 \001(\005\""
-    "=\n\014ResultPackge\022\r\n\005index\030\001 \001(\005\022\014\n\004term\030\002"
-    " \001(\005\022\020\n\010isLeader\030\003 \001(\010\"\032\n\007Command\022\017\n\007con"
-    "tent\030\001 \001(\t2\277\002\n\007RaftRPC\022@\n\017installSnapsho"
-    "t\022\024.InstallSnapshotArgs\032\025.InstallSnapsho"
-    "tReply\"\000\022Q\n\024TransferSnapShotFile\022\031.Trans"
-    "ferSnapShotFileArgs\032\032.TransferSnapShotFi"
-    "leReply\"\000(\001\022*\n\rsubmitCommand\022\010.Command\032\r"
-    ".ResultPackge\"\000\0227\n\016requestVoteRPC\022\020.Requ"
-    "estVoteArgs\032\021.RequestVoteReply\"\000\022:\n\rappe"
-    "ndEntries\022\022.AppendEntriesArgs\032\023.AppendEn"
-    "triesReply\"\000b\006proto3"
+    "\n\004term\030\001 \001(\005\022\023\n\013voteGranted\030\002 \001(\010\"p\n\010Log"
+    "Entry\022\014\n\004term\030\001 \001(\005\022\017\n\007command\030\002 \001(\t\022!\n\004"
+    "type\030\003 \001(\0162\023.LogEntry.EntryType\"\"\n\tEntry"
+    "Type\022\n\n\006NORMAL\020\000\022\t\n\005NO_OP\020\001\"\220\001\n\021AppendEn"
+    "triesArgs\022\014\n\004term\030\001 \001(\005\022\020\n\010leaderId\030\002 \001("
+    "\005\022\024\n\014prevLogIndex\030\003 \001(\005\022\023\n\013prevLogTerm\030\004"
+    " \001(\005\022\032\n\007entries\030\005 \003(\0132\t.LogEntry\022\024\n\014lead"
+    "erCommit\030\006 \001(\005\"^\n\022AppendEntriesReply\022\014\n\004"
+    "term\030\001 \001(\005\022\017\n\007success\030\002 \001(\010\022\023\n\013nextLogTe"
+    "rm\030\003 \001(\005\022\024\n\014nextLogIndex\030\004 \001(\005\"=\n\014Result"
+    "Packge\022\r\n\005index\030\001 \001(\005\022\014\n\004term\030\002 \001(\005\022\020\n\010i"
+    "sLeader\030\003 \001(\010\"\032\n\007Command\022\017\n\007content\030\001 \001("
+    "\t\"\023\n\021NodeStatusRequest\"\373\t\n\rMetricsStatus"
+    "\022\026\n\016election_count\030\001 \001(\004\022\033\n\023leader_chang"
+    "e_count\030\002 \001(\004\022\033\n\023append_entries_sent\030\003 \001"
+    "(\004\022\036\n\026append_entries_success\030\004 \001(\004\022\035\n\025ap"
+    "pend_entries_failed\030\005 \001(\004\022\031\n\021request_vot"
+    "e_sent\030\006 \001(\004\022\034\n\024request_vote_granted\030\007 \001"
+    "(\004\022\035\n\025request_vote_rejected\030\010 \001(\004\022\035\n\025ins"
+    "tall_snapshot_sent\030\t \001(\004\022 \n\030install_snap"
+    "shot_success\030\n \001(\004\022\037\n\027install_snapshot_f"
+    "ailed\030\013 \001(\004\022\036\n\026snapshot_created_count\030\014 "
+    "\001(\004\022)\n!wal_recovery_truncated_tail_count"
+    "\030\r \001(\004\022\034\n\024client_request_total\030\016 \001(\004\022\036\n\026"
+    "client_request_success\030\017 \001(\004\022\035\n\025client_r"
+    "equest_failed\030\020 \001(\004\022\026\n\016read_log_total\030\021 "
+    "\001(\004\022\030\n\020read_index_total\030\022 \001(\004\022\032\n\022read_in"
+    "dex_success\030\023 \001(\004\022\031\n\021read_index_failed\030\024"
+    " \001(\004\022\032\n\022read_index_timeout\030\025 \001(\004\022(\n read"
+    "_index_quorum_confirm_rounds\030\026 \001(\004\022\034\n\024le"
+    "ader_noop_appended\030\027 \001(\004\022\035\n\025leader_noop_"
+    "committed\030\030 \001(\004\022\025\n\rpre_vote_sent\030\031 \001(\004\022\030"
+    "\n\020pre_vote_granted\030\032 \001(\004\022\031\n\021pre_vote_rej"
+    "ected\030\033 \001(\004\022#\n\033check_quorum_stepdown_cou"
+    "nt\030\034 \001(\004\022\033\n\023check_quorum_rounds\030\035 \001(\004\022\034\n"
+    "\024check_quorum_success\030\036 \001(\004\022\033\n\023check_quo"
+    "rum_failed\030\037 \001(\004\022&\n\036append_entries_batch"
+    "_rpc_count\030  \001(\004\022#\n\033append_entries_entri"
+    "es_sent\030! \001(\004\022,\n$append_entries_empty_he"
+    "artbeat_count\030\" \001(\004\022)\n!append_entries_ma"
+    "x_batch_observed\030# \001(\004\022!\n\031follower_catch"
+    "up_attempts\030$ \001(\004\022 \n\030follower_catchup_su"
+    "ccess\030% \001(\004\022-\n%append_entries_stale_resp"
+    "onse_ignored\030& \001(\004\022(\n append_entries_inf"
+    "light_rejected\030\' \001(\004\"\231\002\n\017NodeStatusReply"
+    "\022\017\n\007node_id\030\001 \001(\005\022\014\n\004role\030\002 \001(\t\022\024\n\014curre"
+    "nt_term\030\003 \001(\005\022\021\n\tleader_id\030\004 \001(\005\022\024\n\014comm"
+    "it_index\030\005 \001(\005\022\024\n\014last_applied\030\006 \001(\005\022\026\n\016"
+    "last_log_index\030\007 \001(\005\022\026\n\016snapshot_index\030\010"
+    " \001(\005\022\025\n\rsnapshot_term\030\t \001(\005\022\027\n\017log_entry"
+    "_count\030\n \001(\004\022\021\n\twal_bytes\030\013 \001(\004\022\037\n\007metri"
+    "cs\030\014 \001(\0132\016.MetricsStatus2\255\003\n\007RaftRPC\022@\n\017"
+    "installSnapshot\022\024.InstallSnapshotArgs\032\025."
+    "InstallSnapshotReply\"\000\022Q\n\024TransferSnapSh"
+    "otFile\022\031.TransferSnapShotFileArgs\032\032.Tran"
+    "sferSnapShotFileReply\"\000(\001\022*\n\rsubmitComma"
+    "nd\022\010.Command\032\r.ResultPackge\"\000\0227\n\016request"
+    "VoteRPC\022\020.RequestVoteArgs\032\021.RequestVoteR"
+    "eply\"\000\0223\n\npreVoteRPC\022\020.RequestVoteArgs\032\021"
+    ".RequestVoteReply\"\000\022:\n\rappendEntries\022\022.A"
+    "ppendEntriesArgs\032\023.AppendEntriesReply\"\000\022"
+    "7\n\rGetNodeStatus\022\022.NodeStatusRequest\032\020.N"
+    "odeStatusReply\"\000b\006proto3"
 };
 static ::absl::once_flag descriptor_table_raft_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_raft_2eproto = {
     false,
     false,
-    1140,
+    2904,
     descriptor_table_protodef_raft_2eproto,
     "raft.proto",
     &descriptor_table_raft_2eproto_once,
     nullptr,
     0,
-    11,
+    14,
     schemas,
     file_default_instances,
     TableStruct_raft_2eproto::offsets,
@@ -476,6 +715,26 @@ PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_raft_2ep
 // Force running AddDescriptors() at dynamic initialization time.
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2
 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_raft_2eproto(&descriptor_table_raft_2eproto);
+const ::google::protobuf::EnumDescriptor* LogEntry_EntryType_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_raft_2eproto);
+  return file_level_enum_descriptors_raft_2eproto[0];
+}
+PROTOBUF_CONSTINIT const uint32_t LogEntry_EntryType_internal_data_[] = {
+    131072u, 0u, };
+bool LogEntry_EntryType_IsValid(int value) {
+  return 0 <= value && value <= 1;
+}
+#if (__cplusplus < 201703) && \
+  (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+
+constexpr LogEntry_EntryType LogEntry::NORMAL;
+constexpr LogEntry_EntryType LogEntry::NO_OP;
+constexpr LogEntry_EntryType LogEntry::EntryType_MIN;
+constexpr LogEntry_EntryType LogEntry::EntryType_MAX;
+constexpr int LogEntry::EntryType_ARRAYSIZE;
+
+#endif  // (__cplusplus < 201703) &&
+        // (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
 // ===================================================================
 
 class InstallSnapshotArgs::_Internal {
@@ -1758,7 +2017,13 @@ LogEntry::LogEntry(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_);
-  _impl_.term_ = from._impl_.term_;
+  ::memcpy(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, term_),
+           reinterpret_cast<const char *>(&from._impl_) +
+               offsetof(Impl_, term_),
+           offsetof(Impl_, type_) -
+               offsetof(Impl_, term_) +
+               sizeof(Impl_::type_));
 
   // @@protoc_insertion_point(copy_constructor:LogEntry)
 }
@@ -1770,7 +2035,12 @@ inline PROTOBUF_NDEBUG_INLINE LogEntry::Impl_::Impl_(
 
 inline void LogEntry::SharedCtor(::_pb::Arena* arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.term_ = {};
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, term_),
+           0,
+           offsetof(Impl_, type_) -
+               offsetof(Impl_, term_) +
+               sizeof(Impl_::type_));
 }
 LogEntry::~LogEntry() {
   // @@protoc_insertion_point(destructor:LogEntry)
@@ -1791,7 +2061,9 @@ PROTOBUF_NOINLINE void LogEntry::Clear() {
   (void) cached_has_bits;
 
   _impl_.command_.ClearToEmpty();
-  _impl_.term_ = 0;
+  ::memset(&_impl_.term_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.type_) -
+      reinterpret_cast<char*>(&_impl_.term_)) + sizeof(_impl_.type_));
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
@@ -1803,26 +2075,30 @@ const char* LogEntry::_InternalParse(
 
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 24, 2> LogEntry::_table_ = {
+const ::_pbi::TcParseTable<2, 3, 0, 24, 2> LogEntry::_table_ = {
   {
     0,  // no _has_bits_
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     &_LogEntry_default_instance_._instance,
     ::_pbi::TcParser::GenericFallback,  // fallback
   }, {{
-    // string command = 2;
-    {::_pbi::TcParser::FastUS1,
-     {18, 63, 0, PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.command_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // int32 term = 1;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(LogEntry, _impl_.term_), 63>(),
      {8, 63, 0, PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.term_)}},
+    // string command = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.command_)}},
+    // .LogEntry.EntryType type = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(LogEntry, _impl_.type_), 63>(),
+     {24, 63, 0, PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.type_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -1832,6 +2108,9 @@ const ::_pbi::TcParseTable<1, 2, 0, 24, 2> LogEntry::_table_ = {
     // string command = 2;
     {PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.command_), 0, 0,
     (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .LogEntry.EntryType type = 3;
+    {PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.type_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kOpenEnum)},
   }},
   // no aux_entries
   {{
@@ -1863,6 +2142,13 @@ const ::_pbi::TcParseTable<1, 2, 0, 24, 2> LogEntry::_table_ = {
     target = stream->WriteStringMaybeAliased(2, _s, target);
   }
 
+  // .LogEntry.EntryType type = 3;
+  if (this->_internal_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+        3, this->_internal_type(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1892,6 +2178,12 @@ const ::_pbi::TcParseTable<1, 2, 0, 24, 2> LogEntry::_table_ = {
         this->_internal_term());
   }
 
+  // .LogEntry.EntryType type = 3;
+  if (this->_internal_type() != 0) {
+    total_size += 1 +
+                  ::_pbi::WireFormatLite::EnumSize(this->_internal_type());
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -1917,6 +2209,9 @@ void LogEntry::MergeImpl(::google::protobuf::Message& to_msg, const ::google::pr
   if (from._internal_term() != 0) {
     _this->_internal_set_term(from._internal_term());
   }
+  if (from._internal_type() != 0) {
+    _this->_internal_set_type(from._internal_type());
+  }
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -1940,7 +2235,12 @@ void LogEntry::InternalSwap(LogEntry* PROTOBUF_RESTRICT other) {
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.command_, &other->_impl_.command_, arena);
-        swap(_impl_.term_, other->_impl_.term_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.type_)
+      + sizeof(LogEntry::_impl_.type_)
+      - PROTOBUF_FIELD_OFFSET(LogEntry, _impl_.term_)>(
+          reinterpret_cast<char*>(&_impl_.term_),
+          reinterpret_cast<char*>(&other->_impl_.term_));
 }
 
 ::google::protobuf::Metadata LogEntry::GetMetadata() const {
@@ -2927,6 +3227,1522 @@ void Command::InternalSwap(Command* PROTOBUF_RESTRICT other) {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_raft_2eproto_getter, &descriptor_table_raft_2eproto_once,
       file_level_metadata_raft_2eproto[10]);
+}
+// ===================================================================
+
+class NodeStatusRequest::_Internal {
+ public:
+};
+
+NodeStatusRequest::NodeStatusRequest(::google::protobuf::Arena* arena)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+  // @@protoc_insertion_point(arena_constructor:NodeStatusRequest)
+}
+NodeStatusRequest::NodeStatusRequest(
+    ::google::protobuf::Arena* arena,
+    const NodeStatusRequest& from)
+    : ::google::protobuf::internal::ZeroFieldsBase(arena) {
+  NodeStatusRequest* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+
+  // @@protoc_insertion_point(copy_constructor:NodeStatusRequest)
+}
+
+
+
+
+
+
+
+
+
+::google::protobuf::Metadata NodeStatusRequest::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_raft_2eproto_getter, &descriptor_table_raft_2eproto_once,
+      file_level_metadata_raft_2eproto[11]);
+}
+// ===================================================================
+
+class MetricsStatus::_Internal {
+ public:
+};
+
+MetricsStatus::MetricsStatus(::google::protobuf::Arena* arena)
+    : ::google::protobuf::Message(arena) {
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:MetricsStatus)
+}
+MetricsStatus::MetricsStatus(
+    ::google::protobuf::Arena* arena, const MetricsStatus& from)
+    : MetricsStatus(arena) {
+  MergeFrom(from);
+}
+inline PROTOBUF_NDEBUG_INLINE MetricsStatus::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : _cached_size_{0} {}
+
+inline void MetricsStatus::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, election_count_),
+           0,
+           offsetof(Impl_, append_entries_inflight_rejected_) -
+               offsetof(Impl_, election_count_) +
+               sizeof(Impl_::append_entries_inflight_rejected_));
+}
+MetricsStatus::~MetricsStatus() {
+  // @@protoc_insertion_point(destructor:MetricsStatus)
+  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  SharedDtor();
+}
+inline void MetricsStatus::SharedDtor() {
+  ABSL_DCHECK(GetArena() == nullptr);
+  _impl_.~Impl_();
+}
+
+PROTOBUF_NOINLINE void MetricsStatus::Clear() {
+// @@protoc_insertion_point(message_clear_start:MetricsStatus)
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.election_count_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.append_entries_inflight_rejected_) -
+      reinterpret_cast<char*>(&_impl_.election_count_)) + sizeof(_impl_.append_entries_inflight_rejected_));
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+const char* MetricsStatus::_InternalParse(
+    const char* ptr, ::_pbi::ParseContext* ctx) {
+  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+  return ptr;
+}
+
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<5, 39, 0, 0, 7> MetricsStatus::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    39, 248,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    0,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    39,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    &_MetricsStatus_default_instance_._instance,
+    ::_pbi::TcParser::GenericFallback,  // fallback
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // uint64 election_count = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.election_count_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.election_count_)}},
+    // uint64 leader_change_count = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.leader_change_count_), 63>(),
+     {16, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.leader_change_count_)}},
+    // uint64 append_entries_sent = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.append_entries_sent_), 63>(),
+     {24, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_sent_)}},
+    // uint64 append_entries_success = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.append_entries_success_), 63>(),
+     {32, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_success_)}},
+    // uint64 append_entries_failed = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.append_entries_failed_), 63>(),
+     {40, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_failed_)}},
+    // uint64 request_vote_sent = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.request_vote_sent_), 63>(),
+     {48, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.request_vote_sent_)}},
+    // uint64 request_vote_granted = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.request_vote_granted_), 63>(),
+     {56, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.request_vote_granted_)}},
+    // uint64 request_vote_rejected = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.request_vote_rejected_), 63>(),
+     {64, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.request_vote_rejected_)}},
+    // uint64 install_snapshot_sent = 9;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.install_snapshot_sent_), 63>(),
+     {72, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.install_snapshot_sent_)}},
+    // uint64 install_snapshot_success = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.install_snapshot_success_), 63>(),
+     {80, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.install_snapshot_success_)}},
+    // uint64 install_snapshot_failed = 11;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.install_snapshot_failed_), 63>(),
+     {88, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.install_snapshot_failed_)}},
+    // uint64 snapshot_created_count = 12;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.snapshot_created_count_), 63>(),
+     {96, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.snapshot_created_count_)}},
+    // uint64 wal_recovery_truncated_tail_count = 13;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.wal_recovery_truncated_tail_count_), 63>(),
+     {104, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.wal_recovery_truncated_tail_count_)}},
+    // uint64 client_request_total = 14;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.client_request_total_), 63>(),
+     {112, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.client_request_total_)}},
+    // uint64 client_request_success = 15;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricsStatus, _impl_.client_request_success_), 63>(),
+     {120, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.client_request_success_)}},
+    // uint64 client_request_failed = 16;
+    {::_pbi::TcParser::FastV64S2,
+     {384, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.client_request_failed_)}},
+    // uint64 read_log_total = 17;
+    {::_pbi::TcParser::FastV64S2,
+     {392, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_log_total_)}},
+    // uint64 read_index_total = 18;
+    {::_pbi::TcParser::FastV64S2,
+     {400, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_total_)}},
+    // uint64 read_index_success = 19;
+    {::_pbi::TcParser::FastV64S2,
+     {408, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_success_)}},
+    // uint64 read_index_failed = 20;
+    {::_pbi::TcParser::FastV64S2,
+     {416, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_failed_)}},
+    // uint64 read_index_timeout = 21;
+    {::_pbi::TcParser::FastV64S2,
+     {424, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_timeout_)}},
+    // uint64 read_index_quorum_confirm_rounds = 22;
+    {::_pbi::TcParser::FastV64S2,
+     {432, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_quorum_confirm_rounds_)}},
+    // uint64 leader_noop_appended = 23;
+    {::_pbi::TcParser::FastV64S2,
+     {440, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.leader_noop_appended_)}},
+    // uint64 leader_noop_committed = 24;
+    {::_pbi::TcParser::FastV64S2,
+     {448, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.leader_noop_committed_)}},
+    // uint64 pre_vote_sent = 25;
+    {::_pbi::TcParser::FastV64S2,
+     {456, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_sent_)}},
+    // uint64 pre_vote_granted = 26;
+    {::_pbi::TcParser::FastV64S2,
+     {464, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_granted_)}},
+    // uint64 pre_vote_rejected = 27;
+    {::_pbi::TcParser::FastV64S2,
+     {472, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_rejected_)}},
+    // uint64 check_quorum_stepdown_count = 28;
+    {::_pbi::TcParser::FastV64S2,
+     {480, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_stepdown_count_)}},
+    // uint64 check_quorum_rounds = 29;
+    {::_pbi::TcParser::FastV64S2,
+     {488, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_rounds_)}},
+    // uint64 check_quorum_success = 30;
+    {::_pbi::TcParser::FastV64S2,
+     {496, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_success_)}},
+    // uint64 check_quorum_failed = 31;
+    {::_pbi::TcParser::FastV64S2,
+     {504, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_failed_)}},
+  }}, {{
+    33, 0, 1,
+    65408, 32,
+    65535, 65535
+  }}, {{
+    // uint64 election_count = 1;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.election_count_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 leader_change_count = 2;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.leader_change_count_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_sent = 3;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_sent_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_success = 4;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_success_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_failed = 5;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_failed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 request_vote_sent = 6;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.request_vote_sent_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 request_vote_granted = 7;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.request_vote_granted_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 request_vote_rejected = 8;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.request_vote_rejected_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 install_snapshot_sent = 9;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.install_snapshot_sent_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 install_snapshot_success = 10;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.install_snapshot_success_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 install_snapshot_failed = 11;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.install_snapshot_failed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 snapshot_created_count = 12;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.snapshot_created_count_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 wal_recovery_truncated_tail_count = 13;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.wal_recovery_truncated_tail_count_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 client_request_total = 14;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.client_request_total_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 client_request_success = 15;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.client_request_success_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 client_request_failed = 16;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.client_request_failed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_log_total = 17;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_log_total_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_index_total = 18;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_total_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_index_success = 19;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_success_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_index_failed = 20;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_failed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_index_timeout = 21;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_timeout_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 read_index_quorum_confirm_rounds = 22;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.read_index_quorum_confirm_rounds_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 leader_noop_appended = 23;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.leader_noop_appended_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 leader_noop_committed = 24;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.leader_noop_committed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 pre_vote_sent = 25;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_sent_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 pre_vote_granted = 26;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_granted_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 pre_vote_rejected = 27;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.pre_vote_rejected_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 check_quorum_stepdown_count = 28;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_stepdown_count_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 check_quorum_rounds = 29;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_rounds_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 check_quorum_success = 30;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_success_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 check_quorum_failed = 31;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_failed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_batch_rpc_count = 32;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_batch_rpc_count_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_entries_sent = 33;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_entries_sent_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_empty_heartbeat_count = 34;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_empty_heartbeat_count_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_max_batch_observed = 35;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_max_batch_observed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 follower_catchup_attempts = 36;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.follower_catchup_attempts_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 follower_catchup_success = 37;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.follower_catchup_success_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_stale_response_ignored = 38;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_stale_response_ignored_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_inflight_rejected = 39;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_inflight_rejected_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+
+::uint8_t* MetricsStatus::_InternalSerialize(
+    ::uint8_t* target,
+    ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:MetricsStatus)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // uint64 election_count = 1;
+  if (this->_internal_election_count() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        1, this->_internal_election_count(), target);
+  }
+
+  // uint64 leader_change_count = 2;
+  if (this->_internal_leader_change_count() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        2, this->_internal_leader_change_count(), target);
+  }
+
+  // uint64 append_entries_sent = 3;
+  if (this->_internal_append_entries_sent() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        3, this->_internal_append_entries_sent(), target);
+  }
+
+  // uint64 append_entries_success = 4;
+  if (this->_internal_append_entries_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        4, this->_internal_append_entries_success(), target);
+  }
+
+  // uint64 append_entries_failed = 5;
+  if (this->_internal_append_entries_failed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        5, this->_internal_append_entries_failed(), target);
+  }
+
+  // uint64 request_vote_sent = 6;
+  if (this->_internal_request_vote_sent() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        6, this->_internal_request_vote_sent(), target);
+  }
+
+  // uint64 request_vote_granted = 7;
+  if (this->_internal_request_vote_granted() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        7, this->_internal_request_vote_granted(), target);
+  }
+
+  // uint64 request_vote_rejected = 8;
+  if (this->_internal_request_vote_rejected() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        8, this->_internal_request_vote_rejected(), target);
+  }
+
+  // uint64 install_snapshot_sent = 9;
+  if (this->_internal_install_snapshot_sent() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        9, this->_internal_install_snapshot_sent(), target);
+  }
+
+  // uint64 install_snapshot_success = 10;
+  if (this->_internal_install_snapshot_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        10, this->_internal_install_snapshot_success(), target);
+  }
+
+  // uint64 install_snapshot_failed = 11;
+  if (this->_internal_install_snapshot_failed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        11, this->_internal_install_snapshot_failed(), target);
+  }
+
+  // uint64 snapshot_created_count = 12;
+  if (this->_internal_snapshot_created_count() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        12, this->_internal_snapshot_created_count(), target);
+  }
+
+  // uint64 wal_recovery_truncated_tail_count = 13;
+  if (this->_internal_wal_recovery_truncated_tail_count() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        13, this->_internal_wal_recovery_truncated_tail_count(), target);
+  }
+
+  // uint64 client_request_total = 14;
+  if (this->_internal_client_request_total() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        14, this->_internal_client_request_total(), target);
+  }
+
+  // uint64 client_request_success = 15;
+  if (this->_internal_client_request_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        15, this->_internal_client_request_success(), target);
+  }
+
+  // uint64 client_request_failed = 16;
+  if (this->_internal_client_request_failed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        16, this->_internal_client_request_failed(), target);
+  }
+
+  // uint64 read_log_total = 17;
+  if (this->_internal_read_log_total() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        17, this->_internal_read_log_total(), target);
+  }
+
+  // uint64 read_index_total = 18;
+  if (this->_internal_read_index_total() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        18, this->_internal_read_index_total(), target);
+  }
+
+  // uint64 read_index_success = 19;
+  if (this->_internal_read_index_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        19, this->_internal_read_index_success(), target);
+  }
+
+  // uint64 read_index_failed = 20;
+  if (this->_internal_read_index_failed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        20, this->_internal_read_index_failed(), target);
+  }
+
+  // uint64 read_index_timeout = 21;
+  if (this->_internal_read_index_timeout() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        21, this->_internal_read_index_timeout(), target);
+  }
+
+  // uint64 read_index_quorum_confirm_rounds = 22;
+  if (this->_internal_read_index_quorum_confirm_rounds() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        22, this->_internal_read_index_quorum_confirm_rounds(), target);
+  }
+
+  // uint64 leader_noop_appended = 23;
+  if (this->_internal_leader_noop_appended() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        23, this->_internal_leader_noop_appended(), target);
+  }
+
+  // uint64 leader_noop_committed = 24;
+  if (this->_internal_leader_noop_committed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        24, this->_internal_leader_noop_committed(), target);
+  }
+
+  // uint64 pre_vote_sent = 25;
+  if (this->_internal_pre_vote_sent() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        25, this->_internal_pre_vote_sent(), target);
+  }
+
+  // uint64 pre_vote_granted = 26;
+  if (this->_internal_pre_vote_granted() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        26, this->_internal_pre_vote_granted(), target);
+  }
+
+  // uint64 pre_vote_rejected = 27;
+  if (this->_internal_pre_vote_rejected() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        27, this->_internal_pre_vote_rejected(), target);
+  }
+
+  // uint64 check_quorum_stepdown_count = 28;
+  if (this->_internal_check_quorum_stepdown_count() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        28, this->_internal_check_quorum_stepdown_count(), target);
+  }
+
+  // uint64 check_quorum_rounds = 29;
+  if (this->_internal_check_quorum_rounds() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        29, this->_internal_check_quorum_rounds(), target);
+  }
+
+  // uint64 check_quorum_success = 30;
+  if (this->_internal_check_quorum_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        30, this->_internal_check_quorum_success(), target);
+  }
+
+  // uint64 check_quorum_failed = 31;
+  if (this->_internal_check_quorum_failed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        31, this->_internal_check_quorum_failed(), target);
+  }
+
+  // uint64 append_entries_batch_rpc_count = 32;
+  if (this->_internal_append_entries_batch_rpc_count() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        32, this->_internal_append_entries_batch_rpc_count(), target);
+  }
+
+  // uint64 append_entries_entries_sent = 33;
+  if (this->_internal_append_entries_entries_sent() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        33, this->_internal_append_entries_entries_sent(), target);
+  }
+
+  // uint64 append_entries_empty_heartbeat_count = 34;
+  if (this->_internal_append_entries_empty_heartbeat_count() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        34, this->_internal_append_entries_empty_heartbeat_count(), target);
+  }
+
+  // uint64 append_entries_max_batch_observed = 35;
+  if (this->_internal_append_entries_max_batch_observed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        35, this->_internal_append_entries_max_batch_observed(), target);
+  }
+
+  // uint64 follower_catchup_attempts = 36;
+  if (this->_internal_follower_catchup_attempts() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        36, this->_internal_follower_catchup_attempts(), target);
+  }
+
+  // uint64 follower_catchup_success = 37;
+  if (this->_internal_follower_catchup_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        37, this->_internal_follower_catchup_success(), target);
+  }
+
+  // uint64 append_entries_stale_response_ignored = 38;
+  if (this->_internal_append_entries_stale_response_ignored() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        38, this->_internal_append_entries_stale_response_ignored(), target);
+  }
+
+  // uint64 append_entries_inflight_rejected = 39;
+  if (this->_internal_append_entries_inflight_rejected() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        39, this->_internal_append_entries_inflight_rejected(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:MetricsStatus)
+  return target;
+}
+
+::size_t MetricsStatus::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:MetricsStatus)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint64 election_count = 1;
+  if (this->_internal_election_count() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_election_count());
+  }
+
+  // uint64 leader_change_count = 2;
+  if (this->_internal_leader_change_count() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_leader_change_count());
+  }
+
+  // uint64 append_entries_sent = 3;
+  if (this->_internal_append_entries_sent() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_append_entries_sent());
+  }
+
+  // uint64 append_entries_success = 4;
+  if (this->_internal_append_entries_success() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_append_entries_success());
+  }
+
+  // uint64 append_entries_failed = 5;
+  if (this->_internal_append_entries_failed() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_append_entries_failed());
+  }
+
+  // uint64 request_vote_sent = 6;
+  if (this->_internal_request_vote_sent() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_request_vote_sent());
+  }
+
+  // uint64 request_vote_granted = 7;
+  if (this->_internal_request_vote_granted() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_request_vote_granted());
+  }
+
+  // uint64 request_vote_rejected = 8;
+  if (this->_internal_request_vote_rejected() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_request_vote_rejected());
+  }
+
+  // uint64 install_snapshot_sent = 9;
+  if (this->_internal_install_snapshot_sent() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_install_snapshot_sent());
+  }
+
+  // uint64 install_snapshot_success = 10;
+  if (this->_internal_install_snapshot_success() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_install_snapshot_success());
+  }
+
+  // uint64 install_snapshot_failed = 11;
+  if (this->_internal_install_snapshot_failed() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_install_snapshot_failed());
+  }
+
+  // uint64 snapshot_created_count = 12;
+  if (this->_internal_snapshot_created_count() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_snapshot_created_count());
+  }
+
+  // uint64 wal_recovery_truncated_tail_count = 13;
+  if (this->_internal_wal_recovery_truncated_tail_count() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_wal_recovery_truncated_tail_count());
+  }
+
+  // uint64 client_request_total = 14;
+  if (this->_internal_client_request_total() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_client_request_total());
+  }
+
+  // uint64 client_request_success = 15;
+  if (this->_internal_client_request_success() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_client_request_success());
+  }
+
+  // uint64 client_request_failed = 16;
+  if (this->_internal_client_request_failed() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_client_request_failed());
+  }
+
+  // uint64 read_log_total = 17;
+  if (this->_internal_read_log_total() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_log_total());
+  }
+
+  // uint64 read_index_total = 18;
+  if (this->_internal_read_index_total() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_index_total());
+  }
+
+  // uint64 read_index_success = 19;
+  if (this->_internal_read_index_success() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_index_success());
+  }
+
+  // uint64 read_index_failed = 20;
+  if (this->_internal_read_index_failed() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_index_failed());
+  }
+
+  // uint64 read_index_timeout = 21;
+  if (this->_internal_read_index_timeout() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_index_timeout());
+  }
+
+  // uint64 read_index_quorum_confirm_rounds = 22;
+  if (this->_internal_read_index_quorum_confirm_rounds() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_read_index_quorum_confirm_rounds());
+  }
+
+  // uint64 leader_noop_appended = 23;
+  if (this->_internal_leader_noop_appended() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_leader_noop_appended());
+  }
+
+  // uint64 leader_noop_committed = 24;
+  if (this->_internal_leader_noop_committed() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_leader_noop_committed());
+  }
+
+  // uint64 pre_vote_sent = 25;
+  if (this->_internal_pre_vote_sent() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_pre_vote_sent());
+  }
+
+  // uint64 pre_vote_granted = 26;
+  if (this->_internal_pre_vote_granted() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_pre_vote_granted());
+  }
+
+  // uint64 pre_vote_rejected = 27;
+  if (this->_internal_pre_vote_rejected() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_pre_vote_rejected());
+  }
+
+  // uint64 check_quorum_stepdown_count = 28;
+  if (this->_internal_check_quorum_stepdown_count() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_check_quorum_stepdown_count());
+  }
+
+  // uint64 check_quorum_rounds = 29;
+  if (this->_internal_check_quorum_rounds() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_check_quorum_rounds());
+  }
+
+  // uint64 check_quorum_success = 30;
+  if (this->_internal_check_quorum_success() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_check_quorum_success());
+  }
+
+  // uint64 check_quorum_failed = 31;
+  if (this->_internal_check_quorum_failed() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_check_quorum_failed());
+  }
+
+  // uint64 append_entries_batch_rpc_count = 32;
+  if (this->_internal_append_entries_batch_rpc_count() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_batch_rpc_count());
+  }
+
+  // uint64 append_entries_entries_sent = 33;
+  if (this->_internal_append_entries_entries_sent() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_entries_sent());
+  }
+
+  // uint64 append_entries_empty_heartbeat_count = 34;
+  if (this->_internal_append_entries_empty_heartbeat_count() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_empty_heartbeat_count());
+  }
+
+  // uint64 append_entries_max_batch_observed = 35;
+  if (this->_internal_append_entries_max_batch_observed() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_max_batch_observed());
+  }
+
+  // uint64 follower_catchup_attempts = 36;
+  if (this->_internal_follower_catchup_attempts() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_follower_catchup_attempts());
+  }
+
+  // uint64 follower_catchup_success = 37;
+  if (this->_internal_follower_catchup_success() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_follower_catchup_success());
+  }
+
+  // uint64 append_entries_stale_response_ignored = 38;
+  if (this->_internal_append_entries_stale_response_ignored() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_stale_response_ignored());
+  }
+
+  // uint64 append_entries_inflight_rejected = 39;
+  if (this->_internal_append_entries_inflight_rejected() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_inflight_rejected());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::google::protobuf::Message::ClassData MetricsStatus::_class_data_ = {
+    MetricsStatus::MergeImpl,
+    nullptr,  // OnDemandRegisterArenaDtor
+};
+const ::google::protobuf::Message::ClassData* MetricsStatus::GetClassData() const {
+  return &_class_data_;
+}
+
+void MetricsStatus::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
+  auto* const _this = static_cast<MetricsStatus*>(&to_msg);
+  auto& from = static_cast<const MetricsStatus&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:MetricsStatus)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_election_count() != 0) {
+    _this->_internal_set_election_count(from._internal_election_count());
+  }
+  if (from._internal_leader_change_count() != 0) {
+    _this->_internal_set_leader_change_count(from._internal_leader_change_count());
+  }
+  if (from._internal_append_entries_sent() != 0) {
+    _this->_internal_set_append_entries_sent(from._internal_append_entries_sent());
+  }
+  if (from._internal_append_entries_success() != 0) {
+    _this->_internal_set_append_entries_success(from._internal_append_entries_success());
+  }
+  if (from._internal_append_entries_failed() != 0) {
+    _this->_internal_set_append_entries_failed(from._internal_append_entries_failed());
+  }
+  if (from._internal_request_vote_sent() != 0) {
+    _this->_internal_set_request_vote_sent(from._internal_request_vote_sent());
+  }
+  if (from._internal_request_vote_granted() != 0) {
+    _this->_internal_set_request_vote_granted(from._internal_request_vote_granted());
+  }
+  if (from._internal_request_vote_rejected() != 0) {
+    _this->_internal_set_request_vote_rejected(from._internal_request_vote_rejected());
+  }
+  if (from._internal_install_snapshot_sent() != 0) {
+    _this->_internal_set_install_snapshot_sent(from._internal_install_snapshot_sent());
+  }
+  if (from._internal_install_snapshot_success() != 0) {
+    _this->_internal_set_install_snapshot_success(from._internal_install_snapshot_success());
+  }
+  if (from._internal_install_snapshot_failed() != 0) {
+    _this->_internal_set_install_snapshot_failed(from._internal_install_snapshot_failed());
+  }
+  if (from._internal_snapshot_created_count() != 0) {
+    _this->_internal_set_snapshot_created_count(from._internal_snapshot_created_count());
+  }
+  if (from._internal_wal_recovery_truncated_tail_count() != 0) {
+    _this->_internal_set_wal_recovery_truncated_tail_count(from._internal_wal_recovery_truncated_tail_count());
+  }
+  if (from._internal_client_request_total() != 0) {
+    _this->_internal_set_client_request_total(from._internal_client_request_total());
+  }
+  if (from._internal_client_request_success() != 0) {
+    _this->_internal_set_client_request_success(from._internal_client_request_success());
+  }
+  if (from._internal_client_request_failed() != 0) {
+    _this->_internal_set_client_request_failed(from._internal_client_request_failed());
+  }
+  if (from._internal_read_log_total() != 0) {
+    _this->_internal_set_read_log_total(from._internal_read_log_total());
+  }
+  if (from._internal_read_index_total() != 0) {
+    _this->_internal_set_read_index_total(from._internal_read_index_total());
+  }
+  if (from._internal_read_index_success() != 0) {
+    _this->_internal_set_read_index_success(from._internal_read_index_success());
+  }
+  if (from._internal_read_index_failed() != 0) {
+    _this->_internal_set_read_index_failed(from._internal_read_index_failed());
+  }
+  if (from._internal_read_index_timeout() != 0) {
+    _this->_internal_set_read_index_timeout(from._internal_read_index_timeout());
+  }
+  if (from._internal_read_index_quorum_confirm_rounds() != 0) {
+    _this->_internal_set_read_index_quorum_confirm_rounds(from._internal_read_index_quorum_confirm_rounds());
+  }
+  if (from._internal_leader_noop_appended() != 0) {
+    _this->_internal_set_leader_noop_appended(from._internal_leader_noop_appended());
+  }
+  if (from._internal_leader_noop_committed() != 0) {
+    _this->_internal_set_leader_noop_committed(from._internal_leader_noop_committed());
+  }
+  if (from._internal_pre_vote_sent() != 0) {
+    _this->_internal_set_pre_vote_sent(from._internal_pre_vote_sent());
+  }
+  if (from._internal_pre_vote_granted() != 0) {
+    _this->_internal_set_pre_vote_granted(from._internal_pre_vote_granted());
+  }
+  if (from._internal_pre_vote_rejected() != 0) {
+    _this->_internal_set_pre_vote_rejected(from._internal_pre_vote_rejected());
+  }
+  if (from._internal_check_quorum_stepdown_count() != 0) {
+    _this->_internal_set_check_quorum_stepdown_count(from._internal_check_quorum_stepdown_count());
+  }
+  if (from._internal_check_quorum_rounds() != 0) {
+    _this->_internal_set_check_quorum_rounds(from._internal_check_quorum_rounds());
+  }
+  if (from._internal_check_quorum_success() != 0) {
+    _this->_internal_set_check_quorum_success(from._internal_check_quorum_success());
+  }
+  if (from._internal_check_quorum_failed() != 0) {
+    _this->_internal_set_check_quorum_failed(from._internal_check_quorum_failed());
+  }
+  if (from._internal_append_entries_batch_rpc_count() != 0) {
+    _this->_internal_set_append_entries_batch_rpc_count(from._internal_append_entries_batch_rpc_count());
+  }
+  if (from._internal_append_entries_entries_sent() != 0) {
+    _this->_internal_set_append_entries_entries_sent(from._internal_append_entries_entries_sent());
+  }
+  if (from._internal_append_entries_empty_heartbeat_count() != 0) {
+    _this->_internal_set_append_entries_empty_heartbeat_count(from._internal_append_entries_empty_heartbeat_count());
+  }
+  if (from._internal_append_entries_max_batch_observed() != 0) {
+    _this->_internal_set_append_entries_max_batch_observed(from._internal_append_entries_max_batch_observed());
+  }
+  if (from._internal_follower_catchup_attempts() != 0) {
+    _this->_internal_set_follower_catchup_attempts(from._internal_follower_catchup_attempts());
+  }
+  if (from._internal_follower_catchup_success() != 0) {
+    _this->_internal_set_follower_catchup_success(from._internal_follower_catchup_success());
+  }
+  if (from._internal_append_entries_stale_response_ignored() != 0) {
+    _this->_internal_set_append_entries_stale_response_ignored(from._internal_append_entries_stale_response_ignored());
+  }
+  if (from._internal_append_entries_inflight_rejected() != 0) {
+    _this->_internal_set_append_entries_inflight_rejected(from._internal_append_entries_inflight_rejected());
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void MetricsStatus::CopyFrom(const MetricsStatus& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:MetricsStatus)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+PROTOBUF_NOINLINE bool MetricsStatus::IsInitialized() const {
+  return true;
+}
+
+::_pbi::CachedSize* MetricsStatus::AccessCachedSize() const {
+  return &_impl_._cached_size_;
+}
+void MetricsStatus::InternalSwap(MetricsStatus* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_inflight_rejected_)
+      + sizeof(MetricsStatus::_impl_.append_entries_inflight_rejected_)
+      - PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.election_count_)>(
+          reinterpret_cast<char*>(&_impl_.election_count_),
+          reinterpret_cast<char*>(&other->_impl_.election_count_));
+}
+
+::google::protobuf::Metadata MetricsStatus::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_raft_2eproto_getter, &descriptor_table_raft_2eproto_once,
+      file_level_metadata_raft_2eproto[12]);
+}
+// ===================================================================
+
+class NodeStatusReply::_Internal {
+ public:
+  using HasBits = decltype(std::declval<NodeStatusReply>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+    8 * PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_._has_bits_);
+  static const ::MetricsStatus& metrics(const NodeStatusReply* msg);
+  static void set_has_metrics(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
+
+const ::MetricsStatus& NodeStatusReply::_Internal::metrics(const NodeStatusReply* msg) {
+  return *msg->_impl_.metrics_;
+}
+NodeStatusReply::NodeStatusReply(::google::protobuf::Arena* arena)
+    : ::google::protobuf::Message(arena) {
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:NodeStatusReply)
+}
+inline PROTOBUF_NDEBUG_INLINE NodeStatusReply::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        role_(arena, from.role_) {}
+
+NodeStatusReply::NodeStatusReply(
+    ::google::protobuf::Arena* arena,
+    const NodeStatusReply& from)
+    : ::google::protobuf::Message(arena) {
+  NodeStatusReply* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.metrics_ = (cached_has_bits & 0x00000001u)
+                ? CreateMaybeMessage<::MetricsStatus>(arena, *from._impl_.metrics_)
+                : nullptr;
+  ::memcpy(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, node_id_),
+           reinterpret_cast<const char *>(&from._impl_) +
+               offsetof(Impl_, node_id_),
+           offsetof(Impl_, wal_bytes_) -
+               offsetof(Impl_, node_id_) +
+               sizeof(Impl_::wal_bytes_));
+
+  // @@protoc_insertion_point(copy_constructor:NodeStatusReply)
+}
+inline PROTOBUF_NDEBUG_INLINE NodeStatusReply::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : _cached_size_{0},
+        role_(arena) {}
+
+inline void NodeStatusReply::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, metrics_),
+           0,
+           offsetof(Impl_, wal_bytes_) -
+               offsetof(Impl_, metrics_) +
+               sizeof(Impl_::wal_bytes_));
+}
+NodeStatusReply::~NodeStatusReply() {
+  // @@protoc_insertion_point(destructor:NodeStatusReply)
+  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  SharedDtor();
+}
+inline void NodeStatusReply::SharedDtor() {
+  ABSL_DCHECK(GetArena() == nullptr);
+  _impl_.role_.Destroy();
+  delete _impl_.metrics_;
+  _impl_.~Impl_();
+}
+
+PROTOBUF_NOINLINE void NodeStatusReply::Clear() {
+// @@protoc_insertion_point(message_clear_start:NodeStatusReply)
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.role_.ClearToEmpty();
+  cached_has_bits = _impl_._has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    ABSL_DCHECK(_impl_.metrics_ != nullptr);
+    _impl_.metrics_->Clear();
+  }
+  ::memset(&_impl_.node_id_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.wal_bytes_) -
+      reinterpret_cast<char*>(&_impl_.node_id_)) + sizeof(_impl_.wal_bytes_));
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+const char* NodeStatusReply::_InternalParse(
+    const char* ptr, ::_pbi::ParseContext* ctx) {
+  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+  return ptr;
+}
+
+
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 12, 1, 36, 2> NodeStatusReply::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_._has_bits_),
+    0, // no _extensions_
+    12, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294963200,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    12,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    &_NodeStatusReply_default_instance_._instance,
+    ::_pbi::TcParser::GenericFallback,  // fallback
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // int32 node_id = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(NodeStatusReply, _impl_.node_id_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.node_id_)}},
+    // string role = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.role_)}},
+    // int32 current_term = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(NodeStatusReply, _impl_.current_term_), 63>(),
+     {24, 63, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.current_term_)}},
+    // int32 leader_id = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(NodeStatusReply, _impl_.leader_id_), 63>(),
+     {32, 63, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.leader_id_)}},
+    // int32 commit_index = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(NodeStatusReply, _impl_.commit_index_), 63>(),
+     {40, 63, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.commit_index_)}},
+    // int32 last_applied = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(NodeStatusReply, _impl_.last_applied_), 63>(),
+     {48, 63, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.last_applied_)}},
+    // int32 last_log_index = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(NodeStatusReply, _impl_.last_log_index_), 63>(),
+     {56, 63, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.last_log_index_)}},
+    // int32 snapshot_index = 8;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(NodeStatusReply, _impl_.snapshot_index_), 63>(),
+     {64, 63, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.snapshot_index_)}},
+    // int32 snapshot_term = 9;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(NodeStatusReply, _impl_.snapshot_term_), 63>(),
+     {72, 63, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.snapshot_term_)}},
+    // uint64 log_entry_count = 10;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(NodeStatusReply, _impl_.log_entry_count_), 63>(),
+     {80, 63, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.log_entry_count_)}},
+    // uint64 wal_bytes = 11;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(NodeStatusReply, _impl_.wal_bytes_), 63>(),
+     {88, 63, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.wal_bytes_)}},
+    // .MetricsStatus metrics = 12;
+    {::_pbi::TcParser::FastMtS1,
+     {98, 0, 0, PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.metrics_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // int32 node_id = 1;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.node_id_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // string role = 2;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.role_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int32 current_term = 3;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.current_term_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // int32 leader_id = 4;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.leader_id_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // int32 commit_index = 5;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.commit_index_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // int32 last_applied = 6;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.last_applied_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // int32 last_log_index = 7;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.last_log_index_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // int32 snapshot_index = 8;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.snapshot_index_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // int32 snapshot_term = 9;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.snapshot_term_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // uint64 log_entry_count = 10;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.log_entry_count_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 wal_bytes = 11;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.wal_bytes_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // .MetricsStatus metrics = 12;
+    {PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.metrics_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+  }}, {{
+    {::_pbi::TcParser::GetTable<::MetricsStatus>()},
+  }}, {{
+    "\17\0\4\0\0\0\0\0\0\0\0\0\0\0\0\0"
+    "NodeStatusReply"
+    "role"
+  }},
+};
+
+::uint8_t* NodeStatusReply::_InternalSerialize(
+    ::uint8_t* target,
+    ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:NodeStatusReply)
+  ::uint32_t cached_has_bits = 0;
+  (void)cached_has_bits;
+
+  // int32 node_id = 1;
+  if (this->_internal_node_id() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::
+        WriteInt32ToArrayWithField<1>(
+            stream, this->_internal_node_id(), target);
+  }
+
+  // string role = 2;
+  if (!this->_internal_role().empty()) {
+    const std::string& _s = this->_internal_role();
+    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+        _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "NodeStatusReply.role");
+    target = stream->WriteStringMaybeAliased(2, _s, target);
+  }
+
+  // int32 current_term = 3;
+  if (this->_internal_current_term() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::
+        WriteInt32ToArrayWithField<3>(
+            stream, this->_internal_current_term(), target);
+  }
+
+  // int32 leader_id = 4;
+  if (this->_internal_leader_id() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::
+        WriteInt32ToArrayWithField<4>(
+            stream, this->_internal_leader_id(), target);
+  }
+
+  // int32 commit_index = 5;
+  if (this->_internal_commit_index() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::
+        WriteInt32ToArrayWithField<5>(
+            stream, this->_internal_commit_index(), target);
+  }
+
+  // int32 last_applied = 6;
+  if (this->_internal_last_applied() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::
+        WriteInt32ToArrayWithField<6>(
+            stream, this->_internal_last_applied(), target);
+  }
+
+  // int32 last_log_index = 7;
+  if (this->_internal_last_log_index() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::
+        WriteInt32ToArrayWithField<7>(
+            stream, this->_internal_last_log_index(), target);
+  }
+
+  // int32 snapshot_index = 8;
+  if (this->_internal_snapshot_index() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::
+        WriteInt32ToArrayWithField<8>(
+            stream, this->_internal_snapshot_index(), target);
+  }
+
+  // int32 snapshot_term = 9;
+  if (this->_internal_snapshot_term() != 0) {
+    target = ::google::protobuf::internal::WireFormatLite::
+        WriteInt32ToArrayWithField<9>(
+            stream, this->_internal_snapshot_term(), target);
+  }
+
+  // uint64 log_entry_count = 10;
+  if (this->_internal_log_entry_count() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        10, this->_internal_log_entry_count(), target);
+  }
+
+  // uint64 wal_bytes = 11;
+  if (this->_internal_wal_bytes() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        11, this->_internal_wal_bytes(), target);
+  }
+
+  cached_has_bits = _impl_._has_bits_[0];
+  // .MetricsStatus metrics = 12;
+  if (cached_has_bits & 0x00000001u) {
+    target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+        12, _Internal::metrics(this),
+        _Internal::metrics(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target =
+        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:NodeStatusReply)
+  return target;
+}
+
+::size_t NodeStatusReply::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:NodeStatusReply)
+  ::size_t total_size = 0;
+
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // string role = 2;
+  if (!this->_internal_role().empty()) {
+    total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                    this->_internal_role());
+  }
+
+  // .MetricsStatus metrics = 12;
+  cached_has_bits = _impl_._has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size +=
+        1 + ::google::protobuf::internal::WireFormatLite::MessageSize(*_impl_.metrics_);
+  }
+
+  // int32 node_id = 1;
+  if (this->_internal_node_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+        this->_internal_node_id());
+  }
+
+  // int32 current_term = 3;
+  if (this->_internal_current_term() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+        this->_internal_current_term());
+  }
+
+  // int32 leader_id = 4;
+  if (this->_internal_leader_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+        this->_internal_leader_id());
+  }
+
+  // int32 commit_index = 5;
+  if (this->_internal_commit_index() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+        this->_internal_commit_index());
+  }
+
+  // int32 last_applied = 6;
+  if (this->_internal_last_applied() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+        this->_internal_last_applied());
+  }
+
+  // int32 last_log_index = 7;
+  if (this->_internal_last_log_index() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+        this->_internal_last_log_index());
+  }
+
+  // int32 snapshot_index = 8;
+  if (this->_internal_snapshot_index() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+        this->_internal_snapshot_index());
+  }
+
+  // int32 snapshot_term = 9;
+  if (this->_internal_snapshot_term() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+        this->_internal_snapshot_term());
+  }
+
+  // uint64 log_entry_count = 10;
+  if (this->_internal_log_entry_count() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_log_entry_count());
+  }
+
+  // uint64 wal_bytes = 11;
+  if (this->_internal_wal_bytes() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+        this->_internal_wal_bytes());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::google::protobuf::Message::ClassData NodeStatusReply::_class_data_ = {
+    NodeStatusReply::MergeImpl,
+    nullptr,  // OnDemandRegisterArenaDtor
+};
+const ::google::protobuf::Message::ClassData* NodeStatusReply::GetClassData() const {
+  return &_class_data_;
+}
+
+void NodeStatusReply::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
+  auto* const _this = static_cast<NodeStatusReply*>(&to_msg);
+  auto& from = static_cast<const NodeStatusReply&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:NodeStatusReply)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_role().empty()) {
+    _this->_internal_set_role(from._internal_role());
+  }
+  if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
+    _this->_internal_mutable_metrics()->::MetricsStatus::MergeFrom(
+        from._internal_metrics());
+  }
+  if (from._internal_node_id() != 0) {
+    _this->_internal_set_node_id(from._internal_node_id());
+  }
+  if (from._internal_current_term() != 0) {
+    _this->_internal_set_current_term(from._internal_current_term());
+  }
+  if (from._internal_leader_id() != 0) {
+    _this->_internal_set_leader_id(from._internal_leader_id());
+  }
+  if (from._internal_commit_index() != 0) {
+    _this->_internal_set_commit_index(from._internal_commit_index());
+  }
+  if (from._internal_last_applied() != 0) {
+    _this->_internal_set_last_applied(from._internal_last_applied());
+  }
+  if (from._internal_last_log_index() != 0) {
+    _this->_internal_set_last_log_index(from._internal_last_log_index());
+  }
+  if (from._internal_snapshot_index() != 0) {
+    _this->_internal_set_snapshot_index(from._internal_snapshot_index());
+  }
+  if (from._internal_snapshot_term() != 0) {
+    _this->_internal_set_snapshot_term(from._internal_snapshot_term());
+  }
+  if (from._internal_log_entry_count() != 0) {
+    _this->_internal_set_log_entry_count(from._internal_log_entry_count());
+  }
+  if (from._internal_wal_bytes() != 0) {
+    _this->_internal_set_wal_bytes(from._internal_wal_bytes());
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void NodeStatusReply::CopyFrom(const NodeStatusReply& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:NodeStatusReply)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+PROTOBUF_NOINLINE bool NodeStatusReply::IsInitialized() const {
+  return true;
+}
+
+::_pbi::CachedSize* NodeStatusReply::AccessCachedSize() const {
+  return &_impl_._cached_size_;
+}
+void NodeStatusReply::InternalSwap(NodeStatusReply* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.role_, &other->_impl_.role_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.wal_bytes_)
+      + sizeof(NodeStatusReply::_impl_.wal_bytes_)
+      - PROTOBUF_FIELD_OFFSET(NodeStatusReply, _impl_.metrics_)>(
+          reinterpret_cast<char*>(&_impl_.metrics_),
+          reinterpret_cast<char*>(&other->_impl_.metrics_));
+}
+
+::google::protobuf::Metadata NodeStatusReply::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_raft_2eproto_getter, &descriptor_table_raft_2eproto_once,
+      file_level_metadata_raft_2eproto[13]);
 }
 // @@protoc_insertion_point(namespace_scope)
 namespace google {

@@ -2,6 +2,8 @@
 #include <iostream>
 
 #include "kv/kv_command.h"
+#include "raft/raft_correctness.h"
+#include "raft/raft_log_entry.h"
 #include "storage/wal.h"
 
 int main() {
@@ -22,6 +24,164 @@ int main() {
     assert(restored.index == 10);
     assert(restored.term == 3);
     assert(restored.command == encoded);
+
+    std::string noop = craft::MakeInternalNoopCommand();
+    assert(craft::IsInternalNoopCommand(noop));
+    assert(!craft::IsInternalNoopCommand(encoded));
+    craftkv::ClientRequest noop_as_client;
+    assert(!craftkv::DeserializeClientRequest(noop, &noop_as_client, &error));
+
+    craftkv::storage::RaftLogRecord noop_log{11, 4, noop};
+    std::string noop_payload = craftkv::storage::EncodeLogRecordPayload(noop_log);
+    craftkv::storage::RaftLogRecord noop_restored;
+    assert(craftkv::storage::DecodeLogRecordPayload(noop_payload, &noop_restored));
+    assert(noop_restored.index == 11);
+    assert(noop_restored.term == 4);
+    assert(craft::IsInternalNoopCommand(noop_restored.command));
+
+    std::vector<int> next_index;
+    std::vector<int> match_index;
+    assert(craft::raft_correctness::InitializeLeaderReplicationState(3, 1, 10, &next_index, &match_index));
+    assert(next_index.size() == 3);
+    assert(match_index.size() == 3);
+    assert(next_index[0] == 11);
+    assert(next_index[1] == 11);
+    assert(next_index[2] == 11);
+    assert(match_index[0] == 0);
+    assert(match_index[1] == 10);
+    assert(match_index[2] == 0);
+
+    int leader_id = -1;
+    assert(craft::raft_correctness::PrepareLeaderTransition(3, 1, 10, &leader_id,
+                                                            &next_index, &match_index));
+    assert(leader_id == 1);
+    assert(next_index.size() == 3);
+    assert(match_index.size() == 3);
+    assert(next_index[0] == 11);
+    assert(next_index[1] == 11);
+    assert(next_index[2] == 11);
+    assert(match_index[0] == 0);
+    assert(match_index[1] == 10);
+    assert(match_index[2] == 0);
+
+    leader_id = -1;
+    next_index = {7, 8};
+    match_index = {9, 10};
+    assert(!craft::raft_correctness::PrepareLeaderTransition(3, 3, 10, &leader_id,
+                                                             &next_index, &match_index));
+    assert(leader_id == -1);
+    assert(next_index.size() == 2);
+    assert(match_index.size() == 2);
+    assert(next_index[0] == 7);
+    assert(next_index[1] == 8);
+    assert(match_index[0] == 9);
+    assert(match_index[1] == 10);
+
+    assert(!craft::raft_correctness::IsValidPeerIndex(-1, 3));
+    assert(craft::raft_correctness::IsValidPeerIndex(0, 3));
+    assert(craft::raft_correctness::IsValidPeerIndex(2, 3));
+    assert(!craft::raft_correctness::IsValidPeerIndex(3, 3));
+    assert(!craft::raft_correctness::IsValidPeerIndex(4, 3));
+    int peer_count = 3;
+    int invalid_candidate_negative = -1;
+    int invalid_candidate_at_count = peer_count;
+    int invalid_candidate_past_count = peer_count + 1;
+    int invalid_leader_negative = -1;
+    int invalid_leader_at_count = peer_count;
+    int invalid_leader_past_count = peer_count + 1;
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_candidate_negative, peer_count));
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_candidate_at_count, peer_count));
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_candidate_past_count, peer_count));
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_leader_negative, peer_count));
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_leader_at_count, peer_count));
+    assert(!craft::raft_correctness::IsValidPeerIndex(invalid_leader_past_count, peer_count));
+    assert(!craft::raft_correctness::IsRemotePeerIndex(1, 1, 3));
+    assert(craft::raft_correctness::IsRemotePeerIndex(2, 1, 3));
+    assert(!craft::raft_correctness::InitializeLeaderReplicationState(3, 3, 10, &next_index, &match_index));
+    std::vector<std::string> peer_addresses{"node0", "node1", "node2"};
+    assert(craft::raft_correctness::PeerAddressForLog(1, peer_addresses) == "node1");
+    assert(craft::raft_correctness::PeerAddressForLog(-1, peer_addresses) == "<invalid-peer>");
+    assert(craft::raft_correctness::PeerAddressForLog(3, peer_addresses) == "<invalid-peer>");
+    assert(craft::raft_correctness::PeerAddressForLog(4, peer_addresses) == "<invalid-peer>");
+
+    int current_term = 2;
+    int voted_for = 1;
+    assert(craft::raft_correctness::ApplyRequestVoteTerm(5, &current_term, &voted_for));
+    assert(current_term == 5);
+    assert(voted_for == -1);
+    int response_term = current_term;
+    assert(response_term == 5);
+    assert(!craft::raft_correctness::ApplyRequestVoteTerm(4, &current_term, &voted_for));
+    assert(current_term == 5);
+    assert(voted_for == -1);
+
+    assert(craft::raft_correctness::IsCandidateLogAtLeastUpToDate(3, 10, 3, 10));
+    assert(craft::raft_correctness::IsCandidateLogAtLeastUpToDate(3, 10, 4, 1));
+    assert(!craft::raft_correctness::IsCandidateLogAtLeastUpToDate(4, 1, 3, 100));
+
+    int pre_vote_term = 5;
+    int pre_vote_voted_for = 2;
+    assert(craft::raft_correctness::ShouldGrantPreVote(
+        pre_vote_term, false, false, 3, 10, 6, 3, 10));
+    assert(!craft::raft_correctness::ShouldGrantPreVote(
+        pre_vote_term, true, false, 3, 10, 6, 3, 10));
+    assert(!craft::raft_correctness::ShouldGrantPreVote(
+        pre_vote_term, false, true, 3, 10, 6, 3, 10));
+    assert(!craft::raft_correctness::ShouldGrantPreVote(
+        pre_vote_term, false, false, 4, 10, 6, 3, 99));
+    assert(pre_vote_term == 5);
+    assert(pre_vote_voted_for == 2);
+
+    assert(craft::raft_correctness::HasRecentQuorum({true, true, false}, 0));
+    assert(craft::raft_correctness::HasRecentQuorum({true, false, true}, 0));
+    assert(!craft::raft_correctness::HasRecentQuorum({true, false, false}, 0));
+
+    assert(craft::raft_correctness::BoundedAppendEntriesCount(5, 20, 4) == 4);
+    assert(craft::raft_correctness::BoundedAppendEntriesCount(5, 7, 64) == 3);
+    assert(craft::raft_correctness::BoundedAppendEntriesCount(8, 7, 64) == 0);
+    assert(craft::raft_correctness::BoundedAppendEntriesCount(5, 7, 0) == 0);
+    assert(craft::raft_correctness::NeedsInstallSnapshot(10, 10));
+    assert(craft::raft_correctness::NeedsInstallSnapshot(9, 10));
+    assert(!craft::raft_correctness::NeedsInstallSnapshot(11, 10));
+
+    std::vector<int> progress_next{11, 11, 11};
+    std::vector<int> progress_match{10, 0, 0};
+    assert(craft::raft_correctness::AdvanceReplicationOnAppendSuccess(
+        1, 10, 4, &progress_next, &progress_match));
+    assert(progress_match[1] == 14);
+    assert(progress_next[1] == 15);
+    assert(!craft::raft_correctness::AdvanceReplicationOnAppendSuccess(
+        1, 10, 0, &progress_next, &progress_match));
+    assert(progress_match[1] == 14);
+    assert(progress_next[1] == 15);
+    assert(!craft::raft_correctness::AdvanceReplicationOnAppendSuccess(
+        1, 10, 2, &progress_next, &progress_match));
+    assert(progress_match[1] == 14);
+    assert(progress_next[1] == 15);
+
+    progress_next[2] = 20;
+    progress_match[2] = 12;
+    assert(craft::raft_correctness::BackoffReplicationOnAppendFailure(
+        2, 15, 5, &progress_next, progress_match));
+    assert(progress_next[2] == 15);
+    assert(!craft::raft_correctness::BackoffReplicationOnAppendFailure(
+        2, 18, 5, &progress_next, progress_match));
+    assert(progress_next[2] == 15);
+    assert(!craft::raft_correctness::BackoffReplicationOnAppendFailure(
+        2, 12, 5, &progress_next, progress_match));
+    assert(progress_next[2] == 15);
+
+    progress_next[2] = 4;
+    progress_match[2] = 0;
+    assert(craft::raft_correctness::AdvanceReplicationOnSnapshotInstall(
+        2, 10, &progress_next, &progress_match));
+    assert(progress_match[2] == 10);
+    assert(progress_next[2] == 11);
+    progress_next[2] = 15;
+    assert(!craft::raft_correctness::AdvanceReplicationOnSnapshotInstall(
+        2, 9, &progress_next, &progress_match));
+    assert(progress_match[2] == 10);
+    assert(progress_next[2] == 15);
 
     std::cout << "test_raft_log passed" << std::endl;
     return 0;

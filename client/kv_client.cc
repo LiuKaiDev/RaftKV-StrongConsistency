@@ -145,7 +145,8 @@ void PrintUsage() {
         << "  kv_client [--servers=a,b,c] delete <key>\n"
         << "  kv_client [--servers=a,b,c] append <key> <value>\n"
         << "  kv_client [--servers=a,b,c] dump\n"
-        << "  kv_client [--servers=a,b,c] leader\n";
+        << "  kv_client [--servers=a,b,c] leader\n"
+        << "  kv_client [--servers=a,b,c] status\n";
 }
 
 }  // namespace
@@ -183,11 +184,12 @@ int main(int argc, char** argv) {
     std::string op = args[0];
     bool local_dump = op == "dump";
     bool leader_query = op == "leader";
+    bool status_query = op == "status";
 
     craftkv::ClientRequest request;
     request.client_id = client_id;
     request.request_id = request_id;
-    if (!local_dump && !leader_query) {
+    if (!local_dump && !leader_query && !status_query) {
         request.op_type = craftkv::KVOpTypeFromString(op);
         if (request.op_type == craftkv::KVOpType::kUnknown) {
             PrintUsage();
@@ -209,7 +211,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    std::string payload = local_dump ? "LOCAL_DUMP" : (leader_query ? "LEADER" : craftkv::SerializeClientRequest(request));
+    std::string payload = local_dump ? "LOCAL_DUMP"
+                          : (leader_query ? "LEADER"
+                                          : (status_query ? "STATUS" : craftkv::SerializeClientRequest(request)));
     std::string last_error;
     int server_index = 0;
     for (int attempt = 0; attempt < retries; ++attempt) {
@@ -229,6 +233,10 @@ int main(int argc, char** argv) {
         }
 
         if (response.error_code == craftkv::KVErrorCode::kNotLeader && !response.leader_addr.empty()) {
+            last_error = "not leader";
+            if (response.leader_id >= 0 || !response.leader_addr.empty()) {
+                last_error += "; leader hint: " + std::to_string(response.leader_id) + " " + response.leader_addr;
+            }
             auto it = std::find(servers.begin(), servers.end(), response.leader_addr);
             if (it == servers.end()) {
                 servers.insert(servers.begin(), response.leader_addr);
@@ -242,6 +250,13 @@ int main(int argc, char** argv) {
         if (leader_query) {
             std::cout << response.leader_id << " " << response.leader_addr << std::endl;
             return 0;
+        }
+        if (status_query) {
+            std::cout << response.value;
+            if (response.value.empty() || response.value.back() != '\n') {
+                std::cout << std::endl;
+            }
+            return response.success ? 0 : 2;
         }
         if (local_dump) {
             std::cout << response.value;

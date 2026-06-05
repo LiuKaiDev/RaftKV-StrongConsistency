@@ -1,0 +1,160 @@
+#pragma once
+
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <string>
+
+namespace craft {
+
+struct RaftMetricsSnapshot {
+    std::uint64_t election_count = 0;
+    std::uint64_t leader_change_count = 0;
+    std::uint64_t append_entries_sent = 0;
+    std::uint64_t append_entries_success = 0;
+    std::uint64_t append_entries_failed = 0;
+    std::uint64_t request_vote_sent = 0;
+    std::uint64_t request_vote_granted = 0;
+    std::uint64_t request_vote_rejected = 0;
+    std::uint64_t install_snapshot_sent = 0;
+    std::uint64_t install_snapshot_success = 0;
+    std::uint64_t install_snapshot_failed = 0;
+    std::uint64_t snapshot_created_count = 0;
+    std::uint64_t wal_recovery_truncated_tail_count = 0;
+    std::uint64_t client_request_total = 0;
+    std::uint64_t client_request_success = 0;
+    std::uint64_t client_request_failed = 0;
+    std::uint64_t read_log_total = 0;
+    std::uint64_t read_index_total = 0;
+    std::uint64_t read_index_success = 0;
+    std::uint64_t read_index_failed = 0;
+    std::uint64_t read_index_timeout = 0;
+    std::uint64_t read_index_quorum_confirm_rounds = 0;
+    std::uint64_t leader_noop_appended = 0;
+    std::uint64_t leader_noop_committed = 0;
+    std::uint64_t pre_vote_sent = 0;
+    std::uint64_t pre_vote_granted = 0;
+    std::uint64_t pre_vote_rejected = 0;
+    std::uint64_t check_quorum_stepdown_count = 0;
+    std::uint64_t check_quorum_rounds = 0;
+    std::uint64_t check_quorum_success = 0;
+    std::uint64_t check_quorum_failed = 0;
+    std::uint64_t append_entries_batch_rpc_count = 0;
+    std::uint64_t append_entries_entries_sent = 0;
+    std::uint64_t append_entries_empty_heartbeat_count = 0;
+    std::uint64_t append_entries_max_batch_observed = 0;
+    std::uint64_t follower_catchup_attempts = 0;
+    std::uint64_t follower_catchup_success = 0;
+    std::uint64_t append_entries_stale_response_ignored = 0;
+    std::uint64_t append_entries_inflight_rejected = 0;
+};
+
+class RaftMetrics {
+public:
+    RaftMetricsSnapshot Snapshot() const;
+
+    void IncrementElection();
+    void IncrementLeaderChange();
+    void IncrementAppendEntriesSent();
+    void IncrementAppendEntriesSuccess();
+    void IncrementAppendEntriesFailed();
+    void IncrementRequestVoteSent();
+    void IncrementRequestVoteGranted();
+    void IncrementRequestVoteRejected();
+    void IncrementInstallSnapshotSent();
+    void IncrementInstallSnapshotSuccess();
+    void IncrementInstallSnapshotFailed();
+    void IncrementSnapshotCreated();
+    void IncrementWalRecoveryTruncatedTail();
+    void AddWalRecoveryTruncatedTail(std::uint64_t count);
+    void IncrementClientRequestTotal();
+    void IncrementClientRequestSuccess();
+    void IncrementClientRequestFailed();
+    void IncrementReadLogTotal();
+    void IncrementReadIndexTotal();
+    void IncrementReadIndexSuccess();
+    void IncrementReadIndexFailed();
+    void IncrementReadIndexTimeout();
+    void IncrementReadIndexQuorumConfirmRounds();
+    void IncrementLeaderNoopAppended();
+    void IncrementLeaderNoopCommitted();
+    void IncrementPreVoteSent();
+    void IncrementPreVoteGranted();
+    void IncrementPreVoteRejected();
+    void IncrementCheckQuorumStepdown();
+    void IncrementCheckQuorumRounds();
+    void IncrementCheckQuorumSuccess();
+    void IncrementCheckQuorumFailed();
+    void IncrementAppendEntriesBatchRpc();
+    void AddAppendEntriesEntriesSent(std::uint64_t count);
+    void IncrementAppendEntriesEmptyHeartbeat();
+    void ObserveAppendEntriesBatchSize(std::uint64_t size);
+    void IncrementFollowerCatchupAttempts();
+    void IncrementFollowerCatchupSuccess();
+    void IncrementAppendEntriesStaleResponseIgnored();
+    void IncrementAppendEntriesInflightRejected();
+
+private:
+    std::atomic<std::uint64_t> election_count_{0};
+    std::atomic<std::uint64_t> leader_change_count_{0};
+    std::atomic<std::uint64_t> append_entries_sent_{0};
+    std::atomic<std::uint64_t> append_entries_success_{0};
+    std::atomic<std::uint64_t> append_entries_failed_{0};
+    std::atomic<std::uint64_t> request_vote_sent_{0};
+    std::atomic<std::uint64_t> request_vote_granted_{0};
+    std::atomic<std::uint64_t> request_vote_rejected_{0};
+    std::atomic<std::uint64_t> install_snapshot_sent_{0};
+    std::atomic<std::uint64_t> install_snapshot_success_{0};
+    std::atomic<std::uint64_t> install_snapshot_failed_{0};
+    std::atomic<std::uint64_t> snapshot_created_count_{0};
+    std::atomic<std::uint64_t> wal_recovery_truncated_tail_count_{0};
+    std::atomic<std::uint64_t> client_request_total_{0};
+    std::atomic<std::uint64_t> client_request_success_{0};
+    std::atomic<std::uint64_t> client_request_failed_{0};
+    std::atomic<std::uint64_t> read_log_total_{0};
+    std::atomic<std::uint64_t> read_index_total_{0};
+    std::atomic<std::uint64_t> read_index_success_{0};
+    std::atomic<std::uint64_t> read_index_failed_{0};
+    std::atomic<std::uint64_t> read_index_timeout_{0};
+    std::atomic<std::uint64_t> read_index_quorum_confirm_rounds_{0};
+    std::atomic<std::uint64_t> leader_noop_appended_{0};
+    std::atomic<std::uint64_t> leader_noop_committed_{0};
+    std::atomic<std::uint64_t> pre_vote_sent_{0};
+    std::atomic<std::uint64_t> pre_vote_granted_{0};
+    std::atomic<std::uint64_t> pre_vote_rejected_{0};
+    std::atomic<std::uint64_t> check_quorum_stepdown_count_{0};
+    std::atomic<std::uint64_t> check_quorum_rounds_{0};
+    std::atomic<std::uint64_t> check_quorum_success_{0};
+    std::atomic<std::uint64_t> check_quorum_failed_{0};
+    std::atomic<std::uint64_t> append_entries_batch_rpc_count_{0};
+    std::atomic<std::uint64_t> append_entries_entries_sent_{0};
+    std::atomic<std::uint64_t> append_entries_empty_heartbeat_count_{0};
+    std::atomic<std::uint64_t> append_entries_max_batch_observed_{0};
+    std::atomic<std::uint64_t> follower_catchup_attempts_{0};
+    std::atomic<std::uint64_t> follower_catchup_success_{0};
+    std::atomic<std::uint64_t> append_entries_stale_response_ignored_{0};
+    std::atomic<std::uint64_t> append_entries_inflight_rejected_{0};
+};
+
+struct RaftStatusSnapshot {
+    int node_id = -1;
+    std::string role = "FOLLOWER";
+    int current_term = 0;
+    int leader_id = -1;
+    int commit_index = 0;
+    int last_applied = 0;
+    int last_log_index = 0;
+    int snapshot_index = 0;
+    int snapshot_term = 0;
+    std::size_t log_entry_count = 0;
+    std::uint64_t wal_bytes = 0;
+    RaftMetricsSnapshot metrics;
+};
+
+std::string RaftRoleCodeToString(int role_code);
+std::string SerializeRaftStatusSnapshot(const RaftStatusSnapshot& snapshot);
+bool DeserializeRaftStatusSnapshot(const std::string& data,
+                                   RaftStatusSnapshot* snapshot,
+                                   std::string* error_msg = nullptr);
+
+}  // namespace craft
