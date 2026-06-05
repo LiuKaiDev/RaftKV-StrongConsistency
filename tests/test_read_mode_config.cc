@@ -56,15 +56,21 @@ int main() {
     assert(config.read.mode == "read_index");
     assert(!config.raft.pre_vote);
     assert(!config.raft.check_quorum);
+    assert(config.raft.max_append_entries_per_rpc == 64);
+    assert(config.raft.max_inflight_append_entries_per_peer == 1);
 
     std::string stability_path =
         WriteConfig("raftkv_read_mode_stability.yaml",
                     "  pre_vote: true\n"
-                    "  check_quorum: true\n",
+                    "  check_quorum: true\n"
+                    "  max_append_entries_per_rpc: 8\n"
+                    "  max_inflight_append_entries_per_peer: 1\n",
                     "\nread:\n  mode: read_index\n");
     assert(craftkv::common::LoadNodeConfig(stability_path, &config, &error));
     assert(config.raft.pre_vote);
     assert(config.raft.check_quorum);
+    assert(config.raft.max_append_entries_per_rpc == 8);
+    assert(config.raft.max_inflight_append_entries_per_peer == 1);
 
     std::string invalid_path =
         WriteConfig("raftkv_read_mode_invalid.yaml", "", "\nread:\n  mode: lease\n");
@@ -75,6 +81,17 @@ int main() {
         WriteConfig("raftkv_read_mode_invalid_bool.yaml", "  pre_vote: maybe\n", "");
     assert(!craftkv::common::LoadNodeConfig(invalid_bool_path, &config, &error));
     assert(error.find("invalid raft.pre_vote") != std::string::npos);
+
+    std::string invalid_batch_path =
+        WriteConfig("raftkv_read_mode_invalid_batch.yaml", "  max_append_entries_per_rpc: 0\n", "");
+    assert(!craftkv::common::LoadNodeConfig(invalid_batch_path, &config, &error));
+    assert(error.find("invalid raft.max_append_entries_per_rpc") != std::string::npos);
+
+    std::string invalid_inflight_path =
+        WriteConfig("raftkv_read_mode_invalid_inflight.yaml",
+                    "  max_inflight_append_entries_per_peer: 2\n", "");
+    assert(!craftkv::common::LoadNodeConfig(invalid_inflight_path, &config, &error));
+    assert(error.find("invalid raft.max_inflight_append_entries_per_peer") != std::string::npos);
 
     std::cout << "test_read_mode_config passed" << std::endl;
     return 0;

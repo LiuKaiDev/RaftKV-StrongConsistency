@@ -169,6 +169,14 @@ inline constexpr MetricsStatus::Impl_::Impl_(
         check_quorum_rounds_{::uint64_t{0u}},
         check_quorum_success_{::uint64_t{0u}},
         check_quorum_failed_{::uint64_t{0u}},
+        append_entries_batch_rpc_count_{::uint64_t{0u}},
+        append_entries_entries_sent_{::uint64_t{0u}},
+        append_entries_empty_heartbeat_count_{::uint64_t{0u}},
+        append_entries_max_batch_observed_{::uint64_t{0u}},
+        follower_catchup_attempts_{::uint64_t{0u}},
+        follower_catchup_success_{::uint64_t{0u}},
+        append_entries_stale_response_ignored_{::uint64_t{0u}},
+        append_entries_inflight_rejected_{::uint64_t{0u}},
         _cached_size_{0} {}
 
 template <typename>
@@ -520,6 +528,14 @@ const ::uint32_t TableStruct_raft_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(
     PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.check_quorum_rounds_),
     PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.check_quorum_success_),
     PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.check_quorum_failed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_batch_rpc_count_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_entries_sent_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_empty_heartbeat_count_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_max_batch_observed_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.follower_catchup_attempts_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.follower_catchup_success_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_stale_response_ignored_),
+    PROTOBUF_FIELD_OFFSET(::MetricsStatus, _impl_.append_entries_inflight_rejected_),
     PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _impl_._has_bits_),
     PROTOBUF_FIELD_OFFSET(::NodeStatusReply, _internal_metadata_),
     ~0u,  // no _extensions_
@@ -569,7 +585,7 @@ static const ::_pbi::MigrationSchema
         {110, -1, -1, sizeof(::Command)},
         {119, -1, -1, sizeof(::NodeStatusRequest)},
         {127, -1, -1, sizeof(::MetricsStatus)},
-        {166, 186, -1, sizeof(::NodeStatusReply)},
+        {174, 194, -1, sizeof(::NodeStatusReply)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -611,7 +627,7 @@ const char descriptor_table_protodef_raft_2eproto[] PROTOBUF_SECTION_VARIABLE(pr
     "rm\030\003 \001(\005\022\024\n\014nextLogIndex\030\004 \001(\005\"=\n\014Result"
     "Packge\022\r\n\005index\030\001 \001(\005\022\014\n\004term\030\002 \001(\005\022\020\n\010i"
     "sLeader\030\003 \001(\010\"\032\n\007Command\022\017\n\007content\030\001 \001("
-    "\t\"\023\n\021NodeStatusRequest\"\267\007\n\rMetricsStatus"
+    "\t\"\023\n\021NodeStatusRequest\"\373\t\n\rMetricsStatus"
     "\022\026\n\016election_count\030\001 \001(\004\022\033\n\023leader_chang"
     "e_count\030\002 \001(\004\022\033\n\023append_entries_sent\030\003 \001"
     "(\004\022\036\n\026append_entries_success\030\004 \001(\004\022\035\n\025ap"
@@ -635,31 +651,39 @@ const char descriptor_table_protodef_raft_2eproto[] PROTOBUF_SECTION_VARIABLE(pr
     "ected\030\033 \001(\004\022#\n\033check_quorum_stepdown_cou"
     "nt\030\034 \001(\004\022\033\n\023check_quorum_rounds\030\035 \001(\004\022\034\n"
     "\024check_quorum_success\030\036 \001(\004\022\033\n\023check_quo"
-    "rum_failed\030\037 \001(\004\"\231\002\n\017NodeStatusReply\022\017\n\007"
-    "node_id\030\001 \001(\005\022\014\n\004role\030\002 \001(\t\022\024\n\014current_t"
-    "erm\030\003 \001(\005\022\021\n\tleader_id\030\004 \001(\005\022\024\n\014commit_i"
-    "ndex\030\005 \001(\005\022\024\n\014last_applied\030\006 \001(\005\022\026\n\016last"
-    "_log_index\030\007 \001(\005\022\026\n\016snapshot_index\030\010 \001(\005"
-    "\022\025\n\rsnapshot_term\030\t \001(\005\022\027\n\017log_entry_cou"
-    "nt\030\n \001(\004\022\021\n\twal_bytes\030\013 \001(\004\022\037\n\007metrics\030\014"
-    " \001(\0132\016.MetricsStatus2\255\003\n\007RaftRPC\022@\n\017inst"
-    "allSnapshot\022\024.InstallSnapshotArgs\032\025.Inst"
-    "allSnapshotReply\"\000\022Q\n\024TransferSnapShotFi"
-    "le\022\031.TransferSnapShotFileArgs\032\032.Transfer"
-    "SnapShotFileReply\"\000(\001\022*\n\rsubmitCommand\022\010"
-    ".Command\032\r.ResultPackge\"\000\0227\n\016requestVote"
-    "RPC\022\020.RequestVoteArgs\032\021.RequestVoteReply"
-    "\"\000\0223\n\npreVoteRPC\022\020.RequestVoteArgs\032\021.Req"
-    "uestVoteReply\"\000\022:\n\rappendEntries\022\022.Appen"
-    "dEntriesArgs\032\023.AppendEntriesReply\"\000\0227\n\rG"
-    "etNodeStatus\022\022.NodeStatusRequest\032\020.NodeS"
-    "tatusReply\"\000b\006proto3"
+    "rum_failed\030\037 \001(\004\022&\n\036append_entries_batch"
+    "_rpc_count\030  \001(\004\022#\n\033append_entries_entri"
+    "es_sent\030! \001(\004\022,\n$append_entries_empty_he"
+    "artbeat_count\030\" \001(\004\022)\n!append_entries_ma"
+    "x_batch_observed\030# \001(\004\022!\n\031follower_catch"
+    "up_attempts\030$ \001(\004\022 \n\030follower_catchup_su"
+    "ccess\030% \001(\004\022-\n%append_entries_stale_resp"
+    "onse_ignored\030& \001(\004\022(\n append_entries_inf"
+    "light_rejected\030\' \001(\004\"\231\002\n\017NodeStatusReply"
+    "\022\017\n\007node_id\030\001 \001(\005\022\014\n\004role\030\002 \001(\t\022\024\n\014curre"
+    "nt_term\030\003 \001(\005\022\021\n\tleader_id\030\004 \001(\005\022\024\n\014comm"
+    "it_index\030\005 \001(\005\022\024\n\014last_applied\030\006 \001(\005\022\026\n\016"
+    "last_log_index\030\007 \001(\005\022\026\n\016snapshot_index\030\010"
+    " \001(\005\022\025\n\rsnapshot_term\030\t \001(\005\022\027\n\017log_entry"
+    "_count\030\n \001(\004\022\021\n\twal_bytes\030\013 \001(\004\022\037\n\007metri"
+    "cs\030\014 \001(\0132\016.MetricsStatus2\255\003\n\007RaftRPC\022@\n\017"
+    "installSnapshot\022\024.InstallSnapshotArgs\032\025."
+    "InstallSnapshotReply\"\000\022Q\n\024TransferSnapSh"
+    "otFile\022\031.TransferSnapShotFileArgs\032\032.Tran"
+    "sferSnapShotFileReply\"\000(\001\022*\n\rsubmitComma"
+    "nd\022\010.Command\032\r.ResultPackge\"\000\0227\n\016request"
+    "VoteRPC\022\020.RequestVoteArgs\032\021.RequestVoteR"
+    "eply\"\000\0223\n\npreVoteRPC\022\020.RequestVoteArgs\032\021"
+    ".RequestVoteReply\"\000\022:\n\rappendEntries\022\022.A"
+    "ppendEntriesArgs\032\023.AppendEntriesReply\"\000\022"
+    "7\n\rGetNodeStatus\022\022.NodeStatusRequest\032\020.N"
+    "odeStatusReply\"\000b\006proto3"
 };
 static ::absl::once_flag descriptor_table_raft_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_raft_2eproto = {
     false,
     false,
-    2580,
+    2904,
     descriptor_table_protodef_raft_2eproto,
     "raft.proto",
     &descriptor_table_raft_2eproto_once,
@@ -3265,9 +3289,9 @@ inline void MetricsStatus::SharedCtor(::_pb::Arena* arena) {
   ::memset(reinterpret_cast<char *>(&_impl_) +
                offsetof(Impl_, election_count_),
            0,
-           offsetof(Impl_, check_quorum_failed_) -
+           offsetof(Impl_, append_entries_inflight_rejected_) -
                offsetof(Impl_, election_count_) +
-               sizeof(Impl_::check_quorum_failed_));
+               sizeof(Impl_::append_entries_inflight_rejected_));
 }
 MetricsStatus::~MetricsStatus() {
   // @@protoc_insertion_point(destructor:MetricsStatus)
@@ -3287,8 +3311,8 @@ PROTOBUF_NOINLINE void MetricsStatus::Clear() {
   (void) cached_has_bits;
 
   ::memset(&_impl_.election_count_, 0, static_cast<::size_t>(
-      reinterpret_cast<char*>(&_impl_.check_quorum_failed_) -
-      reinterpret_cast<char*>(&_impl_.election_count_)) + sizeof(_impl_.check_quorum_failed_));
+      reinterpret_cast<char*>(&_impl_.append_entries_inflight_rejected_) -
+      reinterpret_cast<char*>(&_impl_.election_count_)) + sizeof(_impl_.append_entries_inflight_rejected_));
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
@@ -3300,15 +3324,15 @@ const char* MetricsStatus::_InternalParse(
 
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<5, 31, 0, 0, 2> MetricsStatus::_table_ = {
+const ::_pbi::TcParseTable<5, 39, 0, 0, 7> MetricsStatus::_table_ = {
   {
     0,  // no _has_bits_
     0, // no _extensions_
-    31, 248,  // max_field_number, fast_idx_mask
+    39, 248,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    2147483648,  // skipmap
+    0,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    31,  // num_field_entries
+    39,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     &_MetricsStatus_default_instance_._instance,
@@ -3409,6 +3433,8 @@ const ::_pbi::TcParseTable<5, 31, 0, 0, 2> MetricsStatus::_table_ = {
     {::_pbi::TcParser::FastV64S2,
      {504, 63, 0, PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_failed_)}},
   }}, {{
+    33, 0, 1,
+    65408, 32,
     65535, 65535
   }}, {{
     // uint64 election_count = 1;
@@ -3503,6 +3529,30 @@ const ::_pbi::TcParseTable<5, 31, 0, 0, 2> MetricsStatus::_table_ = {
     (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
     // uint64 check_quorum_failed = 31;
     {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_failed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_batch_rpc_count = 32;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_batch_rpc_count_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_entries_sent = 33;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_entries_sent_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_empty_heartbeat_count = 34;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_empty_heartbeat_count_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_max_batch_observed = 35;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_max_batch_observed_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 follower_catchup_attempts = 36;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.follower_catchup_attempts_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 follower_catchup_success = 37;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.follower_catchup_success_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_stale_response_ignored = 38;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_stale_response_ignored_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // uint64 append_entries_inflight_rejected = 39;
+    {PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_inflight_rejected_), 0, 0,
     (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
   }},
   // no aux_entries
@@ -3734,6 +3784,62 @@ const ::_pbi::TcParseTable<5, 31, 0, 0, 2> MetricsStatus::_table_ = {
         31, this->_internal_check_quorum_failed(), target);
   }
 
+  // uint64 append_entries_batch_rpc_count = 32;
+  if (this->_internal_append_entries_batch_rpc_count() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        32, this->_internal_append_entries_batch_rpc_count(), target);
+  }
+
+  // uint64 append_entries_entries_sent = 33;
+  if (this->_internal_append_entries_entries_sent() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        33, this->_internal_append_entries_entries_sent(), target);
+  }
+
+  // uint64 append_entries_empty_heartbeat_count = 34;
+  if (this->_internal_append_entries_empty_heartbeat_count() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        34, this->_internal_append_entries_empty_heartbeat_count(), target);
+  }
+
+  // uint64 append_entries_max_batch_observed = 35;
+  if (this->_internal_append_entries_max_batch_observed() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        35, this->_internal_append_entries_max_batch_observed(), target);
+  }
+
+  // uint64 follower_catchup_attempts = 36;
+  if (this->_internal_follower_catchup_attempts() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        36, this->_internal_follower_catchup_attempts(), target);
+  }
+
+  // uint64 follower_catchup_success = 37;
+  if (this->_internal_follower_catchup_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        37, this->_internal_follower_catchup_success(), target);
+  }
+
+  // uint64 append_entries_stale_response_ignored = 38;
+  if (this->_internal_append_entries_stale_response_ignored() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        38, this->_internal_append_entries_stale_response_ignored(), target);
+  }
+
+  // uint64 append_entries_inflight_rejected = 39;
+  if (this->_internal_append_entries_inflight_rejected() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+        39, this->_internal_append_entries_inflight_rejected(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target =
         ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -3937,6 +4043,54 @@ const ::_pbi::TcParseTable<5, 31, 0, 0, 2> MetricsStatus::_table_ = {
                                     this->_internal_check_quorum_failed());
   }
 
+  // uint64 append_entries_batch_rpc_count = 32;
+  if (this->_internal_append_entries_batch_rpc_count() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_batch_rpc_count());
+  }
+
+  // uint64 append_entries_entries_sent = 33;
+  if (this->_internal_append_entries_entries_sent() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_entries_sent());
+  }
+
+  // uint64 append_entries_empty_heartbeat_count = 34;
+  if (this->_internal_append_entries_empty_heartbeat_count() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_empty_heartbeat_count());
+  }
+
+  // uint64 append_entries_max_batch_observed = 35;
+  if (this->_internal_append_entries_max_batch_observed() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_max_batch_observed());
+  }
+
+  // uint64 follower_catchup_attempts = 36;
+  if (this->_internal_follower_catchup_attempts() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_follower_catchup_attempts());
+  }
+
+  // uint64 follower_catchup_success = 37;
+  if (this->_internal_follower_catchup_success() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_follower_catchup_success());
+  }
+
+  // uint64 append_entries_stale_response_ignored = 38;
+  if (this->_internal_append_entries_stale_response_ignored() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_stale_response_ignored());
+  }
+
+  // uint64 append_entries_inflight_rejected = 39;
+  if (this->_internal_append_entries_inflight_rejected() != 0) {
+    total_size += 2 + ::_pbi::WireFormatLite::UInt64Size(
+                                    this->_internal_append_entries_inflight_rejected());
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -4049,6 +4203,30 @@ void MetricsStatus::MergeImpl(::google::protobuf::Message& to_msg, const ::googl
   if (from._internal_check_quorum_failed() != 0) {
     _this->_internal_set_check_quorum_failed(from._internal_check_quorum_failed());
   }
+  if (from._internal_append_entries_batch_rpc_count() != 0) {
+    _this->_internal_set_append_entries_batch_rpc_count(from._internal_append_entries_batch_rpc_count());
+  }
+  if (from._internal_append_entries_entries_sent() != 0) {
+    _this->_internal_set_append_entries_entries_sent(from._internal_append_entries_entries_sent());
+  }
+  if (from._internal_append_entries_empty_heartbeat_count() != 0) {
+    _this->_internal_set_append_entries_empty_heartbeat_count(from._internal_append_entries_empty_heartbeat_count());
+  }
+  if (from._internal_append_entries_max_batch_observed() != 0) {
+    _this->_internal_set_append_entries_max_batch_observed(from._internal_append_entries_max_batch_observed());
+  }
+  if (from._internal_follower_catchup_attempts() != 0) {
+    _this->_internal_set_follower_catchup_attempts(from._internal_follower_catchup_attempts());
+  }
+  if (from._internal_follower_catchup_success() != 0) {
+    _this->_internal_set_follower_catchup_success(from._internal_follower_catchup_success());
+  }
+  if (from._internal_append_entries_stale_response_ignored() != 0) {
+    _this->_internal_set_append_entries_stale_response_ignored(from._internal_append_entries_stale_response_ignored());
+  }
+  if (from._internal_append_entries_inflight_rejected() != 0) {
+    _this->_internal_set_append_entries_inflight_rejected(from._internal_append_entries_inflight_rejected());
+  }
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -4070,8 +4248,8 @@ void MetricsStatus::InternalSwap(MetricsStatus* PROTOBUF_RESTRICT other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.check_quorum_failed_)
-      + sizeof(MetricsStatus::_impl_.check_quorum_failed_)
+      PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.append_entries_inflight_rejected_)
+      + sizeof(MetricsStatus::_impl_.append_entries_inflight_rejected_)
       - PROTOBUF_FIELD_OFFSET(MetricsStatus, _impl_.election_count_)>(
           reinterpret_cast<char*>(&_impl_.election_count_),
           reinterpret_cast<char*>(&other->_impl_.election_count_));

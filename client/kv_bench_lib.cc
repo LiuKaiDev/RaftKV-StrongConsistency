@@ -204,6 +204,9 @@ std::string WriteJsonSummary(const BenchSummary& summary) {
     AppendJsonUint(&out, "warmup_seconds", config.warmup_seconds);
     AppendJsonUint(&out, "key_count", config.key_count);
     AppendJsonUint(&out, "value_size", config.value_size);
+    AppendJsonUint(&out, "max_append_entries_per_rpc", config.max_append_entries_per_rpc);
+    AppendJsonUint(&out, "max_inflight_append_entries_per_peer",
+                   config.max_inflight_append_entries_per_peer);
     AppendJsonUint(&out, "read_percent", config.mix.read_percent);
     AppendJsonUint(&out, "put_percent", config.mix.put_percent);
     AppendJsonUint(&out, "append_percent", config.mix.append_percent);
@@ -230,7 +233,8 @@ std::string WriteJsonSummary(const BenchSummary& summary) {
 
 std::string WriteCsvHeader() {
     return "git_commit,timestamp,hostname,cpu_count,build_type,read_mode,seed,threads,duration_seconds,warmup_seconds,"
-           "key_count,value_size,read_percent,put_percent,append_percent,delete_percent,total_operations,"
+           "key_count,value_size,max_append_entries_per_rpc,max_inflight_append_entries_per_peer,"
+           "read_percent,put_percent,append_percent,delete_percent,total_operations,"
            "successful_operations,failed_operations,retry_count,throughput_ops_per_second,latency_us_min,"
            "latency_us_avg,latency_us_p50,latency_us_p95,latency_us_p99,latency_us_max,get_success,"
            "get_failed,get_ops_per_second,get_latency_us_p50,get_latency_us_p95,get_latency_us_p99,"
@@ -258,6 +262,7 @@ std::string WriteCsvSummary(const BenchSummary& summary) {
     AppendCsvValue(&out, config.read_mode);
     out << ',' << config.seed << ',' << config.threads << ',' << config.duration_seconds << ','
         << config.warmup_seconds << ',' << config.key_count << ',' << config.value_size << ','
+        << config.max_append_entries_per_rpc << ',' << config.max_inflight_append_entries_per_peer << ','
         << config.mix.read_percent << ',' << config.mix.put_percent << ',' << config.mix.append_percent << ','
         << config.mix.delete_percent << ',' << summary.total_operations << ',' << summary.successful_operations << ','
         << summary.failed_operations << ',' << summary.retry_count << ',' << std::fixed << std::setprecision(3)

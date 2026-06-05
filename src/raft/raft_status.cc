@@ -109,6 +109,19 @@ RaftMetricsSnapshot RaftMetrics::Snapshot() const {
     snapshot.check_quorum_rounds = check_quorum_rounds_.load(std::memory_order_relaxed);
     snapshot.check_quorum_success = check_quorum_success_.load(std::memory_order_relaxed);
     snapshot.check_quorum_failed = check_quorum_failed_.load(std::memory_order_relaxed);
+    snapshot.append_entries_batch_rpc_count =
+        append_entries_batch_rpc_count_.load(std::memory_order_relaxed);
+    snapshot.append_entries_entries_sent = append_entries_entries_sent_.load(std::memory_order_relaxed);
+    snapshot.append_entries_empty_heartbeat_count =
+        append_entries_empty_heartbeat_count_.load(std::memory_order_relaxed);
+    snapshot.append_entries_max_batch_observed =
+        append_entries_max_batch_observed_.load(std::memory_order_relaxed);
+    snapshot.follower_catchup_attempts = follower_catchup_attempts_.load(std::memory_order_relaxed);
+    snapshot.follower_catchup_success = follower_catchup_success_.load(std::memory_order_relaxed);
+    snapshot.append_entries_stale_response_ignored =
+        append_entries_stale_response_ignored_.load(std::memory_order_relaxed);
+    snapshot.append_entries_inflight_rejected =
+        append_entries_inflight_rejected_.load(std::memory_order_relaxed);
     return snapshot;
 }
 
@@ -158,6 +171,34 @@ void RaftMetrics::IncrementCheckQuorumStepdown() {
 void RaftMetrics::IncrementCheckQuorumRounds() { check_quorum_rounds_.fetch_add(1, std::memory_order_relaxed); }
 void RaftMetrics::IncrementCheckQuorumSuccess() { check_quorum_success_.fetch_add(1, std::memory_order_relaxed); }
 void RaftMetrics::IncrementCheckQuorumFailed() { check_quorum_failed_.fetch_add(1, std::memory_order_relaxed); }
+void RaftMetrics::IncrementAppendEntriesBatchRpc() {
+    append_entries_batch_rpc_count_.fetch_add(1, std::memory_order_relaxed);
+}
+void RaftMetrics::AddAppendEntriesEntriesSent(std::uint64_t count) {
+    append_entries_entries_sent_.fetch_add(count, std::memory_order_relaxed);
+}
+void RaftMetrics::IncrementAppendEntriesEmptyHeartbeat() {
+    append_entries_empty_heartbeat_count_.fetch_add(1, std::memory_order_relaxed);
+}
+void RaftMetrics::ObserveAppendEntriesBatchSize(std::uint64_t size) {
+    std::uint64_t current = append_entries_max_batch_observed_.load(std::memory_order_relaxed);
+    while (size > current &&
+           !append_entries_max_batch_observed_.compare_exchange_weak(
+               current, size, std::memory_order_relaxed, std::memory_order_relaxed)) {
+    }
+}
+void RaftMetrics::IncrementFollowerCatchupAttempts() {
+    follower_catchup_attempts_.fetch_add(1, std::memory_order_relaxed);
+}
+void RaftMetrics::IncrementFollowerCatchupSuccess() {
+    follower_catchup_success_.fetch_add(1, std::memory_order_relaxed);
+}
+void RaftMetrics::IncrementAppendEntriesStaleResponseIgnored() {
+    append_entries_stale_response_ignored_.fetch_add(1, std::memory_order_relaxed);
+}
+void RaftMetrics::IncrementAppendEntriesInflightRejected() {
+    append_entries_inflight_rejected_.fetch_add(1, std::memory_order_relaxed);
+}
 
 std::string RaftRoleCodeToString(int role_code) {
     switch (role_code) {
@@ -219,6 +260,19 @@ std::string SerializeRaftStatusSnapshot(const RaftStatusSnapshot& snapshot) {
     AppendField(&out, "check_quorum_rounds", snapshot.metrics.check_quorum_rounds);
     AppendField(&out, "check_quorum_success", snapshot.metrics.check_quorum_success);
     AppendField(&out, "check_quorum_failed", snapshot.metrics.check_quorum_failed);
+    AppendField(&out, "append_entries_batch_rpc_count",
+                snapshot.metrics.append_entries_batch_rpc_count);
+    AppendField(&out, "append_entries_entries_sent", snapshot.metrics.append_entries_entries_sent);
+    AppendField(&out, "append_entries_empty_heartbeat_count",
+                snapshot.metrics.append_entries_empty_heartbeat_count);
+    AppendField(&out, "append_entries_max_batch_observed",
+                snapshot.metrics.append_entries_max_batch_observed);
+    AppendField(&out, "follower_catchup_attempts", snapshot.metrics.follower_catchup_attempts);
+    AppendField(&out, "follower_catchup_success", snapshot.metrics.follower_catchup_success);
+    AppendField(&out, "append_entries_stale_response_ignored",
+                snapshot.metrics.append_entries_stale_response_ignored);
+    AppendField(&out, "append_entries_inflight_rejected",
+                snapshot.metrics.append_entries_inflight_rejected);
     return out.str();
 }
 
@@ -331,6 +385,22 @@ bool DeserializeRaftStatusSnapshot(const std::string& data,
             ok = ParseUint64(decoded, &parsed.metrics.check_quorum_success);
         } else if (key == "check_quorum_failed") {
             ok = ParseUint64(decoded, &parsed.metrics.check_quorum_failed);
+        } else if (key == "append_entries_batch_rpc_count") {
+            ok = ParseUint64(decoded, &parsed.metrics.append_entries_batch_rpc_count);
+        } else if (key == "append_entries_entries_sent") {
+            ok = ParseUint64(decoded, &parsed.metrics.append_entries_entries_sent);
+        } else if (key == "append_entries_empty_heartbeat_count") {
+            ok = ParseUint64(decoded, &parsed.metrics.append_entries_empty_heartbeat_count);
+        } else if (key == "append_entries_max_batch_observed") {
+            ok = ParseUint64(decoded, &parsed.metrics.append_entries_max_batch_observed);
+        } else if (key == "follower_catchup_attempts") {
+            ok = ParseUint64(decoded, &parsed.metrics.follower_catchup_attempts);
+        } else if (key == "follower_catchup_success") {
+            ok = ParseUint64(decoded, &parsed.metrics.follower_catchup_success);
+        } else if (key == "append_entries_stale_response_ignored") {
+            ok = ParseUint64(decoded, &parsed.metrics.append_entries_stale_response_ignored);
+        } else if (key == "append_entries_inflight_rejected") {
+            ok = ParseUint64(decoded, &parsed.metrics.append_entries_inflight_rejected);
         }
         if (!ok) {
             if (error_msg != nullptr) {

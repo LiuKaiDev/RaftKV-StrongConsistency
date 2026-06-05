@@ -18,6 +18,8 @@ struct RaftConfig {
     int rpc_timeout_ms = 300;
     bool pre_vote = false;
     bool check_quorum = false;
+    int max_append_entries_per_rpc = 64;
+    int max_inflight_append_entries_per_peer = 1;
 };
 
 struct SnapshotConfig {

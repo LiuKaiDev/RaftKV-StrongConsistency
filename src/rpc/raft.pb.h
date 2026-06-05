@@ -1395,6 +1395,14 @@ class MetricsStatus final :
     kCheckQuorumRoundsFieldNumber = 29,
     kCheckQuorumSuccessFieldNumber = 30,
     kCheckQuorumFailedFieldNumber = 31,
+    kAppendEntriesBatchRpcCountFieldNumber = 32,
+    kAppendEntriesEntriesSentFieldNumber = 33,
+    kAppendEntriesEmptyHeartbeatCountFieldNumber = 34,
+    kAppendEntriesMaxBatchObservedFieldNumber = 35,
+    kFollowerCatchupAttemptsFieldNumber = 36,
+    kFollowerCatchupSuccessFieldNumber = 37,
+    kAppendEntriesStaleResponseIgnoredFieldNumber = 38,
+    kAppendEntriesInflightRejectedFieldNumber = 39,
   };
   // uint64 election_count = 1;
   void clear_election_count() ;
@@ -1706,14 +1714,94 @@ class MetricsStatus final :
   void _internal_set_check_quorum_failed(::uint64_t value);
 
   public:
+  // uint64 append_entries_batch_rpc_count = 32;
+  void clear_append_entries_batch_rpc_count() ;
+  ::uint64_t append_entries_batch_rpc_count() const;
+  void set_append_entries_batch_rpc_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_batch_rpc_count() const;
+  void _internal_set_append_entries_batch_rpc_count(::uint64_t value);
+
+  public:
+  // uint64 append_entries_entries_sent = 33;
+  void clear_append_entries_entries_sent() ;
+  ::uint64_t append_entries_entries_sent() const;
+  void set_append_entries_entries_sent(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_entries_sent() const;
+  void _internal_set_append_entries_entries_sent(::uint64_t value);
+
+  public:
+  // uint64 append_entries_empty_heartbeat_count = 34;
+  void clear_append_entries_empty_heartbeat_count() ;
+  ::uint64_t append_entries_empty_heartbeat_count() const;
+  void set_append_entries_empty_heartbeat_count(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_empty_heartbeat_count() const;
+  void _internal_set_append_entries_empty_heartbeat_count(::uint64_t value);
+
+  public:
+  // uint64 append_entries_max_batch_observed = 35;
+  void clear_append_entries_max_batch_observed() ;
+  ::uint64_t append_entries_max_batch_observed() const;
+  void set_append_entries_max_batch_observed(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_max_batch_observed() const;
+  void _internal_set_append_entries_max_batch_observed(::uint64_t value);
+
+  public:
+  // uint64 follower_catchup_attempts = 36;
+  void clear_follower_catchup_attempts() ;
+  ::uint64_t follower_catchup_attempts() const;
+  void set_follower_catchup_attempts(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_follower_catchup_attempts() const;
+  void _internal_set_follower_catchup_attempts(::uint64_t value);
+
+  public:
+  // uint64 follower_catchup_success = 37;
+  void clear_follower_catchup_success() ;
+  ::uint64_t follower_catchup_success() const;
+  void set_follower_catchup_success(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_follower_catchup_success() const;
+  void _internal_set_follower_catchup_success(::uint64_t value);
+
+  public:
+  // uint64 append_entries_stale_response_ignored = 38;
+  void clear_append_entries_stale_response_ignored() ;
+  ::uint64_t append_entries_stale_response_ignored() const;
+  void set_append_entries_stale_response_ignored(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_stale_response_ignored() const;
+  void _internal_set_append_entries_stale_response_ignored(::uint64_t value);
+
+  public:
+  // uint64 append_entries_inflight_rejected = 39;
+  void clear_append_entries_inflight_rejected() ;
+  ::uint64_t append_entries_inflight_rejected() const;
+  void set_append_entries_inflight_rejected(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_append_entries_inflight_rejected() const;
+  void _internal_set_append_entries_inflight_rejected(::uint64_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:MetricsStatus)
  private:
   class _Internal;
 
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<
-      5, 31, 0,
-      0, 2>
+      5, 39, 0,
+      0, 7>
       _table_;
   friend class ::google::protobuf::MessageLite;
   friend class ::google::protobuf::Arena;
@@ -1760,6 +1848,14 @@ class MetricsStatus final :
     ::uint64_t check_quorum_rounds_;
     ::uint64_t check_quorum_success_;
     ::uint64_t check_quorum_failed_;
+    ::uint64_t append_entries_batch_rpc_count_;
+    ::uint64_t append_entries_entries_sent_;
+    ::uint64_t append_entries_empty_heartbeat_count_;
+    ::uint64_t append_entries_max_batch_observed_;
+    ::uint64_t follower_catchup_attempts_;
+    ::uint64_t follower_catchup_success_;
+    ::uint64_t append_entries_stale_response_ignored_;
+    ::uint64_t append_entries_inflight_rejected_;
     mutable ::google::protobuf::internal::CachedSize _cached_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -4948,6 +5044,190 @@ inline void MetricsStatus::_internal_set_check_quorum_failed(::uint64_t value) {
   PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
   ;
   _impl_.check_quorum_failed_ = value;
+}
+
+// uint64 append_entries_batch_rpc_count = 32;
+inline void MetricsStatus::clear_append_entries_batch_rpc_count() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_batch_rpc_count_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_batch_rpc_count() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_batch_rpc_count)
+  return _internal_append_entries_batch_rpc_count();
+}
+inline void MetricsStatus::set_append_entries_batch_rpc_count(::uint64_t value) {
+  _internal_set_append_entries_batch_rpc_count(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_batch_rpc_count)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_batch_rpc_count() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_batch_rpc_count_;
+}
+inline void MetricsStatus::_internal_set_append_entries_batch_rpc_count(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_batch_rpc_count_ = value;
+}
+
+// uint64 append_entries_entries_sent = 33;
+inline void MetricsStatus::clear_append_entries_entries_sent() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_entries_sent_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_entries_sent() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_entries_sent)
+  return _internal_append_entries_entries_sent();
+}
+inline void MetricsStatus::set_append_entries_entries_sent(::uint64_t value) {
+  _internal_set_append_entries_entries_sent(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_entries_sent)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_entries_sent() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_entries_sent_;
+}
+inline void MetricsStatus::_internal_set_append_entries_entries_sent(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_entries_sent_ = value;
+}
+
+// uint64 append_entries_empty_heartbeat_count = 34;
+inline void MetricsStatus::clear_append_entries_empty_heartbeat_count() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_empty_heartbeat_count_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_empty_heartbeat_count() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_empty_heartbeat_count)
+  return _internal_append_entries_empty_heartbeat_count();
+}
+inline void MetricsStatus::set_append_entries_empty_heartbeat_count(::uint64_t value) {
+  _internal_set_append_entries_empty_heartbeat_count(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_empty_heartbeat_count)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_empty_heartbeat_count() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_empty_heartbeat_count_;
+}
+inline void MetricsStatus::_internal_set_append_entries_empty_heartbeat_count(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_empty_heartbeat_count_ = value;
+}
+
+// uint64 append_entries_max_batch_observed = 35;
+inline void MetricsStatus::clear_append_entries_max_batch_observed() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_max_batch_observed_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_max_batch_observed() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_max_batch_observed)
+  return _internal_append_entries_max_batch_observed();
+}
+inline void MetricsStatus::set_append_entries_max_batch_observed(::uint64_t value) {
+  _internal_set_append_entries_max_batch_observed(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_max_batch_observed)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_max_batch_observed() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_max_batch_observed_;
+}
+inline void MetricsStatus::_internal_set_append_entries_max_batch_observed(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_max_batch_observed_ = value;
+}
+
+// uint64 follower_catchup_attempts = 36;
+inline void MetricsStatus::clear_follower_catchup_attempts() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.follower_catchup_attempts_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::follower_catchup_attempts() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.follower_catchup_attempts)
+  return _internal_follower_catchup_attempts();
+}
+inline void MetricsStatus::set_follower_catchup_attempts(::uint64_t value) {
+  _internal_set_follower_catchup_attempts(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.follower_catchup_attempts)
+}
+inline ::uint64_t MetricsStatus::_internal_follower_catchup_attempts() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.follower_catchup_attempts_;
+}
+inline void MetricsStatus::_internal_set_follower_catchup_attempts(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.follower_catchup_attempts_ = value;
+}
+
+// uint64 follower_catchup_success = 37;
+inline void MetricsStatus::clear_follower_catchup_success() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.follower_catchup_success_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::follower_catchup_success() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.follower_catchup_success)
+  return _internal_follower_catchup_success();
+}
+inline void MetricsStatus::set_follower_catchup_success(::uint64_t value) {
+  _internal_set_follower_catchup_success(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.follower_catchup_success)
+}
+inline ::uint64_t MetricsStatus::_internal_follower_catchup_success() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.follower_catchup_success_;
+}
+inline void MetricsStatus::_internal_set_follower_catchup_success(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.follower_catchup_success_ = value;
+}
+
+// uint64 append_entries_stale_response_ignored = 38;
+inline void MetricsStatus::clear_append_entries_stale_response_ignored() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_stale_response_ignored_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_stale_response_ignored() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_stale_response_ignored)
+  return _internal_append_entries_stale_response_ignored();
+}
+inline void MetricsStatus::set_append_entries_stale_response_ignored(::uint64_t value) {
+  _internal_set_append_entries_stale_response_ignored(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_stale_response_ignored)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_stale_response_ignored() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_stale_response_ignored_;
+}
+inline void MetricsStatus::_internal_set_append_entries_stale_response_ignored(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_stale_response_ignored_ = value;
+}
+
+// uint64 append_entries_inflight_rejected = 39;
+inline void MetricsStatus::clear_append_entries_inflight_rejected() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.append_entries_inflight_rejected_ = ::uint64_t{0u};
+}
+inline ::uint64_t MetricsStatus::append_entries_inflight_rejected() const {
+  // @@protoc_insertion_point(field_get:MetricsStatus.append_entries_inflight_rejected)
+  return _internal_append_entries_inflight_rejected();
+}
+inline void MetricsStatus::set_append_entries_inflight_rejected(::uint64_t value) {
+  _internal_set_append_entries_inflight_rejected(value);
+  // @@protoc_insertion_point(field_set:MetricsStatus.append_entries_inflight_rejected)
+}
+inline ::uint64_t MetricsStatus::_internal_append_entries_inflight_rejected() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.append_entries_inflight_rejected_;
+}
+inline void MetricsStatus::_internal_set_append_entries_inflight_rejected(::uint64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ;
+  _impl_.append_entries_inflight_rejected_ = value;
 }
 
 // -------------------------------------------------------------------

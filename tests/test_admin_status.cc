@@ -58,6 +58,14 @@ int main() {
     assert(initial_metrics.check_quorum_rounds == 0);
     assert(initial_metrics.check_quorum_success == 0);
     assert(initial_metrics.check_quorum_failed == 0);
+    assert(initial_metrics.append_entries_batch_rpc_count == 0);
+    assert(initial_metrics.append_entries_entries_sent == 0);
+    assert(initial_metrics.append_entries_empty_heartbeat_count == 0);
+    assert(initial_metrics.append_entries_max_batch_observed == 0);
+    assert(initial_metrics.follower_catchup_attempts == 0);
+    assert(initial_metrics.follower_catchup_success == 0);
+    assert(initial_metrics.append_entries_stale_response_ignored == 0);
+    assert(initial_metrics.append_entries_inflight_rejected == 0);
     metrics.IncrementElection();
     metrics.IncrementAppendEntriesSent();
     metrics.IncrementAppendEntriesSuccess();
@@ -78,6 +86,15 @@ int main() {
     metrics.IncrementCheckQuorumRounds();
     metrics.IncrementCheckQuorumSuccess();
     metrics.IncrementCheckQuorumFailed();
+    metrics.IncrementAppendEntriesBatchRpc();
+    metrics.AddAppendEntriesEntriesSent(3);
+    metrics.IncrementAppendEntriesEmptyHeartbeat();
+    metrics.ObserveAppendEntriesBatchSize(2);
+    metrics.ObserveAppendEntriesBatchSize(5);
+    metrics.IncrementFollowerCatchupAttempts();
+    metrics.IncrementFollowerCatchupSuccess();
+    metrics.IncrementAppendEntriesStaleResponseIgnored();
+    metrics.IncrementAppendEntriesInflightRejected();
     auto updated_metrics = metrics.Snapshot();
     assert(updated_metrics.election_count == 1);
     assert(updated_metrics.append_entries_sent == 1);
@@ -99,6 +116,14 @@ int main() {
     assert(updated_metrics.check_quorum_rounds == 1);
     assert(updated_metrics.check_quorum_success == 1);
     assert(updated_metrics.check_quorum_failed == 1);
+    assert(updated_metrics.append_entries_batch_rpc_count == 1);
+    assert(updated_metrics.append_entries_entries_sent == 3);
+    assert(updated_metrics.append_entries_empty_heartbeat_count == 1);
+    assert(updated_metrics.append_entries_max_batch_observed == 5);
+    assert(updated_metrics.follower_catchup_attempts == 1);
+    assert(updated_metrics.follower_catchup_success == 1);
+    assert(updated_metrics.append_entries_stale_response_ignored == 1);
+    assert(updated_metrics.append_entries_inflight_rejected == 1);
 
     craft::RaftStatusSnapshot before;
     before.node_id = 1;
@@ -139,7 +164,10 @@ int main() {
     assert(after.metrics.leader_noop_committed == before.metrics.leader_noop_committed);
     assert(after.metrics.pre_vote_granted == before.metrics.pre_vote_granted);
     assert(after.metrics.check_quorum_failed == before.metrics.check_quorum_failed);
+    assert(after.metrics.append_entries_entries_sent == before.metrics.append_entries_entries_sent);
+    assert(after.metrics.append_entries_max_batch_observed == before.metrics.append_entries_max_batch_observed);
     assert(encoded.find("leader_noop_appended=1\n") != std::string::npos);
+    assert(encoded.find("append_entries_max_batch_observed=5\n") != std::string::npos);
     assert(craft::SerializeRaftStatusSnapshot(before) == encoded);
 
     std::string fake_client = TempPath("raftkv_fake_kv_client.sh");

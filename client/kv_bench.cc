@@ -263,7 +263,7 @@ void PrintUsage() {
         << "Usage: kv_bench --servers=a,b,c --threads=4 --duration_seconds=30 --warmup_seconds=5 "
         << "--key_count=1000 --value_size=128 --read_percent=70 --put_percent=20 "
         << "--append_percent=5 --delete_percent=5 --seed=20260604 "
-        << "--read_mode=log "
+        << "--read_mode=log --max_append_entries_per_rpc=64 --max_inflight_append_entries_per_peer=1 "
         << "--output_json=/tmp/result.json --output_csv=/tmp/result.csv\n";
 }
 
@@ -298,6 +298,11 @@ bool ParseArgs(int argc, char** argv, Args* args, std::string* error) {
                 args->config.seed = static_cast<std::uint64_t>(std::stoull(value("--seed=")));
             } else if (arg.rfind("--read_mode=", 0) == 0) {
                 args->config.read_mode = value("--read_mode=");
+            } else if (arg.rfind("--max_append_entries_per_rpc=", 0) == 0) {
+                args->config.max_append_entries_per_rpc = std::stoi(value("--max_append_entries_per_rpc="));
+            } else if (arg.rfind("--max_inflight_append_entries_per_peer=", 0) == 0) {
+                args->config.max_inflight_append_entries_per_peer =
+                    std::stoi(value("--max_inflight_append_entries_per_peer="));
             } else if (arg.rfind("--output_json=", 0) == 0) {
                 args->output_json = value("--output_json=");
             } else if (arg.rfind("--output_csv=", 0) == 0) {
@@ -332,6 +337,11 @@ bool ParseArgs(int argc, char** argv, Args* args, std::string* error) {
     }
     if (args->config.read_mode != "log" && args->config.read_mode != "read_index") {
         *error = "read_mode must be log or read_index";
+        return false;
+    }
+    if (args->config.max_append_entries_per_rpc <= 0 ||
+        args->config.max_inflight_append_entries_per_peer != 1) {
+        *error = "max_append_entries_per_rpc must be positive and max_inflight_append_entries_per_peer must be 1";
         return false;
     }
     return craftkv::bench::ValidateOperationMix(args->config.mix, error);

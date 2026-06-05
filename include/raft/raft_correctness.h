@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -97,6 +99,91 @@ inline bool HasRecentQuorum(const std::vector<bool>& recent_contact, int self_in
         }
     }
     return count > static_cast<int>(recent_contact.size()) / 2;
+}
+
+inline std::size_t BoundedAppendEntriesCount(int next_index,
+                                             int last_log_index,
+                                             int max_entries_per_rpc) {
+    if (max_entries_per_rpc <= 0 || next_index > last_log_index) {
+        return 0;
+    }
+    int available = last_log_index - next_index + 1;
+    if (available <= 0) {
+        return 0;
+    }
+    return static_cast<std::size_t>(std::min(available, max_entries_per_rpc));
+}
+
+inline bool NeedsInstallSnapshot(int next_index, int snapshot_index) {
+    return next_index <= snapshot_index;
+}
+
+inline bool AdvanceReplicationOnAppendSuccess(int peer_index,
+                                              int prev_log_index,
+                                              int entries_size,
+                                              std::vector<int>* next_index,
+                                              std::vector<int>* match_index) {
+    if (next_index == nullptr || match_index == nullptr ||
+        !IsValidPeerIndex(peer_index, static_cast<int>(next_index->size())) ||
+        !IsValidPeerIndex(peer_index, static_cast<int>(match_index->size())) ||
+        entries_size <= 0) {
+        return false;
+    }
+    int last_batch_index = prev_log_index + entries_size;
+    int& peer_match = (*match_index)[static_cast<std::size_t>(peer_index)];
+    int& peer_next = (*next_index)[static_cast<std::size_t>(peer_index)];
+    if (last_batch_index <= peer_match) {
+        return false;
+    }
+    peer_match = last_batch_index;
+    peer_next = std::max(peer_next, last_batch_index + 1);
+    return true;
+}
+
+inline bool BackoffReplicationOnAppendFailure(int peer_index,
+                                              int reply_next_log_index,
+                                              int snapshot_index,
+                                              std::vector<int>* next_index,
+                                              const std::vector<int>& match_index) {
+    if (next_index == nullptr ||
+        !IsValidPeerIndex(peer_index, static_cast<int>(next_index->size())) ||
+        !IsValidPeerIndex(peer_index, static_cast<int>(match_index.size())) ||
+        reply_next_log_index == 0) {
+        return false;
+    }
+    int safe_min_next = snapshot_index + 1;
+    int proposed_next = std::max(reply_next_log_index, safe_min_next);
+    int current_next = (*next_index)[static_cast<std::size_t>(peer_index)];
+    if (proposed_next < match_index[static_cast<std::size_t>(peer_index)] + 1 ||
+        proposed_next >= current_next) {
+        return false;
+    }
+    (*next_index)[static_cast<std::size_t>(peer_index)] = proposed_next;
+    return true;
+}
+
+inline bool AdvanceReplicationOnSnapshotInstall(int peer_index,
+                                                int snapshot_index,
+                                                std::vector<int>* next_index,
+                                                std::vector<int>* match_index) {
+    if (next_index == nullptr || match_index == nullptr ||
+        !IsValidPeerIndex(peer_index, static_cast<int>(next_index->size())) ||
+        !IsValidPeerIndex(peer_index, static_cast<int>(match_index->size())) ||
+        snapshot_index < 0) {
+        return false;
+    }
+    int& peer_match = (*match_index)[static_cast<std::size_t>(peer_index)];
+    int& peer_next = (*next_index)[static_cast<std::size_t>(peer_index)];
+    bool changed = false;
+    if (snapshot_index > peer_match) {
+        peer_match = snapshot_index;
+        changed = true;
+    }
+    if (peer_next < snapshot_index + 1) {
+        peer_next = snapshot_index + 1;
+        changed = true;
+    }
+    return changed;
 }
 
 }  // namespace craft::raft_correctness

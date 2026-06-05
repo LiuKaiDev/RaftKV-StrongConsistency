@@ -35,6 +35,8 @@ struct BenchConfig {
     int warmup_seconds = 5;
     int key_count = 1000;
     int value_size = 128;
+    int max_append_entries_per_rpc = 64;
+    int max_inflight_append_entries_per_peer = 1;
     OperationMix mix;
 };
 

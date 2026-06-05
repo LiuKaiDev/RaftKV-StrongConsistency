@@ -136,6 +136,53 @@ int main() {
     assert(craft::raft_correctness::HasRecentQuorum({true, false, true}, 0));
     assert(!craft::raft_correctness::HasRecentQuorum({true, false, false}, 0));
 
+    assert(craft::raft_correctness::BoundedAppendEntriesCount(5, 20, 4) == 4);
+    assert(craft::raft_correctness::BoundedAppendEntriesCount(5, 7, 64) == 3);
+    assert(craft::raft_correctness::BoundedAppendEntriesCount(8, 7, 64) == 0);
+    assert(craft::raft_correctness::BoundedAppendEntriesCount(5, 7, 0) == 0);
+    assert(craft::raft_correctness::NeedsInstallSnapshot(10, 10));
+    assert(craft::raft_correctness::NeedsInstallSnapshot(9, 10));
+    assert(!craft::raft_correctness::NeedsInstallSnapshot(11, 10));
+
+    std::vector<int> progress_next{11, 11, 11};
+    std::vector<int> progress_match{10, 0, 0};
+    assert(craft::raft_correctness::AdvanceReplicationOnAppendSuccess(
+        1, 10, 4, &progress_next, &progress_match));
+    assert(progress_match[1] == 14);
+    assert(progress_next[1] == 15);
+    assert(!craft::raft_correctness::AdvanceReplicationOnAppendSuccess(
+        1, 10, 0, &progress_next, &progress_match));
+    assert(progress_match[1] == 14);
+    assert(progress_next[1] == 15);
+    assert(!craft::raft_correctness::AdvanceReplicationOnAppendSuccess(
+        1, 10, 2, &progress_next, &progress_match));
+    assert(progress_match[1] == 14);
+    assert(progress_next[1] == 15);
+
+    progress_next[2] = 20;
+    progress_match[2] = 12;
+    assert(craft::raft_correctness::BackoffReplicationOnAppendFailure(
+        2, 15, 5, &progress_next, progress_match));
+    assert(progress_next[2] == 15);
+    assert(!craft::raft_correctness::BackoffReplicationOnAppendFailure(
+        2, 18, 5, &progress_next, progress_match));
+    assert(progress_next[2] == 15);
+    assert(!craft::raft_correctness::BackoffReplicationOnAppendFailure(
+        2, 12, 5, &progress_next, progress_match));
+    assert(progress_next[2] == 15);
+
+    progress_next[2] = 4;
+    progress_match[2] = 0;
+    assert(craft::raft_correctness::AdvanceReplicationOnSnapshotInstall(
+        2, 10, &progress_next, &progress_match));
+    assert(progress_match[2] == 10);
+    assert(progress_next[2] == 11);
+    progress_next[2] = 15;
+    assert(!craft::raft_correctness::AdvanceReplicationOnSnapshotInstall(
+        2, 9, &progress_next, &progress_match));
+    assert(progress_match[2] == 10);
+    assert(progress_next[2] == 15);
+
     std::cout << "test_raft_log passed" << std::endl;
     return 0;
 }

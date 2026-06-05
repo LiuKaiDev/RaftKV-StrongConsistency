@@ -77,6 +77,15 @@ namespace craft{
         metrics->set_check_quorum_rounds(snapshot.metrics.check_quorum_rounds);
         metrics->set_check_quorum_success(snapshot.metrics.check_quorum_success);
         metrics->set_check_quorum_failed(snapshot.metrics.check_quorum_failed);
+        metrics->set_append_entries_batch_rpc_count(snapshot.metrics.append_entries_batch_rpc_count);
+        metrics->set_append_entries_entries_sent(snapshot.metrics.append_entries_entries_sent);
+        metrics->set_append_entries_empty_heartbeat_count(snapshot.metrics.append_entries_empty_heartbeat_count);
+        metrics->set_append_entries_max_batch_observed(snapshot.metrics.append_entries_max_batch_observed);
+        metrics->set_follower_catchup_attempts(snapshot.metrics.follower_catchup_attempts);
+        metrics->set_follower_catchup_success(snapshot.metrics.follower_catchup_success);
+        metrics->set_append_entries_stale_response_ignored(
+            snapshot.metrics.append_entries_stale_response_ignored);
+        metrics->set_append_entries_inflight_rejected(snapshot.metrics.append_entries_inflight_rejected);
         return Status::OK;
     }
 };

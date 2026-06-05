@@ -46,6 +46,8 @@ int main() {
     bench.config.warmup_seconds = 1;
     bench.config.key_count = 20;
     bench.config.value_size = 32;
+    bench.config.max_append_entries_per_rpc = 64;
+    bench.config.max_inflight_append_entries_per_peer = 1;
     bench.total_operations = 2;
     bench.successful_operations = 2;
     bench.failed_operations = 0;
@@ -60,6 +62,8 @@ int main() {
     std::string json = craftkv::bench::WriteJsonSummary(bench);
     assert(json.find("\"git_commit\"") != std::string::npos);
     assert(json.find("\"read_mode\": \"read_index\"") != std::string::npos);
+    assert(json.find("\"max_append_entries_per_rpc\": 64") != std::string::npos);
+    assert(json.find("\"max_inflight_append_entries_per_peer\": 1") != std::string::npos);
     assert(json.find("\"latency_us_p50\"") != std::string::npos);
     assert(json.find("\"get_success\"") != std::string::npos);
     assert(json.find("\"put_latency_us_p99\"") != std::string::npos);
@@ -68,6 +72,7 @@ int main() {
     std::string csv_row = craftkv::bench::WriteCsvSummary(bench);
     assert(csv_header.find("git_commit") != std::string::npos);
     assert(csv_header.find("read_mode") != std::string::npos);
+    assert(csv_header.find("max_append_entries_per_rpc") != std::string::npos);
     assert(csv_header.find("delete_latency_us_p99") != std::string::npos);
     assert(csv_row.find("\"abc123\"") != std::string::npos);
     assert(csv_row.find("\"read_index\"") != std::string::npos);

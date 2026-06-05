@@ -26,6 +26,31 @@ namespace craft {
             }
             return m_rf_->m_persister_->rewriteLogEntries(m_rf_->m_snapShotIndex + 1, entries);
         };
+        auto mergeEntries = [this, request, &rewriteLogs]() {
+            bool changed = false;
+            int logIndex = request->prevlogindex() + 1;
+            for (const auto &entry: request->entries()) {
+                int storeIndex = m_rf_->getStoreIndexByLogIndex(logIndex);
+                if (storeIndex < 0) {
+                    return false;
+                }
+                if (storeIndex < static_cast<int>(m_rf_->m_logs_.size())) {
+                    const auto& existing = m_rf_->m_logs_[storeIndex];
+                    if (existing.term() != entry.term() ||
+                        existing.command() != entry.command() ||
+                        existing.type() != entry.type()) {
+                        m_rf_->m_logs_.resize(static_cast<std::size_t>(storeIndex));
+                        m_rf_->m_logs_.push_back(entry);
+                        changed = true;
+                    }
+                } else {
+                    m_rf_->m_logs_.push_back(entry);
+                    changed = true;
+                }
+                ++logIndex;
+            }
+            return !changed || rewriteLogs();
+        };
 
         do {
             if (request->term() < m_rf_->m_current_term_) {
@@ -54,32 +79,15 @@ namespace craft {
             } else if (request->prevlogindex() > lastLogIndex) {
                 response->set_nextlogindex(lastLogIndex + 1);
             } else if (request->prevlogindex() == m_rf_->m_snapShotIndex) {
-                if (m_rf_->isOutOfArgsAppendEntries(request)) {
-                    response->set_nextlogindex(0);
-                } else {
-                    m_rf_->m_logs_.resize(1);
-                    for (const auto &log: request->entries()) {
-                        m_rf_->m_logs_.push_back(log);
-                    }
-                    if (rewriteLogs()) {
-                        response->set_success(true);
-                        response->set_nextlogindex(m_rf_->getLastLogIndex() + 1);
-                    }
+                if (mergeEntries()) {
+                    response->set_success(true);
+                    response->set_nextlogindex(m_rf_->getLastLogIndex() + 1);
                 }
             } else if (request->prevlogterm() ==
                        m_rf_->m_logs_[m_rf_->getStoreIndexByLogIndex(request->prevlogindex())].term()) {
-                if (m_rf_->isOutOfArgsAppendEntries(request)) {
-                    response->set_nextlogindex(0);
-                } else {
-                    int storeIndex = m_rf_->getStoreIndexByLogIndex(request->prevlogindex());
-                    m_rf_->m_logs_.resize(storeIndex + 1);
-                    for (const auto &log: request->entries()) {
-                        m_rf_->m_logs_.push_back(log);
-                    }
-                    if (rewriteLogs()) {
-                        response->set_success(true);
-                        response->set_nextlogindex(m_rf_->getLastLogIndex() + 1);
-                    }
+                if (mergeEntries()) {
+                    response->set_success(true);
+                    response->set_nextlogindex(m_rf_->getLastLogIndex() + 1);
                 }
             } else {
                 int term = m_rf_->m_logs_[m_rf_->getStoreIndexByLogIndex(request->prevlogindex())].term();

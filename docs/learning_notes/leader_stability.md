@@ -72,4 +72,4 @@ The integration script verifies no-op barrier before business writes, ReadIndex 
 
 ## Limits
 
-The test script uses process stop/restart, not real packet loss or asymmetric partitions. The project still does not implement Lease Read, batching, inflight replication, dynamic membership, sharding, Multi-Raft, MVCC, or transactions.
+The test script uses process stop/restart, not real packet loss or asymmetric partitions. The project still does not implement Lease Read, inflight replication, dynamic membership, sharding, Multi-Raft, MVCC, or transactions.

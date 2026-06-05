@@ -39,6 +39,14 @@ struct RaftMetricsSnapshot {
     std::uint64_t check_quorum_rounds = 0;
     std::uint64_t check_quorum_success = 0;
     std::uint64_t check_quorum_failed = 0;
+    std::uint64_t append_entries_batch_rpc_count = 0;
+    std::uint64_t append_entries_entries_sent = 0;
+    std::uint64_t append_entries_empty_heartbeat_count = 0;
+    std::uint64_t append_entries_max_batch_observed = 0;
+    std::uint64_t follower_catchup_attempts = 0;
+    std::uint64_t follower_catchup_success = 0;
+    std::uint64_t append_entries_stale_response_ignored = 0;
+    std::uint64_t append_entries_inflight_rejected = 0;
 };
 
 class RaftMetrics {
@@ -77,6 +85,14 @@ public:
     void IncrementCheckQuorumRounds();
     void IncrementCheckQuorumSuccess();
     void IncrementCheckQuorumFailed();
+    void IncrementAppendEntriesBatchRpc();
+    void AddAppendEntriesEntriesSent(std::uint64_t count);
+    void IncrementAppendEntriesEmptyHeartbeat();
+    void ObserveAppendEntriesBatchSize(std::uint64_t size);
+    void IncrementFollowerCatchupAttempts();
+    void IncrementFollowerCatchupSuccess();
+    void IncrementAppendEntriesStaleResponseIgnored();
+    void IncrementAppendEntriesInflightRejected();
 
 private:
     std::atomic<std::uint64_t> election_count_{0};
@@ -110,6 +126,14 @@ private:
     std::atomic<std::uint64_t> check_quorum_rounds_{0};
     std::atomic<std::uint64_t> check_quorum_success_{0};
     std::atomic<std::uint64_t> check_quorum_failed_{0};
+    std::atomic<std::uint64_t> append_entries_batch_rpc_count_{0};
+    std::atomic<std::uint64_t> append_entries_entries_sent_{0};
+    std::atomic<std::uint64_t> append_entries_empty_heartbeat_count_{0};
+    std::atomic<std::uint64_t> append_entries_max_batch_observed_{0};
+    std::atomic<std::uint64_t> follower_catchup_attempts_{0};
+    std::atomic<std::uint64_t> follower_catchup_success_{0};
+    std::atomic<std::uint64_t> append_entries_stale_response_ignored_{0};
+    std::atomic<std::uint64_t> append_entries_inflight_rejected_{0};
 };
 
 struct RaftStatusSnapshot {

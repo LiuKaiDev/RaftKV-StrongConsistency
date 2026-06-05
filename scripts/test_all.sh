@@ -30,6 +30,7 @@ admin_status_status=SKIPPED
 benchmark_smoke_status=SKIPPED
 read_index_status=SKIPPED
 leader_stability_status=SKIPPED
+batch_replication_status=SKIPPED
 
 echo "running core tests..."
 if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_core.sh" >"${REPORT_DIR}/test_core.log" 2>&1; then
@@ -156,6 +157,21 @@ else
   echo "leader stability: SKIPPED (set RUN_LEADER_STABILITY=1 to run)"
 fi
 
+if [[ "${RUN_BATCH_REPLICATION:-0}" == "1" ]]; then
+  echo "running batch replication integration test..."
+  if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_batch_replication.sh" >"${REPORT_DIR}/test_batch_replication.log" 2>&1; then
+    echo "batch replication: PASS"
+    batch_replication_status=PASS
+  else
+    batch_replication_status=$?
+    echo "batch replication: FAIL (${batch_replication_status})"
+    echo "log: ${REPORT_DIR}/test_batch_replication.log"
+    exit "${batch_replication_status}"
+  fi
+else
+  echo "batch replication: SKIPPED (set RUN_BATCH_REPLICATION=1 to run)"
+fi
+
 cat >"${REPORT_DIR}/summary.txt" <<EOF
 run_id=${RUN_ID}
 core_status=PASS
@@ -167,6 +183,7 @@ admin_status_status=${admin_status_status}
 benchmark_smoke_status=${benchmark_smoke_status}
 read_index_status=${read_index_status}
 leader_stability_status=${leader_stability_status}
+batch_replication_status=${batch_replication_status}
 core_log=${REPORT_DIR}/test_core.log
 cluster_smoke_log=${REPORT_DIR}/test_cluster_smoke.log
 snapshot_cluster_log=${REPORT_DIR}/test_snapshot_cluster.log
@@ -176,6 +193,7 @@ admin_status_log=${REPORT_DIR}/test_admin_status.log
 benchmark_smoke_log=${REPORT_DIR}/test_benchmark_smoke.log
 read_index_log=${REPORT_DIR}/test_read_index.log
 leader_stability_log=${REPORT_DIR}/test_leader_stability.log
+batch_replication_log=${REPORT_DIR}/test_batch_replication.log
 EOF
 
 echo "ALL TESTS PASSED"

@@ -94,6 +94,8 @@ namespace craft {
         uint m_leaderElectionTimeOutMax_ = 1600;
         uint m_rpcTimeOut_ = 100;
         uint m_heatBeatInterVal = 200;
+        int m_maxAppendEntriesPerRpc_ = 64;
+        int m_maxInflightAppendEntriesPerPeer_ = 1;
         int m_leaderId_ = -1;
     public:
 

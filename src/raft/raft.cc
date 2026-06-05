@@ -1,6 +1,7 @@
 #include "craft/raft.h"
 #include "craft/public.h"
 #include <algorithm>
+#include <cstddef>
 #include <cstdlib>
 #include "filesystem"
 #include <utility>
@@ -65,6 +66,8 @@ namespace craft {
             m_rpcTimeOut_ = static_cast<uint>(nodeConfig.raft.rpc_timeout_ms);
             m_preVoteEnabled_ = nodeConfig.raft.pre_vote;
             m_checkQuorumEnabled_ = nodeConfig.raft.check_quorum;
+            m_maxAppendEntriesPerRpc_ = nodeConfig.raft.max_append_entries_per_rpc;
+            m_maxInflightAppendEntriesPerPeer_ = nodeConfig.raft.max_inflight_append_entries_per_peer;
             spdlog::info("load yaml config [{}], local raft index = [{}]", filename, m_me_);
             return;
         }
@@ -442,8 +445,11 @@ namespace craft {
         if (nextIndex <= m_snapShotIndex || nextIndex > lastLogIndex) {
             return {lastLogIndex, lastLogTerm, logEntries};
         }
-        logEntries.resize(lastLogIndex - nextIndex + 1);
-        std::copy(this->m_logs_.begin() + (nextIndex - m_snapShotIndex), this->m_logs_.end(), logEntries.begin());
+        std::size_t batchSize = raft_correctness::BoundedAppendEntriesCount(
+            nextIndex, lastLogIndex, m_maxAppendEntriesPerRpc_);
+        logEntries.resize(batchSize);
+        auto begin = this->m_logs_.begin() + (nextIndex - m_snapShotIndex);
+        std::copy(begin, begin + static_cast<std::ptrdiff_t>(batchSize), logEntries.begin());
         int prevLogIndex = nextIndex - 1;
         int prevLogTerm;
         if (prevLogIndex == m_snapShotIndex) {

@@ -105,6 +105,14 @@ message MetricsStatus {
     uint64 check_quorum_rounds = 29;
     uint64 check_quorum_success = 30;
     uint64 check_quorum_failed = 31;
+    uint64 append_entries_batch_rpc_count = 32;
+    uint64 append_entries_entries_sent = 33;
+    uint64 append_entries_empty_heartbeat_count = 34;
+    uint64 append_entries_max_batch_observed = 35;
+    uint64 follower_catchup_attempts = 36;
+    uint64 follower_catchup_success = 37;
+    uint64 append_entries_stale_response_ignored = 38;
+    uint64 append_entries_inflight_rejected = 39;
 }
 message NodeStatusReply {
     int32 node_id = 1;

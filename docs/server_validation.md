@@ -129,6 +129,14 @@ Metrics 字段含义：
 - `check_quorum_rounds`: Leader 执行 CheckQuorum 检查轮数。
 - `check_quorum_success`: CheckQuorum 检查时仍能联系多数派的轮数。
 - `check_quorum_failed`: CheckQuorum 检查时未能联系多数派的轮数。
+- `append_entries_batch_rpc_count`: 本节点发出的 AppendEntries RPC 批次数，包括空 heartbeat。
+- `append_entries_entries_sent`: 本节点通过 AppendEntries 发送的日志条目总数。
+- `append_entries_empty_heartbeat_count`: 本节点发出的空 AppendEntries heartbeat 次数。
+- `append_entries_max_batch_observed`: 本进程观测到的最大 AppendEntries 日志批次大小。
+- `follower_catchup_attempts`: 本节点向 follower 发送非空日志批次的次数。
+- `follower_catchup_success`: 非空日志批次成功推进 follower matchIndex 的次数。
+- `append_entries_stale_response_ignored`: 未能推进复制状态的旧成功响应或过期失败响应次数。
+- `append_entries_inflight_rejected`: 为后续 pipeline 保留；当前 inflight 上限为 1，正常应为 0。
 
 Metrics 默认启用但不持久化，节点重启后从 0 重新开始。它们是低成本核心观测信号，不是完整监控系统；benchmark 可以用 `commit_index`、`last_applied`、`wal_bytes`、客户端请求计数、ReadIndex 计数和 Leader 稳定性计数观察吞吐、积压、读路径切换、选举影响和多数派丢失。
 
@@ -229,6 +237,38 @@ RUN_LEADER_STABILITY=1 bash scripts/test_all.sh
 ```
 
 该脚本使用隔离端口和数据目录，覆盖无业务写入时 no-op 屏障后的 ReadIndex、Leader 切换后立即 ReadIndex、Follower 停止恢复时 PreVote term 稳定性、停止两个 Follower 后 CheckQuorum 退位或拒绝成功读写，以及恢复多数派后的收敛。当前脚本通过停止进程模拟故障，不使用 iptables，也不覆盖真实网络分区的所有时序。
+
+## 6.3 AppendEntries 批量复制
+
+AppendEntries 批量复制通过配置限制单个 RPC 最多携带的连续日志条目数：
+
+```yaml
+raft:
+  max_append_entries_per_rpc: 64
+  max_inflight_append_entries_per_peer: 1
+```
+
+`max_append_entries_per_rpc` 缺省为 `64`，必须大于 0。`max_inflight_append_entries_per_peer` 当前只支持 `1`；配置为其他值会拒绝启动。本阶段没有实现 pipeline。
+
+Leader 从 `nextIndex[peer]` 开始选择连续日志，单次最多发送 `max_append_entries_per_rpc` 条。批次可以包含普通客户端日志和内部 no-op。成功响应时，Leader 不信任 follower 返回的 `nextLogIndex` 来推进进度，而是使用本次请求上下文：`matchIndex[peer] = prevLogIndex + entries_size`，`nextIndex[peer] = matchIndex[peer] + 1`，并保持 matchIndex 单调不下降。空 heartbeat 成功只记录联系，不推进 matchIndex。
+
+失败响应只允许把 `nextIndex` 向后回退，且不能低于 `snapshot_index + 1` 或已经确认的 `matchIndex + 1`。如果 `nextIndex[peer] <= snapshot_index`，Leader 继续走现有 InstallSnapshot 路径，安装完成后再用批量 AppendEntries 追赶 snapshot 之后的日志。
+
+Follower 接收批次时按 `prevLogIndex/prevLogTerm` 校验，然后从 `prevLogIndex + 1` 起逐条合并。已存在且完全相同的日志保留；发现 term、command 或 type 冲突时从冲突处截断并追加 Leader 条目。空 heartbeat 不会因为没有日志而截断本地后续条目。
+
+运行落后 follower 批量复制集成测试：
+
+```bash
+bash scripts/test_batch_replication.sh
+```
+
+默认 `scripts/test_all.sh` 不运行该慢速测试。需要显式开启：
+
+```bash
+RUN_BATCH_REPLICATION=1 bash scripts/test_all.sh
+```
+
+该脚本覆盖普通落后 follower 多批次追赶、Snapshot 边界下先安装 snapshot 再批量追赶、追赶期间 Leader 切换后最终一致，并保存 status、metrics、配置、节点日志和 replay 命令。Leader 切换场景会先等待旧 Leader 进程和端口不可用，再通过各节点 `status` 重新发现唯一 Leader，确认新 Leader 的 no-op barrier 已提交后再写入。若写入命中临时 `NOT_LEADER` 或连接失败，脚本会刷新 Leader 并有限重试；最终失败时会保存 `diagnostics/failure_context.txt`、每次请求的 stdout/stderr、节点状态和日志尾部。
 
 ## 7. Leader 故障
 
@@ -446,6 +486,20 @@ READ_MODE=read_index SCENARIO=steady READ_PERCENT=100 PUT_PERCENT=0 APPEND_PERCE
 ```
 
 对比 `result.json` 中的 throughput、p50、p95、p99，以及 `metrics_delta.txt` 中的 `wal_bytes`、`append_entries_sent`、`snapshot_created_count`、`read_log_total` 和 `read_index_success`。单机阿里云 2 vCPU 小规格结果只用于项目学习和回归比较，不能宣传为生产级性能。
+
+批量复制对比建议使用写入工作负载：
+
+```bash
+MAX_APPEND_ENTRIES_PER_RPC=1 \
+SCENARIO=steady THREADS=2 READ_PERCENT=0 PUT_PERCENT=100 APPEND_PERCENT=0 DELETE_PERCENT=0 \
+  bash scripts/run_benchmark_v2.sh
+
+MAX_APPEND_ENTRIES_PER_RPC=64 \
+SCENARIO=steady THREADS=2 READ_PERCENT=0 PUT_PERCENT=100 APPEND_PERCENT=0 DELETE_PERCENT=0 \
+  bash scripts/run_benchmark_v2.sh
+```
+
+对比 `throughput_ops_per_second`、`latency_us_p50/p95/p99`，以及 `metrics_delta.txt` 中的 `append_entries_batch_rpc_count`、`append_entries_entries_sent`、`append_entries_max_batch_observed`。落后 follower 追赶耗时可用 `scripts/test_batch_replication.sh` 的报告目录和节点日志对比。
 
 ## 15. 清理运行时文件
 

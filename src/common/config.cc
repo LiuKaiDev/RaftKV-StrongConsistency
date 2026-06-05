@@ -228,6 +228,20 @@ bool LoadNodeConfig(const std::string& filename, NodeConfig* config, std::string
                         invalid_value = true;
                         invalid_message = "invalid raft.check_quorum: " + value;
                     }
+                } else if (key == "max_append_entries_per_rpc") {
+                    if (!ParseInt(value, &parsed.raft.max_append_entries_per_rpc) ||
+                        parsed.raft.max_append_entries_per_rpc <= 0) {
+                        invalid_value = true;
+                        invalid_message = "invalid raft.max_append_entries_per_rpc: " + value;
+                    }
+                } else if (key == "max_inflight_append_entries_per_peer") {
+                    if (!ParseInt(value, &parsed.raft.max_inflight_append_entries_per_peer) ||
+                        parsed.raft.max_inflight_append_entries_per_peer != 1) {
+                        invalid_value = true;
+                        invalid_message =
+                            "invalid raft.max_inflight_append_entries_per_peer: " + value +
+                            " (only 1 is supported)";
+                    }
                 }
                 break;
             case Section::kRead:

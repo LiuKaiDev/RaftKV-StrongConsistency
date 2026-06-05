@@ -4,6 +4,7 @@
 #include "raft/raft_correctness.h"
 
 #include <chrono>
+#include <cstdint>
 
 namespace craft {
 
@@ -54,6 +55,11 @@ namespace craft {
                         go [this, i] {
                             co_mtx_.lock();
                             if (m_state_ != STATE::LEADER) {
+                                co_mtx_.unlock();
+                                return;
+                            }
+                            if (raft_correctness::NeedsInstallSnapshot(m_nextIndex_[i], m_snapShotIndex)) {
+                                sendInstallSnapshotToPeer(this, i);
                                 co_mtx_.unlock();
                                 return;
                             }
@@ -131,6 +137,14 @@ namespace craft {
         context.set_deadline(deadline);
         Status ok = stubs[serverId]->appendEntries(&context, *args, reply.get());
         rf->m_metrics_.IncrementAppendEntriesSent();
+        rf->m_metrics_.IncrementAppendEntriesBatchRpc();
+        rf->m_metrics_.AddAppendEntriesEntriesSent(static_cast<std::uint64_t>(args->entries_size()));
+        rf->m_metrics_.ObserveAppendEntriesBatchSize(static_cast<std::uint64_t>(args->entries_size()));
+        if (args->entries_size() == 0) {
+            rf->m_metrics_.IncrementAppendEntriesEmptyHeartbeat();
+        } else {
+            rf->m_metrics_.IncrementFollowerCatchupAttempts();
+        }
         if (ok.ok()) {
             if (reply->success()) {
                 rf->m_metrics_.IncrementAppendEntriesSuccess();
@@ -148,9 +162,15 @@ namespace craft {
 
     void handleAppendSuccess(Raft *rf, int serverId, const std::shared_ptr<AppendEntriesArgs> &args,
                              const std::shared_ptr<AppendEntriesReply> &reply) {
-        if (reply->nextlogindex() > rf->m_nextIndex_[serverId]) {
-            rf->m_nextIndex_[serverId] = reply->nextlogindex();
-            rf->m_matchIndex_[serverId] = reply->nextlogindex() - 1;
+        (void)reply;
+        if (args->entries_size() > 0) {
+            bool advanced = raft_correctness::AdvanceReplicationOnAppendSuccess(
+                serverId, args->prevlogindex(), args->entries_size(), &rf->m_nextIndex_, &rf->m_matchIndex_);
+            if (advanced) {
+                rf->m_metrics_.IncrementFollowerCatchupSuccess();
+            } else {
+                rf->m_metrics_.IncrementAppendEntriesStaleResponseIgnored();
+            }
         }
         if (args->entries_size() > 0 && args->entries(args->entries_size() - 1).term() == rf->m_current_term_) {
             rf->tryCommitLog();
@@ -160,10 +180,16 @@ namespace craft {
 
     void handleAppendFaild(Raft *rf, int serverId, const std::shared_ptr<AppendEntriesArgs> &args,
                            const std::shared_ptr<AppendEntriesReply> &reply) {
+        (void)args;
         if (reply->nextlogindex() != 0) {
             if (reply->nextlogindex() > rf->m_snapShotIndex) {
-                rf->m_nextIndex_[serverId] = reply->nextlogindex();
-                rf->m_appendEntriesTimer->reset(0); //right now send appendEntries again
+                if (raft_correctness::BackoffReplicationOnAppendFailure(
+                        serverId, reply->nextlogindex(), rf->m_snapShotIndex,
+                        &rf->m_nextIndex_, rf->m_matchIndex_)) {
+                    rf->m_appendEntriesTimer->reset(0); //right now send appendEntries again
+                } else {
+                    rf->m_metrics_.IncrementAppendEntriesStaleResponseIgnored();
+                }
             } else {
                 sendInstallSnapshotToPeer(rf,serverId);
             }
@@ -201,11 +227,20 @@ namespace craft {
         rf->m_metrics_.IncrementInstallSnapshotSent();
         if (ok.ok() && reply.iscansendsnapfile()) {
             rf->m_metrics_.IncrementInstallSnapshotSuccess();
-            go[rf,serverId]{
+            int snapshotIndex = args.lastincludeindex();
+            int requestTerm = args.term();
+            go[rf,serverId,snapshotIndex,requestTerm]{
                 // Send snapshot files via grpc streaming protocol
                 if(!toTransferSnapShotFiles(rf, serverId)){
                     spdlog::error("TransferSnapShotFiles faild");
                 }else{
+                    rf->co_mtx_.lock();
+                    if (rf->m_state_ == STATE::LEADER && rf->m_current_term_ == requestTerm) {
+                        raft_correctness::AdvanceReplicationOnSnapshotInstall(
+                            serverId, snapshotIndex, &rf->m_nextIndex_, &rf->m_matchIndex_);
+                        rf->m_appendEntriesTimer->reset(0);
+                    }
+                    rf->co_mtx_.unlock();
                     spdlog::info("success transfer snapshot file to id[{}]:{}", serverId, rf->m_clusterAddress_[serverId]);
                 }
             };

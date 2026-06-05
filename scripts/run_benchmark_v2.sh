@@ -17,6 +17,8 @@ APPEND_PERCENT="${APPEND_PERCENT:-5}"
 DELETE_PERCENT="${DELETE_PERCENT:-5}"
 SEED="${SEED:-20260604}"
 READ_MODE="${READ_MODE:-log}"
+MAX_APPEND_ENTRIES_PER_RPC="${MAX_APPEND_ENTRIES_PER_RPC:-64}"
+MAX_INFLIGHT_APPEND_ENTRIES_PER_PEER="${MAX_INFLIGHT_APPEND_ENTRIES_PER_PEER:-1}"
 BUILD_JOBS="${BUILD_JOBS:-1}"
 RAFT_BASE_PORT="${RAFT_BASE_PORT:-38000}"
 CLIENT_BASE_PORT="${CLIENT_BASE_PORT:-39000}"
@@ -160,7 +162,15 @@ write_metrics_delta() {
     check_quorum_stepdown_count \
     check_quorum_rounds \
     check_quorum_success \
-    check_quorum_failed; do
+    check_quorum_failed \
+    append_entries_batch_rpc_count \
+    append_entries_entries_sent \
+    append_entries_empty_heartbeat_count \
+    append_entries_max_batch_observed \
+    follower_catchup_attempts \
+    follower_catchup_success \
+    append_entries_stale_response_ignored \
+    append_entries_inflight_rejected; do
     before="$(metric_sum "${before_file}" "${metric}")"
     after="$(metric_sum "${after_file}" "${metric}")"
     echo "${metric}=$((after - before))" >>"${output_file}"
@@ -200,6 +210,8 @@ raft:
   rpc_timeout_ms: 300
   pre_vote: true
   check_quorum: true
+  max_append_entries_per_rpc: ${MAX_APPEND_ENTRIES_PER_RPC}
+  max_inflight_append_entries_per_peer: ${MAX_INFLIGHT_APPEND_ENTRIES_PER_PEER}
 
 read:
   mode: ${READ_MODE}
@@ -292,6 +304,12 @@ case "${READ_MODE}" in
   log|read_index) ;;
   *) fail "unknown READ_MODE: ${READ_MODE}" ;;
 esac
+if [[ ! "${MAX_APPEND_ENTRIES_PER_RPC}" =~ ^[1-9][0-9]*$ ]]; then
+  fail "MAX_APPEND_ENTRIES_PER_RPC must be positive"
+fi
+if [[ "${MAX_INFLIGHT_APPEND_ENTRIES_PER_PEER}" != "1" ]]; then
+  fail "MAX_INFLIGHT_APPEND_ENTRIES_PER_PEER must be 1 in this stage"
+fi
 
 ensure_under_root "${RUN_DIR}" "${TEST_DATA_ROOT}"
 ensure_under_root "${REPORT_DIR}" "${TEST_REPORT_ROOT}"
@@ -327,6 +345,8 @@ git_commit="$(cat "${REPORT_DIR}/git_commit.txt")"
   echo "delete_percent=${DELETE_PERCENT}"
   echo "seed=${SEED}"
   echo "read_mode=${READ_MODE}"
+  echo "max_append_entries_per_rpc=${MAX_APPEND_ENTRIES_PER_RPC}"
+  echo "max_inflight_append_entries_per_peer=${MAX_INFLIGHT_APPEND_ENTRIES_PER_PEER}"
   echo "client_servers=${CLIENT_SERVERS}"
 } >"${REPORT_DIR}/config.txt"
 
@@ -358,6 +378,8 @@ fi
   --delete_percent="${DELETE_PERCENT}" \
   --seed="${SEED}" \
   --read_mode="${READ_MODE}" \
+  --max_append_entries_per_rpc="${MAX_APPEND_ENTRIES_PER_RPC}" \
+  --max_inflight_append_entries_per_peer="${MAX_INFLIGHT_APPEND_ENTRIES_PER_PEER}" \
   --git_commit="${git_commit}" \
   --output_json="${REPORT_DIR}/result.json" \
   --output_csv="${REPORT_DIR}/result.csv"
