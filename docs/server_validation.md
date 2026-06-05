@@ -16,6 +16,101 @@ which grpc_cpp_plugin || true
 
 如果 `protoc`、`grpc_cpp_plugin`、gRPC CMake config、libgo、spdlog 或 absl 不存在，先按 `docs/build_alinux3.md` 安装依赖，再继续。
 
+## 1.1 统一验证入口
+
+`scripts/verify.sh` 是现有测试脚本的统一调度入口，只负责串行运行已有脚本、记录开始/结束时间、耗时、日志路径和失败重放命令，不重复实现各专项测试内部逻辑。默认 `BUILD_JOBS=1`，适合 2 vCPU、1.8 GiB 内存的小规格 SSH 环境，避免并行执行重量级集成测试。
+
+四种测试级别：
+
+```bash
+bash scripts/verify.sh fast
+bash scripts/verify.sh stage <stage_name>
+bash scripts/verify.sh pre_push
+bash scripts/verify.sh nightly
+```
+
+`fast` 用于每次代码修改后快速检查，依次运行：
+
+```bash
+git diff --check
+bash scripts/test_core.sh
+cmake --build build/raft -j1 --target kv_server kv_client kv_bench
+```
+
+`stage` 用于只重放某个专项阶段，支持：
+
+| stage_name | 调度命令 |
+| --- | --- |
+| `snapshot` | `bash scripts/test_snapshot_cluster.sh` |
+| `seeded_chaos` | `bash scripts/test_seeded_chaos.sh` |
+| `linearizability` | `bash scripts/test_concurrent_linearizability.sh` |
+| `admin_status` | `bash scripts/test_admin_status.sh` |
+| `benchmark_smoke` | `bash scripts/test_benchmark_smoke.sh` |
+| `read_index` | `bash scripts/test_read_index.sh` |
+| `leader_stability` | `bash scripts/test_leader_stability.sh` |
+| `batch_replication` | `bash scripts/test_batch_replication.sh` |
+
+例如只验证批量复制：
+
+```bash
+bash scripts/verify.sh stage batch_replication
+```
+
+`pre_push` 用于提交或 push 前，依次运行：
+
+```bash
+git diff --check
+bash scripts/test_core.sh
+bash scripts/test_all.sh
+```
+
+如当前改动涉及某些专项阶段，可以通过 `VERIFY_EXTRA_STAGES` 追加：
+
+```bash
+VERIFY_EXTRA_STAGES="batch_replication read_index" \
+  bash scripts/verify.sh pre_push
+```
+
+`nightly` 用于夜间或发布前完整回归，依次运行 core、cluster smoke、snapshot cluster、seeded chaos、linearizability、admin status、benchmark smoke、read index、leader stability 和 batch replication。该 profile 会监听本地 socket 并启动多个三节点集成场景，不建议在受限 sandbox 中运行。
+
+不需要每次手动运行的测试：snapshot、seeded chaos、linearizability、admin status、benchmark smoke、read index、leader stability 和 batch replication 都属于专项或慢速集成验证。日常代码修改后优先跑 `fast`；只改到某个专项相关代码时再跑对应 `stage`；提交前跑 `pre_push`；夜间或发布前跑 `nightly`。
+
+每次 `verify.sh` 运行都会创建独立报告目录：
+
+```text
+/tmp/raftkv-test-reports/<verify_run_id>/
+```
+
+默认数据目录为：
+
+```text
+/tmp/raftkv-test-data/<verify_run_id>/
+```
+
+顶层 `summary.txt` 记录每个阶段的开始时间、结束时间、耗时、日志路径和重放命令。某项失败后立即停止，不删除失败现场，并输出 `failed_stage` 和 `replay`。失败阶段可以按 `summary.txt` 中的 `replay=` 原样重放；也可以用同一个 stage 入口重跑：
+
+```bash
+bash scripts/verify.sh stage read_index
+```
+
+普通 SSH 环境常用示例：
+
+```bash
+# 每次小改动后
+bash scripts/verify.sh fast
+
+# 只复查 ReadIndex
+bash scripts/verify.sh stage read_index
+
+# push 前加跑当前改动相关专项
+VERIFY_EXTRA_STAGES="batch_replication read_index" \
+  bash scripts/verify.sh pre_push
+
+# 夜间完整回归，建议放在 tmux/screen 中
+VERIFY_RUN_ID="nightly-$(date +%Y%m%d-%H%M%S)" \
+  bash scripts/verify.sh nightly
+```
+
 ## 2. Core tests
 
 core tests 不依赖 gRPC/libgo，先验证 KV、WAL、Snapshot 和重启 replay：
