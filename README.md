@@ -1,110 +1,192 @@
-# RaftKV Strong Consistency
+# RaftKV-StrongConsistency
 
-RaftKV is a C++17 engineering prototype of a strongly consistent key-value store built on a single Raft group.
+一个基于 C++17、Raft 和 gRPC 实现的固定三节点强一致 KV 存储工程原型。
 
-It is intentionally scoped as a reproducible learning and validation project:
+RaftKV v1.0 聚焦单 Raft Group、固定三节点、强一致 KV、崩溃恢复、可观测性和系统化验证。它适合作为分布式存储学习、工程实践和面试讲解项目；它不面向生产环境，也不试图扩展成完整分布式数据库。
 
-- Single Raft group.
-- Fixed three-node cluster.
-- Strongly consistent `Put` / `Get` / `Append` / `Delete`.
-- Crash recovery with WAL and Snapshot.
-- Not a production database.
+## 项目亮点
 
-The project focuses on correctness, recovery, observability, benchmark discipline, and interview-readable engineering evidence. It does not try to become a full distributed database.
+| 类别 | 能力 |
+| --- | --- |
+| 一致性 | Raft 多数派提交、线性一致读、`client_id + request_id` 请求去重 |
+| 持久化 | WAL、checksum、坏尾截断、meta fail closed |
+| Snapshot | 原子保存、重启恢复、InstallSnapshot |
+| Leader 稳定性 | No-op Barrier、PreVote、CheckQuorum |
+| 读优化 | `log` read 与 ReadIndex |
+| 复制优化 | 有界 AppendEntries batching |
+| 可观测性 | Admin Status API、Metrics、CLI `status` |
+| 验证体系 | smoke、chaos、linearizability、slow follower、nightly |
+| 性能工具 | Benchmark v2、复制矩阵 |
 
-## Capabilities
-
-- Leader election.
-- AppendEntries log replication.
-- Majority commit before state-machine apply.
-- WAL with checksums, corrupted-tail truncation, and fail-closed metadata recovery.
-- Atomic Snapshot write, Snapshot recovery, and InstallSnapshot for lagging followers.
-- Client retry deduplication with `client_id + request_id`.
-- Read paths: log read and ReadIndex.
-- Leader no-op barrier for current-term read safety.
-- PreVote.
-- CheckQuorum.
-- Bounded AppendEntries batching.
-- Admin Status API.
-- Raft and KV metrics.
-- Seeded chaos test.
-- Concurrent linearizability checker.
-- Benchmark v2.
-- Slow follower and delayed replication matrix.
-- Unified validation entry: `scripts/verify.sh`.
-
-## Architecture
-
-The cluster is a fixed three-node Raft group. Clients may contact any node; followers return leader hints and the client retries the leader.
+## 核心架构
 
 ```mermaid
 flowchart LR
-  Client["kv_client"] --> N1["node1<br/>kv_server"]
-  Client --> N2["node2<br/>kv_server"]
-  Client --> N3["node3<br/>kv_server"]
+  C["kv_client"] --> S["KVServer"]
+  S --> L["Raft Leader"]
+  L --> F1["Follower"]
+  L --> F2["Follower"]
 
-  subgraph RaftGroup["Single Raft Group"]
-    N1 <-->|RequestVote<br/>AppendEntries<br/>InstallSnapshot| N2
-    N2 <-->|RequestVote<br/>AppendEntries<br/>InstallSnapshot| N3
-    N1 <-->|RequestVote<br/>AppendEntries<br/>InstallSnapshot| N3
-  end
-
-  N1 --> D1["WAL + Snapshot"]
-  N2 --> D2["WAL + Snapshot"]
-  N3 --> D3["WAL + Snapshot"]
+  L --> WAL["WAL"]
+  L --> SNAP["Snapshot"]
+  L --> SM["State Machine"]
+  S --> ADM["Admin Status / Metrics"]
 ```
 
-More diagrams are in [docs/architecture.md](docs/architecture.md).
+完整架构、读写路径和恢复流程见：[docs/architecture.md](docs/architecture.md)。
 
-## Quick Start
+## 已实现能力
 
-### Dependencies
+### Raft 共识
 
-The full server build needs a Linux environment with:
+- Leader 选举、RequestVote、AppendEntries。
+- 多数派复制后提交，状态机按 log index 顺序 apply。
+- Leader 故障切换、Follower 重启追赶。
+- Snapshot 边界下通过 InstallSnapshot 让落后 Follower 恢复。
 
-- C++17 compiler
+### 持久化恢复
+
+- WAL frame 带长度字段和 checksum。
+- partial / corrupted WAL tail 按崩溃恢复输入处理并安全截断。
+- meta 损坏时 fail closed，避免带着不可信元数据启动。
+- Snapshot 原子写入，包含 KV 数据、去重表、last included index/term。
+- 重启时先恢复 Snapshot，再 replay Snapshot 之后已提交但未 apply 的 WAL 日志。
+- 持久化路径使用原子写入、`fsync` 和父目录 sync。
+
+### 线性一致读
+
+RaftKV 支持两种读模式：
+
+| 模式 | 行为 |
+| --- | --- |
+| `log` | `Get` 进入 Raft 日志，复制到多数派并 apply 后返回。实现简单但每次读都会写 WAL。 |
+| `read_index` | Leader 通过多数派 heartbeat / AppendEntries 确认当前领导权，等待本地 apply 到对应 commit index 后本地读取。 |
+
+ReadIndex 不为每次 `Get` 追加业务日志。新 Leader 需要先通过 No-op Barrier 建立当前任期提交屏障，避免在未确认当前任期领导权时读取旧状态。
+
+### Leader 稳定性
+
+- No-op Barrier：Leader 上任后追加内部 no-op，建立当前 term commit barrier。
+- PreVote：减少隔离节点无意义地抬高 term。
+- CheckQuorum：Leader 失去多数派联系时主动退位。
+
+### 复制优化
+
+- `raft.max_append_entries_per_rpc` 控制每次 AppendEntries 最多携带的日志条数。
+- 默认最大 batch size 为 `64`。
+- 空 heartbeat 不推进 `matchIndex`。
+- 当前 `max_inflight_append_entries_per_peer=1`，尚未实现 inflight pipeline。
+
+### 请求幂等
+
+客户端请求使用：
+
+```text
+client_id + request_id
+```
+
+状态机保存最近请求结果，避免客户端重试导致 `Append` 等非幂等操作被重复执行。该去重表会随 Snapshot 恢复。
+
+## 性能对比快照
+
+数据来自单机 2 vCPU、小内存服务器，只用于相对优化对比和回归观察，不作为生产级 benchmark 宣传。完整数据见：[docs/performance_report.md](docs/performance_report.md)。
+
+### ReadIndex 对比
+
+| 指标 | log read | ReadIndex | 变化 |
+| --- | ---: | ---: | ---: |
+| 吞吐量 | 14.633 ops/s | 197.767 ops/s | +1251.5% |
+| p50 | 100958 us | 3872 us | -96.2% |
+| p95 | 368709 us | 24507 us | -93.4% |
+| p99 | 732533 us | 88235 us | -88.0% |
+| WAL 增量 | 402732 bytes | 205668 bytes | -48.9% |
+
+ReadIndex 显著减少 WAL 写入并提高读吞吐；同时每次 quorum confirmation 可能增加 heartbeat / AppendEntries RPC 数量，这在报告中如实记录。
+
+### Batching 对比
+
+| 指标 | batch=1 | batch=64 | 变化 |
+| --- | ---: | ---: | ---: |
+| 吞吐量 | 9.100 ops/s | 16.550 ops/s | +81.9% |
+| p50 | 200656 us | 100698 us | -49.8% |
+| p95 | 427757 us | 279077 us | -34.8% |
+| p99 | 525197 us | 389994 us | -25.7% |
+
+在注入 100ms AppendEntries 响应延迟时，`batch=1` 在默认追赶预算内超时，而 `batch=8` 和 `batch=64` 可以完成追赶。该结果说明 batching 对落后 Follower 追赶有实际价值，但不代表生产网络性能结论。
+
+## 验证结果快照
+
+发布验证证据见：[docs/release_evidence.md](docs/release_evidence.md)。
+
+| 验证阶段 | 状态 |
+| --- | --- |
+| core tests | PASS |
+| cluster smoke | PASS |
+| snapshot cluster | PASS |
+| seeded chaos | PASS |
+| linearizability | PASS |
+| admin status | PASS |
+| benchmark smoke | PASS |
+| read index | PASS |
+| leader stability | PASS |
+| batch replication | PASS |
+| slow follower | PASS |
+| nightly | PASS |
+
+## 快速开始
+
+### 依赖
+
+完整 Raft server 构建需要 Linux 环境和以下依赖：
+
+- C++17 编译器
 - CMake
 - Protobuf
-- gRPC and `grpc_cpp_plugin`
+- gRPC 与 `grpc_cpp_plugin`
 - libgo
-- spdlog
-- absl dependencies required by gRPC
+- spdlog / absl 等 gRPC 相关依赖
 
-Alibaba Cloud Linux 3 setup notes are in [docs/build_alinux3.md](docs/build_alinux3.md).
+Alibaba Cloud Linux 3 安装记录见：[docs/build_alinux3.md](docs/build_alinux3.md)。
 
-Core tests can be built without the full Raft/gRPC server dependency set:
-
-```bash
-bash scripts/test_core.sh
-```
-
-### Build
-
-Full build:
+### 构建
 
 ```bash
-bash scripts/build.sh
+cmake -S . -B build/raft \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCRAFTKV_BUILD_RAFT=ON
+
+cmake --build build/raft -j1 \
+  --target kv_server kv_client kv_bench
 ```
 
-Fast post-change validation:
+### 启动固定三节点集群
 
-```bash
-bash scripts/verify.sh fast
-```
+仓库提供了默认本地三节点配置：
 
-### Start A Three-Node Cluster
+- Raft 端口：`8001`、`8002`、`8003`
+- Client 端口：`9001`、`9002`、`9003`
+
+启动：
 
 ```bash
 bash scripts/start_cluster.sh
 ```
 
-Find the leader:
+查询 Leader：
 
 ```bash
 ./bin/kv_client leader
 ```
 
-### KV Operations
+### 客户端操作示例
+
+`kv_client` 默认连接：
+
+```text
+127.0.0.1:9001,127.0.0.1:9002,127.0.0.1:9003
+```
+
+示例：
 
 ```bash
 ./bin/kv_client put name raft
@@ -113,135 +195,108 @@ Find the leader:
 ./bin/kv_client get name
 ./bin/kv_client delete name
 ./bin/kv_client get name || true
+./bin/kv_client status
 ```
 
-Expected behavior:
-
-- `Put` creates or overwrites a key.
-- `Get` returns the value or `KEY_NOT_FOUND`.
-- `Append` appends to an existing value or creates the key from an empty value.
-- `Delete` removes an existing key or returns `KEY_NOT_FOUND`.
-
-### Status And Metrics
-
-Single-node status:
+显式指定节点：
 
 ```bash
 ./bin/kv_client --servers=127.0.0.1:9001 status
 ```
 
-Cluster status table:
+支持的命令：
 
-```bash
-bash scripts/show_cluster_status.sh \
-  127.0.0.1:9001 \
-  127.0.0.1:9002 \
-  127.0.0.1:9003
-```
+| 命令 | 说明 |
+| --- | --- |
+| `put key value` | 创建或覆盖 key |
+| `get key` | 读取 key，不存在时返回 `KEY_NOT_FOUND` |
+| `append key value` | 追加 value；key 不存在时从空值创建 |
+| `delete key` | 删除 key，不存在时返回 `KEY_NOT_FOUND` |
+| `leader` | 查询当前 Leader id 和 client addr |
+| `status` | 输出本节点 `key=value` 状态与 Metrics |
 
-Status output is stable `key=value` text for scripts. It includes role, term, leader id, commit index, applied index, log index, snapshot index, WAL bytes, and metrics counters.
+## 配置说明
 
-## Read Paths
-
-RaftKV supports two read modes.
-
-### Log Read
-
-`log` is the default mode. A `Get` request is serialized into a Raft log entry, replicated to a majority, committed, applied in log order, and then returned to the client.
-
-This is simple and strongly consistent, but every read writes a Raft log entry and touches the WAL/replication path.
-
-### ReadIndex
-
-`read_index` avoids appending a log entry for `Get`. The leader first verifies that it still has quorum authority in the current term, records the current commit index, waits until the local state machine has applied up to that index, and then reads locally.
-
-ReadIndex is not Lease Read. It still needs quorum confirmation and a current-term commit barrier. Leader no-op barrier ensures a newly elected leader can establish that current-term commit point even before user writes arrive.
-
-Configuration:
-
-```yaml
-read:
-  mode: log        # default
-```
-
-or:
+`read.mode` 默认值来自代码，为 `log`。可以在节点配置中显式开启 ReadIndex：
 
 ```yaml
 read:
   mode: read_index
 ```
 
-## Persistence And Recovery
+常用 Raft 配置示例：
 
-Each node persists Raft state locally.
+```yaml
+raft:
+  pre_vote: true
+  check_quorum: true
+  max_append_entries_per_rpc: 64
+  max_inflight_append_entries_per_peer: 1
+```
 
-WAL stores:
+说明：
 
-- current term
-- voted-for metadata
-- committed/applied metadata
-- log entries after the latest snapshot
-- checksums for corruption detection
+- `max_append_entries_per_rpc=64` 是当前批量复制默认上限。
+- `max_inflight_append_entries_per_peer=1` 表示当前尚未实现 inflight pipeline。
+- 慢 Follower、Snapshot 中断等延迟注入通过测试环境变量实现，不是生产配置项。
 
-Snapshot stores:
+## 测试入口
 
-- KV data
-- client request dedup table
-- last included index
-- last included term
-
-Restart recovery loads Snapshot first, then WAL metadata and log entries, then replays committed entries after the snapshot index. Corrupted or truncated WAL tails are treated as crash-recovery input and truncated safely; invalid metadata fails closed.
-
-Dedup recovery is part of Snapshot restoration, so `client_id + request_id` remains valid across restart and snapshot install.
-
-## Validation
-
-Use `scripts/verify.sh` as the main entry point:
+统一入口：
 
 ```bash
 bash scripts/verify.sh fast
-bash scripts/verify.sh stage <stage_name>
+bash scripts/verify.sh stage read_index
+bash scripts/verify.sh stage batch_replication
+bash scripts/verify.sh stage slow_follower
 bash scripts/verify.sh pre_push
 bash scripts/verify.sh nightly
 ```
 
-Recommended use:
+说明：
 
-- `fast`: after every code change.
-- `stage`: run one focused integration stage, for example `slow_follower` or `read_index`.
-- `pre_push`: before publishing changes.
-- `nightly`: full serial regression in a normal Linux SSH environment, preferably inside `tmux` or `screen`.
+- `fast`：每次小改动后运行，包含 `git diff --check`、core tests 和核心二进制构建。
+- `stage read_index` / `stage batch_replication` / `stage slow_follower`：只运行单个专项集成验证。
+- `pre_push`：提交前串行运行 core 和默认集成集合。
+- `nightly`：完整三节点回归，耗时较长，适合普通 Linux / SSH 环境，建议放在 `tmux` 或 `screen` 中运行。
 
-Examples:
+完整验证说明见：[docs/server_validation.md](docs/server_validation.md)。
 
-```bash
-bash scripts/verify.sh fast
-bash scripts/verify.sh stage slow_follower
-VERIFY_EXTRA_STAGES="batch_replication read_index" bash scripts/verify.sh pre_push
-VERIFY_RUN_ID="nightly-$(date +%Y%m%d-%H%M%S)" bash scripts/verify.sh nightly
+## 项目结构
+
+```text
+client/              # kv_client、kv_bench、benchmark client 逻辑
+include/             # 公共头文件、KV/Raft/Storage 接口
+src/                 # Raft、KVServer、WAL、Snapshot、RPC 实现
+tests/               # core 单元测试
+scripts/             # 多节点测试、故障注入、benchmark 编排、证据收集
+docs/                # 架构、验证、性能、发布资料
+.github/workflows/   # GitHub Actions fast validation
 ```
 
-Full three-node tests listen on local sockets and are intended for a normal Linux/SSH environment. GitHub Actions only runs the fast subset that does not require binding a full local Raft cluster.
+Shell 脚本较多是因为项目包含系统化验证工具链：启动三节点、注入故障、采集 Metrics、运行 benchmark、保存 replay command。Python 主要用于 concurrent linearizability checker 和历史检查工具。
 
-## Benchmarking
+## 项目边界
 
-Benchmark v2 uses the C++ `kv_bench` client and reports throughput, latency percentiles, retry counts, failure counts, and metrics deltas.
+RaftKV v1.0 当前没有实现：
 
-Performance reporting is tracked in [docs/performance_report.md](docs/performance_report.md). The project does not publish single-machine numbers as production benchmark claims; they are for regression and optimization comparison.
-
-## Project Limits
-
-RaftKV v1.0 intentionally does not include:
-
-- dynamic membership
-- sharding
+- 动态成员变更
+- 分片
 - Multi-Raft
 - MVCC
-- transactions
+- 事务
 - Lease Read
-- authentication
-- Kubernetes deployment
-- production-grade operations, monitoring, backup, or SLO tooling
 - inflight AppendEntries pipeline
+- 生产级监控告警
+- TLS 和权限认证
+- 跨机器长期压测
 
-The fixed three-node, single-group scope is deliberate. It keeps the project small enough to reason about correctness, recovery, testing, and observability end to end.
+这些边界是刻意保留的：项目重点是把一个固定三节点、单 Raft Group 的强一致 KV 原型做成可构建、可恢复、可观测、可验证、可讲解。
+
+## 文档导航
+
+- [完整架构与恢复流程](docs/architecture.md)
+- [性能报告](docs/performance_report.md)
+- [发布验证证据](docs/release_evidence.md)
+- [服务器验证说明](docs/server_validation.md)
+- [v1.0 发布清单](docs/release_checklist.md)
