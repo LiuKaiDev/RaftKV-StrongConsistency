@@ -2,8 +2,7 @@
 
 一个基于 C++17、Raft 和 gRPC 实现的固定三节点强一致 KV 存储工程原型。
 
-RaftKV v1.0 聚焦单 Raft Group、固定三节点、强一致 KV、崩溃恢复、可观测性和系统化验证。它适合作为分布式存储学习、工程实践和面试讲解项目；它不面向生产环境，也不试图扩展成完整分布式数据库。
-
+RaftKV v1.0 聚焦单 Raft Group、固定三节点、强一致 KV、崩溃恢复、可观测性和系统化验证。
 ## 项目亮点
 
 | 类别 | 能力 |
@@ -274,7 +273,7 @@ docs/                # 架构、验证、性能、发布资料
 .github/workflows/   # GitHub Actions fast validation
 ```
 
-Shell 脚本较多是因为项目包含系统化验证工具链：启动三节点、注入故障、采集 Metrics、运行 benchmark、保存 replay command。Python 主要用于 concurrent linearizability checker 和历史检查工具。
+
 
 ## 项目边界
 
@@ -291,12 +290,5 @@ RaftKV v1.0 当前没有实现：
 - TLS 和权限认证
 - 跨机器长期压测
 
-这些边界是刻意保留的：项目重点是把一个固定三节点、单 Raft Group 的强一致 KV 原型做成可构建、可恢复、可观测、可验证、可讲解。
 
-## 文档导航
 
-- [完整架构与恢复流程](docs/architecture.md)
-- [性能报告](docs/performance_report.md)
-- [发布验证证据](docs/release_evidence.md)
-- [服务器验证说明](docs/server_validation.md)
-- [v1.0 发布清单](docs/release_checklist.md)
