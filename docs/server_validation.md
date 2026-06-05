@@ -49,6 +49,7 @@ cmake --build build/raft -j1 --target kv_server kv_client kv_bench
 | `read_index` | `bash scripts/test_read_index.sh` |
 | `leader_stability` | `bash scripts/test_leader_stability.sh` |
 | `batch_replication` | `bash scripts/test_batch_replication.sh` |
+| `slow_follower` | `bash scripts/test_slow_follower.sh` |
 
 例如只验证批量复制：
 
@@ -71,9 +72,9 @@ VERIFY_EXTRA_STAGES="batch_replication read_index" \
   bash scripts/verify.sh pre_push
 ```
 
-`nightly` 用于夜间或发布前完整回归，依次运行 core、cluster smoke、snapshot cluster、seeded chaos、linearizability、admin status、benchmark smoke、read index、leader stability 和 batch replication。该 profile 会监听本地 socket 并启动多个三节点集成场景，不建议在受限 sandbox 中运行。
+`nightly` 用于夜间或发布前完整回归，依次运行 core、cluster smoke、snapshot cluster、seeded chaos、linearizability、admin status、benchmark smoke、read index、leader stability、batch replication 和 slow follower。该 profile 会监听本地 socket 并启动多个三节点集成场景，不建议在受限 sandbox 中运行。完整复制矩阵不属于 nightly 默认项，需要按需手动运行。
 
-不需要每次手动运行的测试：snapshot、seeded chaos、linearizability、admin status、benchmark smoke、read index、leader stability 和 batch replication 都属于专项或慢速集成验证。日常代码修改后优先跑 `fast`；只改到某个专项相关代码时再跑对应 `stage`；提交前跑 `pre_push`；夜间或发布前跑 `nightly`。
+不需要每次手动运行的测试：snapshot、seeded chaos、linearizability、admin status、benchmark smoke、read index、leader stability、batch replication 和 slow follower 都属于专项或慢速集成验证。日常代码修改后优先跑 `fast`；只改到某个专项相关代码时再跑对应 `stage`；提交前跑 `pre_push`；夜间或发布前跑 `nightly`。
 
 每次 `verify.sh` 运行都会创建独立报告目录：
 
@@ -364,6 +365,101 @@ RUN_BATCH_REPLICATION=1 bash scripts/test_all.sh
 ```
 
 该脚本覆盖普通落后 follower 多批次追赶、Snapshot 边界下先安装 snapshot 再批量追赶、追赶期间 Leader 切换后最终一致，并保存 status、metrics、配置、节点日志和 replay 命令。Leader 切换场景会先等待旧 Leader 进程和端口不可用，再通过各节点 `status` 重新发现唯一 Leader，确认新 Leader 的 no-op barrier 已提交后再写入。若写入命中临时 `NOT_LEADER` 或连接失败，脚本会刷新 Leader 并有限重试；最终失败时会保存 `diagnostics/failure_context.txt`、每次请求的 stdout/stderr、节点状态和日志尾部。
+
+## 6.4 慢 Follower 与高延迟复制矩阵
+
+本阶段增加两个默认关闭、仅用于测试的接收端延迟注入环境变量：
+
+```text
+CRAFTKV_TEST_APPEND_ENTRIES_DELAY_MS
+CRAFTKV_TEST_INSTALL_SNAPSHOT_DELAY_MS
+```
+
+它们只在设置该环境变量的 `kv_server` 进程中生效，默认值为 `0`。非法值会记录 warning 并安全回退为 `0`。延迟通过 `sleep_for` 注入在 Follower 接收端 RPC handler 入口，不写入正式配置文件，不修改 RPC 协议，不修改 WAL frame，也不修改 Snapshot 文件格式。普通生产启动脚本不设置这些变量，因此默认行为不变。
+
+本项目的慢 Follower 验证不使用全局 `tc qdisc`、`iptables`、`pkill` 或 `killall`。测试运行在同一台服务器上，全局网络规则可能影响其他服务和其他测试；脚本只对本轮启动、PID 文件记录的节点进程做定向停止和环境变量注入。
+
+单个慢 Follower 不应阻塞多数派：三节点 Raft 中 Leader 只需要自己和另一个正常 Follower 形成多数派即可提交日志。慢 Follower 的 AppendEntries 响应变慢会影响该节点追赶速度，但不应让 Leader 在仍能联系多数派时错误退位，也不应阻止已提交日志按顺序应用。
+
+批量复制在高 RTT 下更重要：当 `max_append_entries_per_rpc=1` 时，落后节点追赶 N 条日志需要更多 RPC 往返；在相同延迟下，`8` 或 `64` 的批次能用更少 RPC 发送同样日志量。当前仍未实现 inflight pipeline，`max_inflight_append_entries_per_peer` 仍只支持 `1`，所以该矩阵用于判断后续 pipeline 是否值得继续投入。
+
+运行慢 Follower 专项测试：
+
+```bash
+bash scripts/test_slow_follower.sh
+```
+
+或通过统一入口：
+
+```bash
+bash scripts/verify.sh stage slow_follower
+```
+
+需要纳入 `test_all` 时显式开启：
+
+```bash
+RUN_SLOW_FOLLOWER=1 bash scripts/test_all.sh
+```
+
+`scripts/test_slow_follower.sh` 使用隔离端口和隔离数据目录，覆盖：
+
+- 单个慢 Follower 不阻塞多数派，Leader 不因一个慢节点错误退位，慢节点最终追赶并三节点 dump 一致。
+- 相同 workload 和延迟下对比 `max_append_entries_per_rpc=1/8/64` 的追赶耗时、批次 RPC 数、发送日志条数、最大观察批次和最终一致性。
+- 停止 Follower 后写入足够日志触发 Snapshot，再以 `CRAFTKV_TEST_INSTALL_SNAPSHOT_DELAY_MS` 恢复该节点，验证先 InstallSnapshot，再批量追赶 Snapshot 后日志。
+- 慢 Follower 追赶期间停止 Leader、等待新 Leader、恢复旧 Leader，验证最终一致，复制进度不异常回退，且无错误提交。
+
+运行完整复制矩阵：
+
+```bash
+DELAY_MS_LIST="0 10 50 100" \
+BATCH_SIZE_LIST="1 8 64" \
+WORKLOAD_COUNT=200 \
+  bash scripts/run_replication_matrix.sh
+```
+
+矩阵默认参数即为：
+
+```bash
+DELAY_MS_LIST="${DELAY_MS_LIST:-0 10 50 100}"
+BATCH_SIZE_LIST="${BATCH_SIZE_LIST:-1 8 64}"
+WORKLOAD_COUNT="${WORKLOAD_COUNT:-200}"
+```
+
+矩阵报告默认保存到：
+
+```text
+/tmp/raftkv-test-reports/<run_id>/replication-matrix/
+```
+
+主要文件：
+
+- `summary.txt`: 当前状态、参数、报告目录和 replay command。
+- `results.csv`: 每组参数的结构化结果。
+- `results.md`: Markdown 表格，便于直接阅读。
+- `config.txt`: 本轮矩阵参数。
+- `faults.jsonl`: 每组停止/恢复 follower 的事件。
+- `replay_command.txt`: 可复制重放命令。
+- `<group>/status_before.txt`、`<group>/status_after.txt`、`<group>/metrics_delta.txt`、`<group>/node_logs/`: 每组状态、metrics 差值和节点日志。
+
+`results.csv` 至少包含：
+
+```text
+delay_ms
+batch_size
+workload_count
+catchup_duration_ms
+append_entries_batch_rpc_count
+append_entries_entries_sent
+append_entries_max_batch_observed
+follower_catchup_attempts
+follower_catchup_success
+snapshot_used
+final_consistency
+```
+
+失败时不要清理报告目录。优先查看 `summary.txt` 的 `replay_command`、失败 group 的 `status_on_failure.txt`、`metrics_delta.txt` 和 `node_logs/`。可以直接运行 `replay_command.txt` 中的命令重放同一矩阵参数。
+
+当前尚未覆盖真实丢包、乱序、非对称网络分区、高带宽限制、磁盘抖动或跨机器 RTT。该阶段只验证单机内、指定测试节点进程级延迟下的慢 Follower、Snapshot 安装延迟和落后节点追赶。
 
 ## 7. Leader 故障
 

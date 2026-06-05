@@ -31,6 +31,7 @@ benchmark_smoke_status=SKIPPED
 read_index_status=SKIPPED
 leader_stability_status=SKIPPED
 batch_replication_status=SKIPPED
+slow_follower_status=SKIPPED
 
 echo "running core tests..."
 if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_core.sh" >"${REPORT_DIR}/test_core.log" 2>&1; then
@@ -172,6 +173,21 @@ else
   echo "batch replication: SKIPPED (set RUN_BATCH_REPLICATION=1 to run)"
 fi
 
+if [[ "${RUN_SLOW_FOLLOWER:-0}" == "1" ]]; then
+  echo "running slow follower integration test..."
+  if RUN_ID="${RUN_ID}" bash "${ROOT_DIR}/scripts/test_slow_follower.sh" >"${REPORT_DIR}/test_slow_follower.log" 2>&1; then
+    echo "slow follower: PASS"
+    slow_follower_status=PASS
+  else
+    slow_follower_status=$?
+    echo "slow follower: FAIL (${slow_follower_status})"
+    echo "log: ${REPORT_DIR}/test_slow_follower.log"
+    exit "${slow_follower_status}"
+  fi
+else
+  echo "slow follower: SKIPPED (set RUN_SLOW_FOLLOWER=1 to run)"
+fi
+
 cat >"${REPORT_DIR}/summary.txt" <<EOF
 run_id=${RUN_ID}
 core_status=PASS
@@ -184,6 +200,7 @@ benchmark_smoke_status=${benchmark_smoke_status}
 read_index_status=${read_index_status}
 leader_stability_status=${leader_stability_status}
 batch_replication_status=${batch_replication_status}
+slow_follower_status=${slow_follower_status}
 core_log=${REPORT_DIR}/test_core.log
 cluster_smoke_log=${REPORT_DIR}/test_cluster_smoke.log
 snapshot_cluster_log=${REPORT_DIR}/test_snapshot_cluster.log
@@ -194,6 +211,7 @@ benchmark_smoke_log=${REPORT_DIR}/test_benchmark_smoke.log
 read_index_log=${REPORT_DIR}/test_read_index.log
 leader_stability_log=${REPORT_DIR}/test_leader_stability.log
 batch_replication_log=${REPORT_DIR}/test_batch_replication.log
+slow_follower_log=${REPORT_DIR}/test_slow_follower.log
 EOF
 
 echo "ALL TESTS PASSED"

@@ -27,6 +27,7 @@ Stages:
   read_index
   leader_stability
   batch_replication
+  slow_follower
 EOF
 }
 
@@ -238,6 +239,9 @@ run_stage() {
     batch_replication)
       run_child_script "batch_replication" "test_batch_replication.sh"
       ;;
+    slow_follower)
+      run_child_script "slow_follower" "test_slow_follower.sh"
+      ;;
     *)
       echo "ERROR: unknown stage: ${stage}" >&2
       usage >&2
@@ -296,6 +300,7 @@ case "${PROFILE}" in
     run_stage "read_index"
     run_stage "leader_stability"
     run_stage "batch_replication"
+    run_stage "slow_follower"
     ;;
 esac
 

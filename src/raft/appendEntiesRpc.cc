@@ -3,13 +3,47 @@
 #include "raft/raft_correctness.h"
 #include <algorithm>
 #include <chrono>
+#include <cerrno>
+#include <cstdlib>
+#include <limits>
+#include <thread>
 
 namespace craft {
+namespace {
+
+int TestAppendEntriesDelayMs() {
+    static const int delay_ms = []() {
+        const char* raw = std::getenv("CRAFTKV_TEST_APPEND_ENTRIES_DELAY_MS");
+        if (raw == nullptr || raw[0] == '\0') {
+            return 0;
+        }
+        errno = 0;
+        char* end = nullptr;
+        long parsed = std::strtol(raw, &end, 10);
+        if (errno != 0 || end == raw || *end != '\0' || parsed < 0 ||
+            parsed > std::numeric_limits<int>::max()) {
+            spdlog::warn("invalid CRAFTKV_TEST_APPEND_ENTRIES_DELAY_MS='{}'; using 0", raw);
+            return 0;
+        }
+        return static_cast<int>(parsed);
+    }();
+    return delay_ms;
+}
+
+void ApplyTestAppendEntriesDelay() {
+    int delay_ms = TestAppendEntriesDelayMs();
+    if (delay_ms > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
+}
+
+}  // namespace
 
 
     Status RpcServiceImpl::appendEntries(::grpc::ServerContext *context,
                                          const ::AppendEntriesArgs *request,
                                          ::AppendEntriesReply *response) {
+        ApplyTestAppendEntriesDelay();
         m_rf_->co_mtx_.lock();
         response->set_term(m_rf_->m_current_term_);
         response->set_success(false);

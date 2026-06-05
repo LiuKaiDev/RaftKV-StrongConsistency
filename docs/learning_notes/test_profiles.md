@@ -29,6 +29,7 @@ This keeps the orchestration change outside Raft consensus logic, WAL, Snapshot,
 | `read_index` | `scripts/test_read_index.sh` |
 | `leader_stability` | `scripts/test_leader_stability.sh` |
 | `batch_replication` | `scripts/test_batch_replication.sh` |
+| `slow_follower` | `scripts/test_slow_follower.sh` |
 
 ## Failure Handling
 
@@ -74,4 +75,4 @@ VERIFY_RUN_ID="nightly-$(date +%Y%m%d-%H%M%S)" \
   bash scripts/verify.sh nightly
 ```
 
-Slow stages such as snapshot, chaos, linearizability, ReadIndex, leader stability, batch replication, admin status, and benchmark smoke do not need to be run manually after every small edit. They should be selected by changed area, pre-push risk, or scheduled regression.
+Slow stages such as snapshot, chaos, linearizability, ReadIndex, leader stability, batch replication, slow follower, admin status, and benchmark smoke do not need to be run manually after every small edit. They should be selected by changed area, pre-push risk, or scheduled regression.
