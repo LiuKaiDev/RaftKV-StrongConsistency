@@ -59,3 +59,23 @@ READ_MODE=read_index SCENARIO=steady READ_PERCENT=100 PUT_PERCENT=0 APPEND_PERCE
 ```
 
 Compare throughput, p50/p95/p99, `wal_bytes`, `append_entries_sent`, `snapshot_created_count`, `read_log_total`, and `read_index_success`.
+
+## Nightly Stability Fix
+
+A nightly regression failed after restoring two followers:
+
+```text
+NOT_LEADER: not leader
+FAIL: post-restore barrier put failed
+```
+
+The failure happened in the test harness, not in the ReadIndex algorithm. The script restarted the stopped followers and immediately issued a barrier `put` through the generic client server list. During that recovery window the previous Leader had already stepped down because CheckQuorum could not contact a majority, while the restored nodes had not yet converged on a stable Leader. The write therefore legitimately hit a non-Leader and returned `NOT_LEADER`.
+
+The script now treats this as a transient routing condition:
+
+- `discover_leader` queries all three node status endpoints and accepts only exactly one `role=LEADER`.
+- `wait_for_stable_leader` waits for that Leader's no-op barrier metric, `commit_index`, `last_log_index`, and `last_applied` to show a usable current-term barrier.
+- `retry_write_to_leader` sends retries with the same `client_id + request_id`, follows leader hints, refreshes Leader discovery, and falls back to other alive nodes on connection failure.
+- Failure diagnostics include current step, last request, last response, discovered Leader, alive nodes, retry count, status snapshots, node log tails, and replay command.
+
+No client CLI behavior or Raft core logic changed for this fix.

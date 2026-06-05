@@ -94,6 +94,14 @@ VERIFY_EXTRA_STAGES="batch_replication read_index" \
 bash scripts/verify.sh stage read_index
 ```
 
+发布证据可以从已有报告重新生成：
+
+```bash
+bash scripts/collect_release_evidence.sh
+```
+
+该脚本不运行测试，只汇总现有报告。阶段证据优先取最新已完成 nightly 的 `summary.txt` 和 `logs/<stage>.log`；只有该 nightly 没有对应阶段结果时，才回退到最新单阶段 verify、`test_all` summary 或其他历史专项日志。nightly 总状态以 summary 的最终状态为准：最终 `status=PASS` 或 `VERIFY PASSED` 记为 `PASS`，存在 `failed_stage` 或最终失败记为 `FAIL`，没有结束标记且目录仍新鲜记为 `RUNNING`，陈旧未结束记为 `UNKNOWN`。旧报告中的失败或跳过结果不能覆盖最新完成 nightly 中已经通过的阶段。
+
 普通 SSH 环境常用示例：
 
 ```bash
@@ -288,6 +296,8 @@ ReadIndex 集成验证：
 bash scripts/test_read_index.sh
 ```
 
+该脚本会在节点恢复、Leader 切换和 Snapshot 后验证 ReadIndex。恢复多数派或切换 Leader 后，脚本必须重新查询所有存活节点，确认恰好一个 `role=LEADER`，等待该 Leader 的当前 term no-op barrier 已提交并应用，再执行后续写入。节点恢复期间短暂 `NOT_LEADER`、连接失败或 leader hint 变化属于合法过渡状态；测试脚本会使用相同 `client_id + request_id` 重试写入，耗尽重试后才失败并保存 `diagnostics/failure_context.txt`、节点状态和日志尾部。
+
 默认 `scripts/test_all.sh` 不运行该慢速测试。需要显式开启：
 
 ```bash
@@ -365,6 +375,8 @@ RUN_BATCH_REPLICATION=1 bash scripts/test_all.sh
 ```
 
 该脚本覆盖普通落后 follower 多批次追赶、Snapshot 边界下先安装 snapshot 再批量追赶、追赶期间 Leader 切换后最终一致，并保存 status、metrics、配置、节点日志和 replay 命令。Leader 切换场景会先等待旧 Leader 进程和端口不可用，再通过各节点 `status` 重新发现唯一 Leader，确认新 Leader 的 no-op barrier 已提交后再写入。若写入命中临时 `NOT_LEADER` 或连接失败，脚本会刷新 Leader 并有限重试；最终失败时会保存 `diagnostics/failure_context.txt`、每次请求的 stdout/stderr、节点状态和日志尾部。
+
+普通落后 follower 追赶阶段的批量复制断言只比较同一个 Leader 节点在 before/after status 窗口内的 metrics，避免 follower 本地计数或 Leader 切换后的新进程计数混入。`append_entries_batch_rpc_count` 包含空 heartbeat 和重试 RPC，不能直接要求 `append_entries_entries_sent > append_entries_batch_rpc_count`。脚本改为先计算 `non_empty_batch_rpc_count_delta = append_entries_batch_rpc_count_delta - append_entries_empty_heartbeat_count_delta`，再验证非空 RPC、发送日志条目、catch-up attempt/success 都前进，并以 `append_entries_max_batch_observed > 1` 作为至少出现过一次多日志批次的主要证据。一致性 dump 校验仍然必须通过。
 
 ## 6.4 慢 Follower 与高延迟复制矩阵
 
@@ -584,7 +596,18 @@ SEED=20260604 CLIENT_COUNT=4 OPERATIONS_PER_CLIENT=40 KEY_COUNT=3 \
   bash scripts/test_concurrent_linearizability.sh
 ```
 
-checker 读取 `history.jsonl`，按 key 分开搜索满足单 key KV API 模型和实时顺序约束的串行顺序。该模型与上文 KV API 契约一致，包括 `Append` 对不存在 key 的创建语义。输出 `LINEARIZABILITY PASSED`、`LINEARIZABILITY FAILED` 或 `LINEARIZABILITY INCONCLUSIVE`。该结果只说明当前测试历史通过了有界搜索检查，不是对所有执行的形式化证明。
+checker 读取 `history.jsonl`，按 key 分开搜索满足单 key KV API 模型和实时顺序约束的串行顺序。该模型与上文 KV API 契约一致，包括 `Append` 对不存在 key 的创建语义。输出分为 `PASS`、`LINEARIZABILITY_SAFETY_FAIL`、`WORKLOAD_LIVENESS_FAIL`、`INFRASTRUCTURE_FAIL` 和 `INCONCLUSIVE`。该结果只说明当前测试历史通过了有界搜索检查，不是对所有执行的形式化证明。
+
+`RETRIABLE_INFRASTRUCTURE_ERROR` 不代表 KV 语义冲突。出现耗尽重试预算的操作时，测试仍然失败，但 checker 会先检查第一个不确定操作之前已经明确完成的历史前缀是否线性一致，然后把整体归类为 `WORKLOAD_LIVENESS_FAIL` 或 `INFRASTRUCTURE_FAIL`。不能简单丢弃不确定操作后检查后续历史，因为不确定写可能已经提交并影响之后的读。
+
+worker 对 `NOT_LEADER`、连接失败、timeout、empty response、connection reset 等临时错误使用同一 `client_id + request_id` 和相同参数重试。默认重试窗口适合小规格服务器：
+
+```bash
+OPERATION_RETRY_TIMEOUT_SECONDS=10
+OPERATION_RETRY_INTERVAL_MS=100
+```
+
+收到 leader hint 时，worker 会先用 `status` 验证 hinted 节点仍是 `role=LEADER`，否则重新轮询可达节点；没有 hint 时优先发送到唯一可见 Leader，无法确认唯一 Leader 时发送到所有可达节点。重试不会无限延长，超时后保存完整诊断。
 
 可以用 `FAULT_MODE` 分层复现：
 
@@ -610,7 +633,7 @@ SEED=20260604 CLIENT_COUNT=4 OPERATIONS_PER_CLIENT=15 KEY_COUNT=2 FAULT_MODE=ful
 RUN_LINEARIZABILITY=1 bash scripts/test_all.sh
 ```
 
-测试报告默认保存到 `/tmp/raftkv-test-reports/<run_id>/linearizability/`，数据默认保存到 `/tmp/raftkv-test-data/<run_id>/linearizability/`。报告中包含 `summary.txt`、`run_info.txt`、`history.jsonl`、`normalized_history.jsonl`、`faults.jsonl`、`checker_output.txt`、`client_attempts.log`、`linearizability_failure.json`、`linearizability_failure.txt`、生成配置、PID 文件、节点日志、worker traceback、失败片段和可复制的 `replay_command`。如果 checker 通过，failure 文件可以不存在。
+测试报告默认保存到 `/tmp/raftkv-test-reports/<run_id>/linearizability/`，数据默认保存到 `/tmp/raftkv-test-data/<run_id>/linearizability/`。报告中包含 `summary.txt`、`run_info.txt`、`history.jsonl`、`normalized_history.jsonl`、`faults.jsonl`、`checker_output.txt`、`client_attempts.log`、`status_on_failure.txt`、`linearizability_failure.json`、`linearizability_failure.txt`、生成配置、PID 文件、节点日志、worker traceback、失败片段和可复制的 `replay_command`。如果 checker 通过，failure 文件可以不存在。
 
 ## 14. Benchmark v2 性能基线
 

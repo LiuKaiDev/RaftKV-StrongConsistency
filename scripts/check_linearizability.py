@@ -7,6 +7,7 @@ bounded test-history checker, not a formal proof for all executions.
 
 import argparse
 import json
+import re
 import tempfile
 import time
 from pathlib import Path
@@ -31,7 +32,9 @@ REQUIRED_FIELDS = {
 }
 
 PASS = "PASS"
-FAIL = "FAIL"
+LINEARIZABILITY_SAFETY_FAIL = "LINEARIZABILITY_SAFETY_FAIL"
+WORKLOAD_LIVENESS_FAIL = "WORKLOAD_LIVENESS_FAIL"
+INFRASTRUCTURE_FAIL = "INFRASTRUCTURE_FAIL"
 INCONCLUSIVE = "INCONCLUSIVE"
 DEFAULT_MAX_RECORDS_PER_KEY = 200
 SUMMARY_FIELDS = [
@@ -62,6 +65,14 @@ class DuplicateRequestError(ValueError):
 
 ABSENT = ("ABSENT",)
 INVALID = ("INVALID",)
+
+
+ATTEMPT_RE = re.compile(
+    r"^worker=(?P<worker_id>\S+) request_id=(?P<request_id>\S+) "
+    r"attempt=(?P<attempt>\S+) op=(?P<operation>\S+) key=(?P<key>\S+) "
+    r"(?:servers=(?P<servers>.*?) )?status=(?P<status>\S+) result=(?P<result_class>\S+) "
+    r"stdout=(?P<stdout>.*) stderr=(?P<stderr>.*)$"
+)
 
 
 def load_jsonl(path):
@@ -159,6 +170,21 @@ def logical_records(records):
             out.append(record)
             seen.add(key)
     return out
+
+
+def is_completed_record(record):
+    # type: (Dict[str, Any]) -> bool
+    return record["result_class"] in ("SUCCESS", "EXPECTED_APPLICATION_ERROR")
+
+
+def is_retriable_record(record):
+    # type: (Dict[str, Any]) -> bool
+    return record["result_class"] == "RETRIABLE_INFRASTRUCTURE_ERROR"
+
+
+def is_fatal_record(record):
+    # type: (Dict[str, Any]) -> bool
+    return record["result_class"] == "FATAL_ERROR"
 
 
 def split_quiescent_components(records):
@@ -488,7 +514,7 @@ def check_key_history(records, deadline_ns):
                 "component_initial_states": [state_to_json(state) for state in initial_states],
                 "failing_component": [summarize_record(record) for record in component],
             })
-            return FAIL, diagnostic
+            return LINEARIZABILITY_SAFETY_FAIL, diagnostic
         states = next_states
     return PASS, None
 
@@ -496,7 +522,7 @@ def check_key_history(records, deadline_ns):
 def build_key_failure_diagnostic(key, key_records, key_diagnostic):
     # type: (str, Sequence[Dict[str, Any]], Dict[str, Any]) -> Dict[str, Any]
     out = {
-        "status": FAIL,
+        "status": LINEARIZABILITY_SAFETY_FAIL,
         "failure_key": key,
         "problem": "key %s has no legal linearization" % key,
         "model": {
@@ -519,12 +545,112 @@ def build_key_failure_diagnostic(key, key_records, key_diagnostic):
 def build_duplicate_failure_diagnostic(message, records):
     # type: (str, Sequence[Dict[str, Any]]) -> Dict[str, Any]
     return {
-        "status": FAIL,
+        "status": LINEARIZABILITY_SAFETY_FAIL,
         "failure_key": None,
         "problem": message,
         "duplicate_request_records": [summarize_record(record) for record in records],
         "normalized_history": [summarize_record(record) for record in records],
         "real_time_edges": real_time_edges(records),
+    }
+
+
+def load_fault_timeline(path):
+    # type: (Optional[Path]) -> List[Dict[str, Any]]
+    if path is None or not path.exists():
+        return []
+    out = []  # type: List[Dict[str, Any]]
+    with path.open("r", encoding="utf-8") as f:
+        for line_no, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+            except ValueError:
+                out.append({"line_no": line_no, "raw": line})
+                continue
+            if isinstance(obj, dict):
+                out.append(obj)
+            else:
+                out.append({"line_no": line_no, "raw": obj})
+    return out
+
+
+def parse_attempt_log(path):
+    # type: (Optional[Path]) -> Dict[Tuple[int, int], List[Dict[str, Any]]]
+    attempts = {}  # type: Dict[Tuple[int, int], List[Dict[str, Any]]]
+    if path is None or not path.exists():
+        return attempts
+    with path.open("r", encoding="utf-8") as f:
+        for line_no, line in enumerate(f, 1):
+            line = line.rstrip("\n")
+            match = ATTEMPT_RE.match(line)
+            if not match:
+                continue
+            item = dict(match.groupdict())  # type: Dict[str, Any]
+            item["line_no"] = line_no
+            for key in ("worker_id", "request_id", "attempt", "status"):
+                try:
+                    item[key] = int(item[key])
+                except (TypeError, ValueError):
+                    pass
+            attempts.setdefault((int(item["worker_id"]), int(item["request_id"])), []).append(item)
+    return attempts
+
+
+def find_failed_operation(records):
+    # type: (Sequence[Dict[str, Any]]) -> Optional[Dict[str, Any]]
+    incomplete = [record for record in records if not is_completed_record(record)]
+    if not incomplete:
+        return None
+    incomplete.sort(key=lambda r: (r["sequence"], r["invoke_time_ns"], r["complete_time_ns"]))
+    return incomplete[0]
+
+
+def build_workload_failure_diagnostic(status, completed_status, completed_detail, records,
+                                      checked_completed_records=None,
+                                      attempt_log=None, faults=None):
+    # type: (str, str, str, Sequence[Dict[str, Any]], Optional[Sequence[Dict[str, Any]]], Optional[Path], Optional[Path]) -> Dict[str, Any]
+    incomplete = [record for record in records if not is_completed_record(record)]
+    retriable = [record for record in incomplete if is_retriable_record(record)]
+    fatal = [record for record in incomplete if is_fatal_record(record)]
+    failed = find_failed_operation(records)
+    attempt_map = parse_attempt_log(attempt_log)
+    failed_attempts = []  # type: List[Dict[str, Any]]
+    if failed is not None:
+        failed_attempts = attempt_map.get((failed["worker_id"], failed["request_id"]), [])
+    last_error = ""
+    if failed_attempts:
+        last = failed_attempts[-1]
+        last_error = "%s %s" % (last.get("stdout", ""), last.get("stderr", ""))
+        last_error = last_error.strip()
+    elif failed is not None:
+        last_error = failed.get("response_value", "")
+    return {
+        "status": status,
+        "problem": "workload did not complete all operations with a definitive result",
+        "completed_history_linearizable": completed_status == PASS,
+        "completed_history_status": completed_status,
+        "completed_history_detail": completed_detail,
+        "completed_history_scope": "definitive operations completed before the first incomplete operation began",
+        "completed_history_checked_operation_count": len(checked_completed_records or []),
+        "completed_operation_count": len(records) - len(incomplete),
+        "incomplete_operation_count": len(incomplete),
+        "retriable_error_count": len(retriable),
+        "fatal_error_count": len(fatal),
+        "exhausted_retry_operation_count": len(retriable),
+        "failed_sequence": failed.get("sequence") if failed is not None else None,
+        "failed_operation": summarize_record(failed) if failed is not None else None,
+        "client_id": failed.get("client_id") if failed is not None else None,
+        "request_id": failed.get("request_id") if failed is not None else None,
+        "retry_count": failed.get("retry_count") if failed is not None else None,
+        "attempts": failed_attempts,
+        "last_error": last_error,
+        "fault_timeline": load_fault_timeline(faults),
+        "completed_history_checked_operations": [
+            summarize_record(record) for record in (checked_completed_records or [])
+        ],
+        "incomplete_operations": [summarize_record(record) for record in incomplete],
     }
 
 
@@ -544,8 +670,47 @@ def write_failure_diagnostics(json_path, text_path, diagnostic):
 def render_failure_text(diagnostic):
     # type: (Dict[str, Any]) -> str
     lines = []  # type: List[str]
-    lines.append("LINEARIZABILITY FAILURE DIAGNOSTIC")
+    lines.append("%s DIAGNOSTIC" % diagnostic.get("status", "FAIL"))
     lines.append("problem: %s" % diagnostic.get("problem"))
+    if "completed_history_linearizable" in diagnostic:
+        lines.append("completed_history_linearizable: %s" % diagnostic.get("completed_history_linearizable"))
+        lines.append("completed_history_status: %s" % diagnostic.get("completed_history_status"))
+        lines.append("completed_history_detail: %s" % diagnostic.get("completed_history_detail"))
+        lines.append("completed_history_scope: %s" % diagnostic.get("completed_history_scope"))
+        lines.append("completed_history_checked_operation_count: %s" % diagnostic.get("completed_history_checked_operation_count"))
+        lines.append("incomplete_operation_count: %s" % diagnostic.get("incomplete_operation_count"))
+        lines.append("retriable_error_count: %s" % diagnostic.get("retriable_error_count"))
+        lines.append("exhausted_retry_operation_count: %s" % diagnostic.get("exhausted_retry_operation_count"))
+        lines.append("failed_sequence: %s" % diagnostic.get("failed_sequence"))
+        lines.append("client_id: %s" % diagnostic.get("client_id"))
+        lines.append("request_id: %s" % diagnostic.get("request_id"))
+        lines.append("retry_count: %s" % diagnostic.get("retry_count"))
+        lines.append("last_error: %s" % diagnostic.get("last_error"))
+        lines.append("")
+        if diagnostic.get("failed_operation"):
+            lines.append("Failed operation:")
+            lines.append("  %s" % json.dumps(diagnostic["failed_operation"], sort_keys=True))
+            lines.append("")
+        if diagnostic.get("attempts"):
+            lines.append("Attempt timeline:")
+            for attempt in diagnostic["attempts"]:
+                lines.append("  %s" % json.dumps(attempt, sort_keys=True))
+            lines.append("")
+        if diagnostic.get("fault_timeline"):
+            lines.append("Fault timeline:")
+            for fault in diagnostic["fault_timeline"]:
+                lines.append("  %s" % json.dumps(fault, sort_keys=True))
+            lines.append("")
+        if diagnostic.get("completed_history_checked_operations"):
+            lines.append("Completed history checked operations:")
+            for record in diagnostic["completed_history_checked_operations"]:
+                lines.append("  %s" % json.dumps(record, sort_keys=True))
+            lines.append("")
+        if diagnostic.get("incomplete_operations"):
+            lines.append("Incomplete operations:")
+            for record in diagnostic["incomplete_operations"]:
+                lines.append("  %s" % json.dumps(record, sort_keys=True))
+            lines.append("")
     if diagnostic.get("failure_key") is not None:
         lines.append("failure_key: %s" % diagnostic.get("failure_key"))
     lines.append("")
@@ -613,24 +778,11 @@ def render_failure_text(diagnostic):
     return "\n".join(lines) + "\n"
 
 
-def check_history(records, timeout_ms, failure_fragment, max_records_per_key=DEFAULT_MAX_RECORDS_PER_KEY,
-                  failure_json=None, failure_text=None, normalized_history=None):
-    # type: (Sequence[Dict[str, Any]], int, Path, int, Optional[Path], Optional[Path], Optional[Path]) -> Tuple[str, str]
-    normalized = [normalize_record(record) for record in records]
-    normalized.sort(key=lambda r: (r["invoke_time_ns"], r["complete_time_ns"], r["sequence"]))
-    if normalized_history is not None:
-        write_fragment(normalized_history, normalized)
-    try:
-        check_duplicate_results(normalized)
-    except DuplicateRequestError as exc:
-        write_fragment(failure_fragment, exc.records)
-        write_failure_diagnostics(
-            failure_json,
-            failure_text,
-            build_duplicate_failure_diagnostic(str(exc), exc.records),
-        )
-        return FAIL, str(exc)
-    logical = logical_records(normalized)
+def check_completed_records(normalized, timeout_ms, failure_fragment, max_records_per_key,
+                            failure_json=None, failure_text=None):
+    # type: (Sequence[Dict[str, Any]], int, Path, int, Optional[Path], Optional[Path]) -> Tuple[str, str]
+    completed = [record for record in normalized if is_completed_record(record)]
+    logical = logical_records(completed)
     by_key = {}  # type: Dict[str, List[Dict[str, Any]]]
     for record in logical:
         by_key.setdefault(record["key"], []).append(record)
@@ -645,15 +797,87 @@ def check_history(records, timeout_ms, failure_fragment, max_records_per_key=DEF
                     % (key, len(by_key[key]), max_records_per_key),
                 )
             result, fragment = check_key_history(by_key[key], deadline_ns)
-            if result == FAIL:
+            if result == LINEARIZABILITY_SAFETY_FAIL:
                 diagnostic = build_key_failure_diagnostic(key, by_key[key], fragment or {})
                 failure_records = diagnostic.get("minimized_failure_fragment") or by_key[key]
                 write_fragment(failure_fragment, failure_records)
                 write_failure_diagnostics(failure_json, failure_text, diagnostic)
-                return FAIL, "key %s has no legal linearization" % key
+                return LINEARIZABILITY_SAFETY_FAIL, "key %s has no legal linearization" % key
     except CheckTimeout:
         return INCONCLUSIVE, "search timed out after %sms" % timeout_ms
     return PASS, "all keys have a legal linearization"
+
+
+def check_history(records, timeout_ms, failure_fragment, max_records_per_key=DEFAULT_MAX_RECORDS_PER_KEY,
+                  failure_json=None, failure_text=None, normalized_history=None,
+                  attempt_log=None, faults=None):
+    # type: (Sequence[Dict[str, Any]], int, Path, int, Optional[Path], Optional[Path], Optional[Path], Optional[Path], Optional[Path]) -> Tuple[str, str]
+    normalized = [normalize_record(record) for record in records]
+    normalized.sort(key=lambda r: (r["invoke_time_ns"], r["complete_time_ns"], r["sequence"]))
+    if normalized_history is not None:
+        write_fragment(normalized_history, normalized)
+    try:
+        check_duplicate_results(normalized)
+    except DuplicateRequestError as exc:
+        write_fragment(failure_fragment, exc.records)
+        write_failure_diagnostics(
+            failure_json,
+            failure_text,
+            build_duplicate_failure_diagnostic(str(exc), exc.records),
+        )
+        return LINEARIZABILITY_SAFETY_FAIL, str(exc)
+
+    incomplete = [record for record in normalized if not is_completed_record(record)]
+    if incomplete:
+        first_incomplete_invoke = min(record["invoke_time_ns"] for record in incomplete)
+        completed_check_records = [
+            record for record in normalized
+            if is_completed_record(record) and record["complete_time_ns"] < first_incomplete_invoke
+        ]
+    else:
+        completed_check_records = [record for record in normalized if is_completed_record(record)]
+
+    completed_status, completed_detail = check_completed_records(
+        completed_check_records,
+        timeout_ms,
+        failure_fragment,
+        max_records_per_key,
+        failure_json,
+        failure_text,
+    )
+    if completed_status != PASS:
+        return completed_status, completed_detail
+
+    if incomplete:
+        status = INFRASTRUCTURE_FAIL if any(is_fatal_record(record) for record in incomplete) else WORKLOAD_LIVENESS_FAIL
+        diagnostic = build_workload_failure_diagnostic(
+            status,
+            completed_status,
+            completed_detail,
+            normalized,
+            completed_check_records,
+            attempt_log,
+            faults,
+        )
+        failed = find_failed_operation(normalized)
+        write_fragment(failure_fragment, [failed] if failed is not None else incomplete)
+        write_failure_diagnostics(failure_json, failure_text, diagnostic)
+        detail = (
+            "completed_history_linearizable=%s incomplete_operation_count=%s "
+            "retriable_error_count=%s exhausted_retry_operation_count=%s "
+            "failed_sequence=%s last_error=%s"
+            % (
+                diagnostic["completed_history_linearizable"],
+                diagnostic["incomplete_operation_count"],
+                diagnostic["retriable_error_count"],
+                diagnostic["exhausted_retry_operation_count"],
+                diagnostic["failed_sequence"],
+                diagnostic["last_error"],
+            )
+        )
+        return status, detail
+
+    return PASS, completed_detail
 
 
 def record(sequence, worker, client, request, op, key, value, start, end,
@@ -684,7 +908,7 @@ def expect_case(name, records, expected, timeout_ms=1000):
         try:
             actual, detail = check_history(records, timeout_ms, fragment)
         except Exception as exc:  # noqa: BLE001 - self-test maps validation errors to FAIL.
-            actual, detail = FAIL, str(exc)
+            actual, detail = LINEARIZABILITY_SAFETY_FAIL, str(exc)
         if actual != expected:
             raise AssertionError("%s: expected %s, got %s: %s" % (name, expected, actual, detail))
 
@@ -707,7 +931,7 @@ def run_self_test():
     expect_case(
         "append_absent_key_not_found_is_illegal",
         [record(1, 1, "c1", 1, "append", "k", "x", 10, 20, "EXPECTED_APPLICATION_ERROR", "KEY_NOT_FOUND", "", False)],
-        FAIL,
+        LINEARIZABILITY_SAFETY_FAIL,
     )
     expect_case(
         "append_absent_then_get",
@@ -749,7 +973,7 @@ def run_self_test():
             record(1, 1, "same", 1, "append", "k", "x", 10, 20, "SUCCESS", "OK", "x"),
             record(2, 1, "same", 1, "append", "k", "x", 30, 40, "SUCCESS", "OK", "xx"),
         ],
-        FAIL,
+        LINEARIZABILITY_SAFETY_FAIL,
     )
     expect_case(
         "put_completed_then_get_returns_old_value",
@@ -757,7 +981,7 @@ def run_self_test():
             record(1, 1, "c1", 1, "put", "k", "a", 10, 20, "SUCCESS", "OK", "OK"),
             record(2, 2, "c2", 1, "get", "k", "", 30, 40, "SUCCESS", "OK", "old"),
         ],
-        FAIL,
+        LINEARIZABILITY_SAFETY_FAIL,
     )
     expect_case(
         "timeout",
@@ -767,6 +991,28 @@ def run_self_test():
         ],
         INCONCLUSIVE,
         timeout_ms=0,
+    )
+    expect_case(
+        "retriable_infrastructure_error_is_liveness_fail",
+        [
+            record(1, 1, "c1", 1, "put", "k", "a", 10, 20, "SUCCESS", "OK", "OK"),
+            record(
+                2,
+                2,
+                "c2",
+                1,
+                "get",
+                "k",
+                "",
+                30,
+                100,
+                "RETRIABLE_INFRASTRUCTURE_ERROR",
+                "INFRASTRUCTURE_ERROR",
+                "NOT_LEADER: not leader",
+                False,
+            ),
+        ],
+        WORKLOAD_LIVENESS_FAIL,
     )
     print("SELF TEST PASSED")
     return 0
@@ -782,6 +1028,8 @@ def main():
     parser.add_argument("--failure-json", type=Path)
     parser.add_argument("--failure-text", type=Path)
     parser.add_argument("--normalized-history", type=Path)
+    parser.add_argument("--attempt-log", type=Path)
+    parser.add_argument("--faults", type=Path)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
 
@@ -810,9 +1058,11 @@ def main():
             failure_json,
             failure_text,
             args.normalized_history,
+            args.attempt_log,
+            args.faults,
         )
     except Exception as exc:  # noqa: BLE001 - CLI prints concise diagnostics.
-        result = FAIL
+        result = INFRASTRUCTURE_FAIL
         detail = str(exc)
 
     if result == PASS:
@@ -821,7 +1071,14 @@ def main():
     if result == INCONCLUSIVE:
         print("LINEARIZABILITY INCONCLUSIVE: %s" % detail)
         return 2
-    print("LINEARIZABILITY FAILED: %s" % detail)
+    if result == LINEARIZABILITY_SAFETY_FAIL:
+        print("LINEARIZABILITY_SAFETY_FAIL: %s" % detail)
+    elif result == WORKLOAD_LIVENESS_FAIL:
+        print("WORKLOAD_LIVENESS_FAIL: %s" % detail)
+    elif result == INFRASTRUCTURE_FAIL:
+        print("INFRASTRUCTURE_FAIL: %s" % detail)
+    else:
+        print("%s: %s" % (result, detail))
     if failure_text is not None and failure_text.exists():
         print("")
         print(failure_text.read_text(encoding="utf-8"), end="")

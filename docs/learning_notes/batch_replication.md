@@ -41,7 +41,7 @@ When `nextIndex[peer] <= snapshot_index`, the Leader uses the existing InstallSn
 
 ## Metrics
 
-- `append_entries_batch_rpc_count`: outgoing AppendEntries RPC batches.
+- `append_entries_batch_rpc_count`: outgoing AppendEntries RPC batches, including empty heartbeat RPCs.
 - `append_entries_entries_sent`: log entries sent in AppendEntries.
 - `append_entries_empty_heartbeat_count`: empty heartbeat RPCs.
 - `append_entries_max_batch_observed`: max non-empty batch size observed by this process.
@@ -51,6 +51,29 @@ When `nextIndex[peer] <= snapshot_index`, the Leader uses the existing InstallSn
 - `append_entries_inflight_rejected`: reserved for future pipeline; should remain zero in this stage.
 
 Metrics are process-local atomics and not persisted.
+
+## Ordinary Catch-up Metrics Assertion
+
+A nightly run failed in `ordinary_batch_catchup` with:
+
+```text
+FAIL: expected entries_sent delta > batch_rpc_count delta, got 59 <= 82
+```
+
+That assertion was testing the script, not the Raft algorithm. `append_entries_batch_rpc_count` counts every outgoing AppendEntries RPC, including empty heartbeats and retries, while `append_entries_entries_sent` counts only the entries carried by those RPCs. A healthy catch-up window can therefore have more total RPCs than entries even when batching is working.
+
+The assertion now reads the before/after metrics from the same Leader node and checks:
+
+- `batch_rpc_count_delta >= empty_heartbeat_count_delta`.
+- `non_empty_batch_rpc_count_delta = batch_rpc_count_delta - empty_heartbeat_count_delta`.
+- `non_empty_batch_rpc_count_delta > 0`.
+- `entries_sent_delta >= non_empty_batch_rpc_count_delta`.
+- `append_entries_max_batch_observed > 1`.
+- `follower_catchup_attempts_delta > 0`.
+- `follower_catchup_success_delta > 0`.
+- The existing final consistency dump still passes before metrics are asserted.
+
+`append_entries_max_batch_observed > 1` is the main evidence that at least one AppendEntries RPC carried multiple log entries. The non-empty RPC and catch-up deltas prove the metric window actually covered follower catch-up activity.
 
 ## Validation
 

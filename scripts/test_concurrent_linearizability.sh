@@ -22,8 +22,8 @@ RAFT_BASE_PORT="${RAFT_BASE_PORT:-$((28000 + PORT_OFFSET))}"
 CLIENT_BASE_PORT="${CLIENT_BASE_PORT:-$((29000 + PORT_OFFSET))}"
 CLIENT_TIMEOUT_MS="${CLIENT_TIMEOUT_MS:-1000}"
 CLIENT_RETRIES="${CLIENT_RETRIES:-3}"
-CLIENT_COMMAND_ATTEMPTS="${CLIENT_COMMAND_ATTEMPTS:-30}"
-CLIENT_COMMAND_RETRY_SLEEP_MS="${CLIENT_COMMAND_RETRY_SLEEP_MS:-200}"
+OPERATION_RETRY_TIMEOUT_SECONDS="${OPERATION_RETRY_TIMEOUT_SECONDS:-10}"
+OPERATION_RETRY_INTERVAL_MS="${OPERATION_RETRY_INTERVAL_MS:-100}"
 WORKER_JITTER_MS="${WORKER_JITTER_MS:-75}"
 SNAPSHOT_MAX_LOG_ENTRIES="${SNAPSHOT_MAX_LOG_ENTRIES:-40}"
 READ_MODE="${READ_MODE:-log}"
@@ -44,6 +44,7 @@ FAILURE_TEXT_FILE="${REPORT_DIR}/linearizability_failure.txt"
 FAILURE_FRAGMENT_FILE="${REPORT_DIR}/linearizability_failure.jsonl"
 LAST_ERROR_FILE="${REPORT_DIR}/last_error.txt"
 FAILURE_CONTEXT_FILE="${REPORT_DIR}/failure_context.txt"
+STATUS_ON_FAILURE_FILE="${REPORT_DIR}/status_on_failure.txt"
 CURRENT_STEP="initializing"
 LAST_LEADER=""
 declare -A NODE_START_LOG_LINE=()
@@ -106,6 +107,19 @@ raw_client_cmd_to_servers() {
   "${CLIENT}" --servers="${servers}" --timeout_ms="${CLIENT_TIMEOUT_MS}" --retries="${CLIENT_RETRIES}" "$@"
 }
 
+capture_status_snapshot() {
+  local out="$1"
+  : >"${out}"
+  local id
+  for id in 1 2 3; do
+    {
+      echo "===== node${id} ====="
+      raw_client_cmd_to_servers "$(node_client_addr "${id}")" status || echo "UNAVAILABLE"
+      echo
+    } >>"${out}" 2>&1
+  done
+}
+
 server_list_contains() {
   local servers="$1"
   local needle="$2"
@@ -151,6 +165,7 @@ PY
 }
 
 write_failure_context() {
+  capture_status_snapshot "${STATUS_ON_FAILURE_FILE}" || true
   {
     echo "current_step=${CURRENT_STEP}"
     echo "alive_nodes=$(alive_nodes_csv)"
@@ -158,8 +173,13 @@ write_failure_context() {
     echo "history=${HISTORY_FILE}"
     echo "normalized_history=${NORMALIZED_HISTORY_FILE}"
     echo "faults=${FAULTS_FILE}"
+    echo "status_snapshot=${STATUS_ON_FAILURE_FILE}"
+    echo "attempt_log=${ATTEMPT_LOG}"
+    echo "checker_output=${REPORT_DIR}/checker_output.txt"
+    echo "linearizability_failure_json=${FAILURE_JSON_FILE}"
+    echo "linearizability_failure_text=${FAILURE_TEXT_FILE}"
     echo "node_log_dir=${NODE_LOG_DIR}"
-    echo "replay_command=SEED=${SEED} CLIENT_COUNT=${CLIENT_COUNT} OPERATIONS_PER_CLIENT=${OPERATIONS_PER_CLIENT} KEY_COUNT=${KEY_COUNT} FAULT_MODE=${FAULT_MODE} CHECKER_TIMEOUT_SECONDS=${CHECKER_TIMEOUT_SECONDS} SAVE_NORMALIZED_HISTORY=${SAVE_NORMALIZED_HISTORY} RUN_ID=${RUN_ID} bash scripts/test_concurrent_linearizability.sh"
+    echo "replay_command=SEED=${SEED} CLIENT_COUNT=${CLIENT_COUNT} OPERATIONS_PER_CLIENT=${OPERATIONS_PER_CLIENT} KEY_COUNT=${KEY_COUNT} FAULT_MODE=${FAULT_MODE} CHECKER_TIMEOUT_SECONDS=${CHECKER_TIMEOUT_SECONDS} SAVE_NORMALIZED_HISTORY=${SAVE_NORMALIZED_HISTORY} OPERATION_RETRY_TIMEOUT_SECONDS=${OPERATION_RETRY_TIMEOUT_SECONDS} OPERATION_RETRY_INTERVAL_MS=${OPERATION_RETRY_INTERVAL_MS} RUN_ID=${RUN_ID} bash scripts/test_concurrent_linearizability.sh"
   } >"${FAILURE_CONTEXT_FILE}"
 }
 
@@ -176,6 +196,7 @@ write_failure_summary() {
     echo "linearizability_failure_json=${FAILURE_JSON_FILE}"
     echo "linearizability_failure_text=${FAILURE_TEXT_FILE}"
     echo "attempt_log=${ATTEMPT_LOG}"
+    echo "status_snapshot=${STATUS_ON_FAILURE_FILE}"
     echo "failure_context=${FAILURE_CONTEXT_FILE}"
     echo "node_log_dir=${NODE_LOG_DIR}"
   } >"${REPORT_DIR}/summary.txt"
@@ -329,17 +350,18 @@ on_exit() {
   cp -R "${PID_DIR}" "${REPORT_DIR}/pids" 2>/dev/null || true
   cp -R "${NODE_LOG_DIR}" "${REPORT_DIR}/logs" 2>/dev/null || true
   cp -R "${WORKER_DIR}" "${REPORT_DIR}/workers" 2>/dev/null || true
-  cleanup
   if [[ "${status}" -eq 0 ]]; then
+    cleanup
     echo "CONCURRENT LINEARIZABILITY PASSED"
   else
     write_failure_context
+    cleanup
     write_failure_summary
     echo "CONCURRENT LINEARIZABILITY FAILED"
     echo "run_id=${RUN_ID}"
     echo "data_dir=${CLUSTER_DATA_DIR}"
     echo "report_dir=${REPORT_DIR}"
-    echo "replay: SEED=${SEED} CLIENT_COUNT=${CLIENT_COUNT} OPERATIONS_PER_CLIENT=${OPERATIONS_PER_CLIENT} KEY_COUNT=${KEY_COUNT} FAULT_MODE=${FAULT_MODE} CHECKER_TIMEOUT_SECONDS=${CHECKER_TIMEOUT_SECONDS} SAVE_NORMALIZED_HISTORY=${SAVE_NORMALIZED_HISTORY} RUN_ID=${RUN_ID} bash scripts/test_concurrent_linearizability.sh"
+    echo "replay: SEED=${SEED} CLIENT_COUNT=${CLIENT_COUNT} OPERATIONS_PER_CLIENT=${OPERATIONS_PER_CLIENT} KEY_COUNT=${KEY_COUNT} FAULT_MODE=${FAULT_MODE} CHECKER_TIMEOUT_SECONDS=${CHECKER_TIMEOUT_SECONDS} SAVE_NORMALIZED_HISTORY=${SAVE_NORMALIZED_HISTORY} OPERATION_RETRY_TIMEOUT_SECONDS=${OPERATION_RETRY_TIMEOUT_SECONDS} OPERATION_RETRY_INTERVAL_MS=${OPERATION_RETRY_INTERVAL_MS} RUN_ID=${RUN_ID} bash scripts/test_concurrent_linearizability.sh"
   fi
 }
 
@@ -425,9 +447,10 @@ run_worker() {
   local worker_id="$1"
   local out_file="${WORKER_DIR}/worker${worker_id}.jsonl"
   local traceback_file="${WORKER_DIR}/worker${worker_id}.traceback"
-  python3 - "${worker_id}" "${out_file}" "${CLIENT}" "$(all_servers)" "${SEED}" "${OPERATIONS_PER_CLIENT}" "${KEY_COUNT}" "${CLIENT_TIMEOUT_MS}" "${CLIENT_RETRIES}" "${CLIENT_COMMAND_ATTEMPTS}" "${CLIENT_COMMAND_RETRY_SLEEP_MS}" "${WORKER_JITTER_MS}" "${ATTEMPT_LOG}" "${traceback_file}" <<'PY'
+  python3 - "${worker_id}" "${out_file}" "${CLIENT}" "$(all_servers)" "${SEED}" "${OPERATIONS_PER_CLIENT}" "${KEY_COUNT}" "${CLIENT_TIMEOUT_MS}" "${CLIENT_RETRIES}" "${OPERATION_RETRY_TIMEOUT_SECONDS}" "${OPERATION_RETRY_INTERVAL_MS}" "${WORKER_JITTER_MS}" "${ATTEMPT_LOG}" "${traceback_file}" <<'PY'
 import json
 import random
+import re
 import subprocess
 import sys
 import time
@@ -442,13 +465,14 @@ operation_count = int(sys.argv[6])
 key_count = int(sys.argv[7])
 timeout_ms = sys.argv[8]
 client_retries = sys.argv[9]
-attempts = int(sys.argv[10])
-retry_sleep_ms = int(sys.argv[11])
+operation_retry_timeout_seconds = float(sys.argv[10])
+retry_interval_ms = int(sys.argv[11])
 jitter_ms = int(sys.argv[12])
 attempt_log = sys.argv[13]
 traceback_file = sys.argv[14]
 rng = random.Random(seed)
 client_id = "linear_worker_%s_%s" % (worker_id, seed)
+server_list = [server for server in servers.split(",") if server]
 
 def write_uncaught_traceback(exc_type, exc_value, exc_traceback):
     with open(traceback_file, "w", encoding="utf-8") as f:
@@ -480,6 +504,50 @@ def classify(status, stdout, stderr, op):
         return "RETRIABLE_INFRASTRUCTURE_ERROR", "INFRASTRUCTURE_ERROR", text, False
     return "FATAL_ERROR", "UNKNOWN", text, False
 
+def leader_hint(stdout, stderr):
+    text = stdout + "\n" + stderr
+    match = re.search(r"leader hint:\s*([1-3])\s+([0-9.]+:\d+)", text)
+    if match:
+        return match.group(2)
+    return ""
+
+def status_value(status_text, key):
+    prefix = key + "="
+    for line in status_text.splitlines():
+        if line.startswith(prefix):
+            return line[len(prefix):].strip()
+    return ""
+
+def discover_servers(preferred):
+    if preferred:
+        proc = subprocess.run(
+            [client, "--servers=" + preferred, "--timeout_ms=" + timeout_ms, "--retries=1", "status"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
+        if proc.returncode == 0 and status_value(proc.stdout, "role") == "LEADER":
+            return preferred
+    alive = []
+    leaders = []
+    for server in server_list:
+        proc = subprocess.run(
+            [client, "--servers=" + server, "--timeout_ms=" + timeout_ms, "--retries=1", "status"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
+        if proc.returncode != 0:
+            continue
+        alive.append(server)
+        if status_value(proc.stdout, "role") == "LEADER":
+            leaders.append(server)
+    if len(leaders) == 1:
+        return leaders[0]
+    if alive:
+        return ",".join(alive)
+    return servers
+
 with open(out_file, "w", encoding="utf-8") as history:
     for request_id in range(1, operation_count + 1):
         op = rng.choice(["put", "get", "append", "delete"])
@@ -497,9 +565,16 @@ with open(out_file, "w", encoding="utf-8") as history:
         invoke = monotonic_ns()
         final = ("RETRIABLE_INFRASTRUCTURE_ERROR", "INFRASTRUCTURE_ERROR", "", False)
         retry_count = 0
-        for attempt in range(1, attempts + 1):
+        attempt = 0
+        preferred_server = ""
+        deadline = time.monotonic() + operation_retry_timeout_seconds
+        while True:
+            attempt += 1
+            current_servers = discover_servers(preferred_server)
+            current_args = list(args)
+            current_args[1] = "--servers=" + current_servers
             proc = subprocess.run(
-                args,
+                current_args,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
@@ -509,8 +584,8 @@ with open(out_file, "w", encoding="utf-8") as history:
             result_class, app_status, response, success = classify(proc.returncode, stdout, stderr, op)
             with open(attempt_log, "a", encoding="utf-8") as attempts_file:
                 attempts_file.write(
-                    "worker=%s request_id=%s attempt=%s op=%s key=%s status=%s result=%s stdout=%r stderr=%r\n"
-                    % (worker_id, request_id, attempt, op, key, proc.returncode, result_class, stdout, stderr)
+                    "worker=%s request_id=%s attempt=%s op=%s key=%s servers=%r status=%s result=%s stdout=%r stderr=%r\n"
+                    % (worker_id, request_id, attempt, op, key, current_servers, proc.returncode, result_class, stdout, stderr)
                 )
             final = (result_class, app_status, response, success)
             retry_count = attempt - 1
@@ -518,7 +593,14 @@ with open(out_file, "w", encoding="utf-8") as history:
                 break
             if result_class == "FATAL_ERROR":
                 break
-            time.sleep(retry_sleep_ms / 1000.0)
+            hinted = leader_hint(stdout, stderr)
+            if hinted:
+                preferred_server = hinted
+            else:
+                preferred_server = ""
+            if time.monotonic() >= deadline:
+                break
+            time.sleep(retry_interval_ms / 1000.0)
         complete = monotonic_ns()
         record = {
             "sequence": worker_id * 1000000 + request_id,
@@ -647,8 +729,8 @@ fi
   echo "client_base_port=${CLIENT_BASE_PORT}"
   echo "client_timeout_ms=${CLIENT_TIMEOUT_MS}"
   echo "client_retries=${CLIENT_RETRIES}"
-  echo "client_command_attempts=${CLIENT_COMMAND_ATTEMPTS}"
-  echo "client_command_retry_sleep_ms=${CLIENT_COMMAND_RETRY_SLEEP_MS}"
+  echo "operation_retry_timeout_seconds=${OPERATION_RETRY_TIMEOUT_SECONDS}"
+  echo "operation_retry_interval_ms=${OPERATION_RETRY_INTERVAL_MS}"
   echo "worker_jitter_ms=${WORKER_JITTER_MS}"
   echo "snapshot_max_log_entries=${SNAPSHOT_MAX_LOG_ENTRIES}"
   echo "fault_mode=${FAULT_MODE}"
@@ -658,7 +740,7 @@ fi
   echo "save_normalized_history=${SAVE_NORMALIZED_HISTORY}"
   echo "data_dir=${CLUSTER_DATA_DIR}"
   echo "report_dir=${REPORT_DIR}"
-  echo "replay_command=SEED=${SEED} CLIENT_COUNT=${CLIENT_COUNT} OPERATIONS_PER_CLIENT=${OPERATIONS_PER_CLIENT} KEY_COUNT=${KEY_COUNT} FAULT_MODE=${FAULT_MODE} CHECKER_TIMEOUT_SECONDS=${CHECKER_TIMEOUT_SECONDS} SAVE_NORMALIZED_HISTORY=${SAVE_NORMALIZED_HISTORY} RUN_ID=${RUN_ID} bash scripts/test_concurrent_linearizability.sh"
+  echo "replay_command=SEED=${SEED} CLIENT_COUNT=${CLIENT_COUNT} OPERATIONS_PER_CLIENT=${OPERATIONS_PER_CLIENT} KEY_COUNT=${KEY_COUNT} FAULT_MODE=${FAULT_MODE} CHECKER_TIMEOUT_SECONDS=${CHECKER_TIMEOUT_SECONDS} SAVE_NORMALIZED_HISTORY=${SAVE_NORMALIZED_HISTORY} OPERATION_RETRY_TIMEOUT_SECONDS=${OPERATION_RETRY_TIMEOUT_SECONDS} OPERATION_RETRY_INTERVAL_MS=${OPERATION_RETRY_INTERVAL_MS} RUN_ID=${RUN_ID} bash scripts/test_concurrent_linearizability.sh"
 } >"${REPORT_DIR}/run_info.txt"
 cp "${REPORT_DIR}/run_info.txt" "${REPORT_DIR}/config.txt"
 
@@ -681,6 +763,7 @@ if [[ "${FAULT_MODE}" == "follower_restart" || "${FAULT_MODE}" == "full" ]]; the
   stop_node "${follower}" "follower_down_during_workload"
   sleep 1
   start_node "${follower}"
+  capture_status_snapshot "${REPORT_DIR}/status_after_follower_recovery.txt" || true
 fi
 
 if [[ "${FAULT_MODE}" == "leader_restart" || "${FAULT_MODE}" == "full" ]]; then
@@ -691,6 +774,7 @@ if [[ "${FAULT_MODE}" == "leader_restart" || "${FAULT_MODE}" == "full" ]]; then
   sleep 1
   start_node "${leader}"
   wait_for_leader >/dev/null
+  capture_status_snapshot "${REPORT_DIR}/status_after_leader_recovery.txt" || true
 fi
 
 worker_status=0
@@ -713,6 +797,8 @@ checker_args=(
   --failure-fragment "${FAILURE_FRAGMENT_FILE}"
   --failure-json "${FAILURE_JSON_FILE}"
   --failure-text "${FAILURE_TEXT_FILE}"
+  --attempt-log "${ATTEMPT_LOG}"
+  --faults "${FAULTS_FILE}"
 )
 if [[ "${SAVE_NORMALIZED_HISTORY}" == "1" ]]; then
   checker_args+=(--normalized-history "${NORMALIZED_HISTORY_FILE}")
@@ -722,7 +808,8 @@ if python3 "${checker_args[@]}" >"${REPORT_DIR}/checker_output.txt" 2>&1; then
 else
   status="$?"
   cat "${REPORT_DIR}/checker_output.txt"
-  record_error "linearizability checker failed with status ${status}"
+  checker_summary="$(sed -n '1p' "${REPORT_DIR}/checker_output.txt" 2>/dev/null || true)"
+  record_error "linearizability checker failed with status ${status}: ${checker_summary}"
   exit "${status}"
 fi
 

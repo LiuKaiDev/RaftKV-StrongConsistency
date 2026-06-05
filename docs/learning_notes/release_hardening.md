@@ -12,6 +12,12 @@ For a storage system, a feature list is not enough. Reviewers need evidence that
 
 Validation evidence is what turns the project from "implemented code" into an auditable engineering artifact.
 
+## Release Evidence Selection
+
+The release evidence collector must prefer the newest completed nightly report before older ad hoc reports. A completed nightly summary is the strongest single evidence source because it records every staged replay command and each `logs/<stage>.log` path under one run.
+
+The collector therefore reads the final nightly status from the summary instead of the first `status=` line, because stage blocks intentionally start with `status=RUNNING` and later end with `status=PASS` or `status=FAIL`. Historical `all-*` reports are only fallback evidence when the completed nightly has no result for that stage.
+
 ## Do Not Fake Benchmarks
 
 Benchmark numbers are only useful when they come from a real command, a real commit, a real machine, and preserved reports. Estimated numbers create false confidence and make later regressions impossible to reason about.

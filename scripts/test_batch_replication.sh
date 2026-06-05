@@ -68,6 +68,23 @@ status_value() {
   awk -F= -v key="${key}" '$1 == key {print $2; exit}'
 }
 
+status_node_block() {
+  local file="$1"
+  local id="$2"
+  awk -v node="===== node${id} =====" '
+    $0 == node {inside=1; next}
+    /^===== node/ {inside=0}
+    inside {print}
+  ' "${file}"
+}
+
+status_node_value() {
+  local file="$1"
+  local id="$2"
+  local key="$3"
+  status_node_block "${file}" "${id}" | status_value "${key}"
+}
+
 node_status() {
   local id="$1"
   "${CLIENT}" --servers="$(node_client_addr "${id}")" --timeout_ms=1000 --retries=1 status
@@ -144,7 +161,13 @@ write_diagnostics() {
     echo "last_discovered_leader=${LAST_DISCOVERED_LEADER}"
     echo "alive_nodes=$(alive_nodes)"
     echo "retry_count=${RETRY_COUNT}"
-    echo "replay_command=RUN_ID=${RUN_ID} RAFT_BASE_PORT=${RAFT_BASE_PORT} CLIENT_BASE_PORT=${CLIENT_BASE_PORT} bash scripts/test_batch_replication.sh"
+    echo "report_dir=${REPORT_DIR}"
+    echo "replay_command=TEST_DATA_ROOT=${TEST_DATA_ROOT} TEST_REPORT_ROOT=${TEST_REPORT_ROOT} RUN_ID=${RUN_ID} BUILD_JOBS=${BUILD_JOBS} RAFT_BASE_PORT=${RAFT_BASE_PORT} CLIENT_BASE_PORT=${CLIENT_BASE_PORT} bash scripts/test_batch_replication.sh"
+    if [[ -f "${REPORT_DIR}/ordinary_batch_metrics.txt" ]]; then
+      echo
+      echo "ordinary_batch_metrics:"
+      cat "${REPORT_DIR}/ordinary_batch_metrics.txt"
+    fi
   } >"${DIAG_DIR}/failure_context.txt"
   capture_status "${DIAG_DIR}/status_of_each_node.txt" || true
   local log_file base
@@ -164,7 +187,7 @@ write_summary() {
     echo "data_dir=${RUN_DIR}"
     echo "max_append_entries_per_rpc=${MAX_APPEND_ENTRIES_PER_RPC}"
     echo "max_inflight_append_entries_per_peer=${MAX_INFLIGHT_APPEND_ENTRIES_PER_PEER}"
-    echo "replay_command=RUN_ID=${RUN_ID} RAFT_BASE_PORT=${RAFT_BASE_PORT} CLIENT_BASE_PORT=${CLIENT_BASE_PORT} bash scripts/test_batch_replication.sh"
+    echo "replay_command=TEST_DATA_ROOT=${TEST_DATA_ROOT} TEST_REPORT_ROOT=${TEST_REPORT_ROOT} RUN_ID=${RUN_ID} BUILD_JOBS=${BUILD_JOBS} RAFT_BASE_PORT=${RAFT_BASE_PORT} CLIENT_BASE_PORT=${CLIENT_BASE_PORT} bash scripts/test_batch_replication.sh"
     echo "last_error=$(cat "${LAST_ERROR_FILE}" 2>/dev/null || true)"
     echo "last_request=${LAST_REQUEST}"
     echo "last_response=${LAST_RESPONSE}"
@@ -440,18 +463,83 @@ wait_status_caught_up() {
 assert_batch_metrics() {
   local before_file="$1"
   local after_file="$2"
-  local before_rpc after_rpc before_entries after_entries rpc_delta entries_delta max_batch catchup_success
-  before_rpc="$(awk -F= '$1 == "append_entries_batch_rpc_count" {sum += $2} END {print sum + 0}' "${before_file}")"
-  after_rpc="$(awk -F= '$1 == "append_entries_batch_rpc_count" {sum += $2} END {print sum + 0}' "${after_file}")"
-  before_entries="$(awk -F= '$1 == "append_entries_entries_sent" {sum += $2} END {print sum + 0}' "${before_file}")"
-  after_entries="$(awk -F= '$1 == "append_entries_entries_sent" {sum += $2} END {print sum + 0}' "${after_file}")"
+  local leader_id="$3"
+  local before_role after_role before_node_id after_node_id
+  local before_rpc after_rpc before_empty after_empty before_entries after_entries
+  local before_attempts after_attempts before_success after_success
+  local rpc_delta empty_delta non_empty_delta entries_delta attempts_delta success_delta
+  local max_batch metrics_report leader_before_report leader_after_report replay_command
+  local metrics_summary
+
+  before_role="$(status_node_value "${before_file}" "${leader_id}" role)"
+  after_role="$(status_node_value "${after_file}" "${leader_id}" role)"
+  before_node_id="$(status_node_value "${before_file}" "${leader_id}" node_id)"
+  after_node_id="$(status_node_value "${after_file}" "${leader_id}" node_id)"
+  before_rpc="$(status_node_value "${before_file}" "${leader_id}" append_entries_batch_rpc_count)"
+  after_rpc="$(status_node_value "${after_file}" "${leader_id}" append_entries_batch_rpc_count)"
+  before_empty="$(status_node_value "${before_file}" "${leader_id}" append_entries_empty_heartbeat_count)"
+  after_empty="$(status_node_value "${after_file}" "${leader_id}" append_entries_empty_heartbeat_count)"
+  before_entries="$(status_node_value "${before_file}" "${leader_id}" append_entries_entries_sent)"
+  after_entries="$(status_node_value "${after_file}" "${leader_id}" append_entries_entries_sent)"
+  before_attempts="$(status_node_value "${before_file}" "${leader_id}" follower_catchup_attempts)"
+  after_attempts="$(status_node_value "${after_file}" "${leader_id}" follower_catchup_attempts)"
+  before_success="$(status_node_value "${before_file}" "${leader_id}" follower_catchup_success)"
+  after_success="$(status_node_value "${after_file}" "${leader_id}" follower_catchup_success)"
+  max_batch="$(status_node_value "${after_file}" "${leader_id}" append_entries_max_batch_observed)"
+
+  if [[ "${before_role}" != "LEADER" || "${after_role}" != "LEADER" ||
+        "${before_node_id}" != "${leader_id}" || "${after_node_id}" != "${leader_id}" ]]; then
+    fail "ordinary_batch_catchup metrics window did not read the same Leader: leader_id=${leader_id} before_role=${before_role} after_role=${after_role} before_node_id=${before_node_id} after_node_id=${after_node_id}"
+  fi
+
+  for value in "${before_rpc}" "${after_rpc}" "${before_empty}" "${after_empty}" \
+               "${before_entries}" "${after_entries}" "${before_attempts}" \
+               "${after_attempts}" "${before_success}" "${after_success}" "${max_batch}"; do
+    [[ "${value}" =~ ^[0-9]+$ ]] || fail "ordinary_batch_catchup metrics contained a non-numeric value for leader_id=${leader_id}"
+  done
+
   rpc_delta=$((after_rpc - before_rpc))
+  empty_delta=$((after_empty - before_empty))
   entries_delta=$((after_entries - before_entries))
-  max_batch="$(awk -F= '$1 == "append_entries_max_batch_observed" && $2 > max {max = $2} END {print max + 0}' "${after_file}")"
-  catchup_success="$(awk -F= '$1 == "follower_catchup_success" {sum += $2} END {print sum + 0}' "${after_file}")"
-  [[ "${entries_delta}" -gt "${rpc_delta}" ]] || fail "expected entries_sent delta > batch_rpc_count delta, got ${entries_delta} <= ${rpc_delta}"
-  [[ "${max_batch}" -gt 1 ]] || fail "expected append_entries_max_batch_observed > 1, got ${max_batch}"
-  [[ "${catchup_success}" -gt 0 ]] || fail "expected follower_catchup_success > 0"
+  attempts_delta=$((after_attempts - before_attempts))
+  success_delta=$((after_success - before_success))
+  non_empty_delta=$((rpc_delta - empty_delta))
+
+  leader_before_report="${REPORT_DIR}/leader_status_before_ordinary.txt"
+  leader_after_report="${REPORT_DIR}/leader_status_after_ordinary.txt"
+  status_node_block "${before_file}" "${leader_id}" >"${leader_before_report}"
+  status_node_block "${after_file}" "${leader_id}" >"${leader_after_report}"
+  replay_command="TEST_DATA_ROOT=${TEST_DATA_ROOT} TEST_REPORT_ROOT=${TEST_REPORT_ROOT} RUN_ID=${RUN_ID} BUILD_JOBS=${BUILD_JOBS} RAFT_BASE_PORT=${RAFT_BASE_PORT} CLIENT_BASE_PORT=${CLIENT_BASE_PORT} bash scripts/test_batch_replication.sh"
+  metrics_report="${REPORT_DIR}/ordinary_batch_metrics.txt"
+  {
+    echo "leader_id=${leader_id}"
+    echo "batch_rpc_count_delta=${rpc_delta}"
+    echo "empty_heartbeat_count_delta=${empty_delta}"
+    echo "non_empty_batch_rpc_count_delta=${non_empty_delta}"
+    echo "entries_sent_delta=${entries_delta}"
+    echo "max_batch_observed=${max_batch}"
+    echo "follower_catchup_attempts_delta=${attempts_delta}"
+    echo "follower_catchup_success_delta=${success_delta}"
+    echo "final_consistency=PASS"
+    echo "leader_status_before=${leader_before_report}"
+    echo "leader_status_after=${leader_after_report}"
+    echo "report_dir=${REPORT_DIR}"
+    echo "replay_command=${replay_command}"
+  } >"${metrics_report}"
+
+  metrics_summary="batch_rpc_count_delta=${rpc_delta} empty_heartbeat_count_delta=${empty_delta} non_empty_batch_rpc_count_delta=${non_empty_delta} entries_sent_delta=${entries_delta} max_batch_observed=${max_batch} follower_catchup_attempts_delta=${attempts_delta} follower_catchup_success_delta=${success_delta} final_consistency=PASS leader_status_before=${leader_before_report} leader_status_after=${leader_after_report} report_dir=${REPORT_DIR} replay_command=${replay_command}"
+
+  [[ "${rpc_delta}" -ge 0 ]] || fail "batch_rpc_count_delta=${rpc_delta} is negative; metrics window changed process or reset; ${metrics_summary}"
+  [[ "${empty_delta}" -ge 0 ]] || fail "empty_heartbeat_count_delta=${empty_delta} is negative; metrics window changed process or reset; ${metrics_summary}"
+  [[ "${entries_delta}" -ge 0 ]] || fail "entries_sent_delta=${entries_delta} is negative; metrics window changed process or reset; ${metrics_summary}"
+  [[ "${attempts_delta}" -ge 0 ]] || fail "follower_catchup_attempts_delta=${attempts_delta} is negative; metrics window changed process or reset; ${metrics_summary}"
+  [[ "${success_delta}" -ge 0 ]] || fail "follower_catchup_success_delta=${success_delta} is negative; metrics window changed process or reset; ${metrics_summary}"
+  [[ "${rpc_delta}" -ge "${empty_delta}" ]] || fail "expected batch_rpc_count_delta >= empty_heartbeat_count_delta; ${metrics_summary}"
+  [[ "${non_empty_delta}" -gt 0 ]] || fail "expected non_empty_batch_rpc_count_delta > 0; ${metrics_summary}"
+  [[ "${entries_delta}" -ge "${non_empty_delta}" ]] || fail "expected entries_sent_delta >= non_empty_batch_rpc_count_delta; ${metrics_summary}"
+  [[ "${max_batch}" -gt 1 ]] || fail "expected append_entries_max_batch_observed > 1; ${metrics_summary}"
+  [[ "${attempts_delta}" -gt 0 ]] || fail "expected follower_catchup_attempts_delta > 0; ${metrics_summary}"
+  [[ "${success_delta}" -gt 0 ]] || fail "expected follower_catchup_success_delta > 0; ${metrics_summary}"
 }
 
 if [[ ! "${MAX_APPEND_ENTRIES_PER_RPC}" =~ ^[1-9][0-9]*$ ]]; then
@@ -481,15 +569,17 @@ follower="$(choose_follower "${leader}")"
 capture_status "${REPORT_DIR}/status_initial.txt"
 
 set_step "ordinary_batch_catchup"
+ordinary_leader="${leader}"
 capture_status "${REPORT_DIR}/status_before_ordinary.txt"
 stop_pid "$(cat "${PID_DIR}/node${follower}.pid")"
 put_range ordinary 1 24
 start_node "${follower}"
 leader="$(wait_for_leader)" || fail "leader missing after follower restart"
+[[ "${leader}" == "${ordinary_leader}" ]] || fail "ordinary_batch_catchup Leader changed during metrics window: before=${ordinary_leader} after=${leader}"
 wait_status_caught_up "${follower}" "${leader}" || fail "ordinary follower catch-up did not complete"
 wait_consistency "ordinary_catchup" || fail "ordinary catch-up consistency failed"
 capture_status "${REPORT_DIR}/status_after_ordinary.txt"
-assert_batch_metrics "${REPORT_DIR}/status_before_ordinary.txt" "${REPORT_DIR}/status_after_ordinary.txt"
+assert_batch_metrics "${REPORT_DIR}/status_before_ordinary.txt" "${REPORT_DIR}/status_after_ordinary.txt" "${leader}"
 
 set_step "snapshot_boundary_catchup"
 leader="$(wait_for_leader)" || fail "leader missing before snapshot scenario"

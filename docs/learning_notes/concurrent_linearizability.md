@@ -28,10 +28,23 @@ This task added an opt-in concurrent client validation stage for the three-node 
 - The search memoizes `(completed_mask, model_state)` states and checks independent quiescent components in order.
 - The checker returns `INCONCLUSIVE` instead of `PASS` when the timeout expires or a key exceeds the configured record limit.
 
+## Result classification
+
+The checker now separates safety, liveness, infrastructure, timeout, and pass outcomes:
+
+- `PASS`: every checked operation has a definitive result and the bounded search found a legal linearization.
+- `LINEARIZABILITY_SAFETY_FAIL`: a definitive completed history has no legal linearization, or duplicate `client_id + request_id` records disagree.
+- `WORKLOAD_LIVENESS_FAIL`: at least one operation exhausted the retry window with only retriable infrastructure errors, while the completed prefix before the first uncertain operation is linearizable.
+- `INFRASTRUCTURE_FAIL`: the history or checker run hit a fatal infrastructure error rather than a KV semantic contradiction.
+- `INCONCLUSIVE`: the checker timed out or hit the configured per-key record limit.
+
+When an operation ends with `RETRIABLE_INFRASTRUCTURE_ERROR`, the checker must not pretend that operation has a KV result. It also must not simply drop the uncertain operation and declare the rest of the history safe: an uncertain write may have committed and affected later reads. For workload liveness failures, the checker therefore runs the safety search only on definitive operations that completed before the first uncertain operation began, then reports the uncertain operation and attempt timeline separately.
+
 ## Failure diagnostics
 
-- On `FAIL`, the checker now writes `linearizability_failure.json` and `linearizability_failure.txt`.
+- On non-`PASS`, the checker writes `linearizability_failure.json` and `linearizability_failure.txt`.
 - The diagnostic includes the failing key, normalized per-key history, real-time order edges, the search frontier where all candidates were lost, model state at that frontier, remaining candidate operations, and a per-candidate reason.
+- Workload liveness diagnostics include `completed_history_linearizable`, incomplete operation count, retriable error count, exhausted retry count, failed sequence, client/request identity, last error, attempt timeline, and fault timeline.
 - The legacy `linearizability_failure.jsonl` file now contains a minimized failure fragment when the checker can identify one.
 - `normalized_history.jsonl` can be saved by the test script with `SAVE_NORMALIZED_HISTORY=1`.
 
@@ -45,6 +58,30 @@ This task added an opt-in concurrent client validation stage for the three-node 
 - `full`: run both follower and leader restart faults.
 
 The checker timeout can be configured with `CHECKER_TIMEOUT_SECONDS`.
+
+Each worker retries transient errors within a bounded operation window, defaulting to:
+
+```bash
+OPERATION_RETRY_TIMEOUT_SECONDS=10
+OPERATION_RETRY_INTERVAL_MS=100
+```
+
+Retries keep the same `client_id`, `request_id`, operation, key, and value. Leader hints are followed only after the hinted node's `status` confirms `role=LEADER`; otherwise the worker polls reachable status endpoints and sends to the unique discovered Leader, or to all reachable nodes when no unique Leader is visible. This keeps the workload concurrent through fault windows without retrying forever or trusting stale hints.
+
+Failure reports include `status_on_failure.txt`, per-node log tails, `client_attempts.log`, `faults.jsonl`, and recovery status snapshots after follower and Leader restarts when those phases run.
+
+## Nightly liveness diagnosis
+
+A nightly run failed at sequence 52:
+
+```text
+operation=GET key=k3
+client_id=linear_worker_3_23260613
+request_id=15
+result_class=RETRIABLE_INFRASTRUCTURE_ERROR
+```
+
+The operation retried 30 times under the old fixed-attempt budget. Attempts 1-7 returned `not leader` with leader hint `2 127.0.0.1:30362`, attempts 9-24 hit `empty response from 127.0.0.1:30363`, and the final attempts returned `NOT_LEADER`. The fault timeline had stopped and restarted a follower, then stopped and restarted the original Leader. Node logs showed node2 later stepped down after CheckQuorum lost majority, while node3 could only pre-vote as a single node. That is a workload availability/liveness failure under the injected fault window, not proof of a KV safety violation.
 
 ## Current diagnostic result
 
