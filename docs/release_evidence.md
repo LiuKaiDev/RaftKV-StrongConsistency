@@ -1,12 +1,12 @@
 # v1.0 Release Evidence
 
-Generated at: 2026-06-05T14:41:57+0800
+Generated at: 2026-06-05T15:41:19+0800
 
-Git commit: `8a999364575300d07812cdadfe900f07c9d07cb1`
+Git commit: `3fbd15c315c486916ceddb70b1a3c3691f12fd7c`
 
 Report root: `/tmp/raftkv-test-reports`
 
-Most recent top-level report directory: `/tmp/raftkv-test-reports/nightly-20260605-142226`
+Most recent top-level report directory: `/tmp/raftkv-test-reports/release-replication-matrix-100ms-batched-20260605-153408`
 
 Preferred completed nightly report: `/tmp/raftkv-test-reports/nightly-20260605-142226/summary.txt`
 
